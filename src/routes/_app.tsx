@@ -48,52 +48,17 @@ export const Route = createFileRoute('/_app')({
 // Scan progress modal
 // ---------------------------------------------------------------------------
 
-function JobRow({ jobId, label }: { jobId: string; label: string }) {
-  const { data: job } = useQuery({
-    queryKey: ['scan-progress', jobId],
-    queryFn: () => getScanJob(jobId),
-    refetchInterval: (query) => {
-      const s = (query.state.data as { status?: string } | undefined)?.status
-      return s === 'completed' || s === 'failed' ? false : 3_000
-    },
-  })
-
-  const done = job?.progress?.done ?? 0
-  const isComplete = job?.status === 'completed' || job?.status === 'failed'
-  const currentPage = job?.pages?.find((p: { status: string }) => p.status === 'running')
-    ?? job?.pages?.[job.pages.length - 1]
-
-  return (
-    <div className="flex items-center justify-between gap-3 py-2">
-      <div className="flex items-center gap-2 min-w-0">
-        <span className={cn(
-          'text-xs font-semibold px-2 py-0.5 rounded-full shrink-0',
-          label === 'Mobile' ? 'bg-violet-100 text-violet-700' : 'bg-sky-100 text-sky-700'
-        )}>{label}</span>
-        <span className="text-sm text-gray-600 truncate">
-          {currentPage?.url ?? '—'}
-        </span>
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <span className="text-xs text-gray-400">{done} pg</span>
-        {isComplete
-          ? <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-          : <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        }
-      </div>
-    </div>
-  )
-}
-
 function ScanProgressModal({
   desktopJobId,
   mobileJobId,
   websiteUrl,
+  websiteName,
   onClose,
 }: {
   desktopJobId: string | null
   mobileJobId: string | null
   websiteUrl: string
+  websiteName: string
   onClose: () => void
 }) {
   const navigate = useNavigate()
@@ -186,71 +151,108 @@ function ScanProgressModal({
     )
   }
 
+  // Collect all unique pages across both jobs
+  type PageEntry = { url: string; done: boolean }
+  const seenUrls = new Set<string>()
+  const allPages: PageEntry[] = []
+  for (const job of [desktopJob, mobileJob]) {
+    for (const p of job?.pages ?? []) {
+      if (!seenUrls.has(p.url)) {
+        seenUrls.add(p.url)
+        allPages.push({ url: p.url, done: p.status === 'completed' })
+      }
+    }
+  }
+
   // ── In-progress state ────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-        {/* Main card */}
-        <div className="flex">
-          {/* Left content */}
-          <div className="flex-1 p-8">
-            <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-2xl font-bold text-gray-900">Scanning...</h2>
-              <span className="px-2.5 py-1 text-xs font-semibold bg-amber-100 text-amber-700 rounded-full">
-                Quick scan
-              </span>
-            </div>
-            <p className="text-sm text-gray-500 mb-5">
-              Desktop and mobile scans are running simultaneously for {websiteUrl || 'your site'}.
-            </p>
+      <div className="w-full max-w-2xl space-y-3">
+        {/* X button */}
+        <div className="flex justify-end">
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/80 hover:bg-white transition-colors shadow">
+            <X className="w-4 h-4 text-gray-600" />
+          </button>
+        </div>
 
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-5 h-5 border-2 border-blue-500 rounded-sm flex items-center justify-center shrink-0">
-                <div className="w-2.5 h-0.5 bg-blue-500" />
+        {/* Top card */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
+          <div className="flex">
+            {/* Left */}
+            <div className="flex-1 p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-1">
+                {websiteName ? `${websiteName} scanning...` : 'Scanning...'}
+              </h2>
+              <p className="text-sm text-gray-500 mb-5">
+                Desktop and mobile scans are running simultaneously for {websiteUrl || 'your site'}.
+              </p>
+
+              <div className="flex items-center gap-2 mb-4 text-blue-600">
+                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <path d="M3 9h18M9 21V9" />
+                </svg>
+                <span className="text-sm font-semibold">{totalPages} pages scanned</span>
               </div>
-              <span className="text-sm font-medium text-gray-700">{totalPages} pages scanned total</span>
+
+              {/* Page list */}
+              <div>
+                <div className="bg-blue-50 rounded-t-lg px-4 py-2">
+                  <span className="text-sm font-semibold text-gray-700">Currently scanning :</span>
+                </div>
+                <div className="border border-gray-100 rounded-b-lg divide-y divide-gray-100 max-h-44 overflow-y-auto">
+                  {allPages.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-gray-400">Waiting for scanner...</div>
+                  ) : allPages.map((p) => (
+                    <div key={p.url} className="flex items-center justify-between px-4 py-2.5 gap-3">
+                      <span className="text-sm text-gray-600 truncate">{p.url}</span>
+                      {p.done
+                        ? <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        : <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                      }
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            <div className="rounded-xl bg-gray-100 px-4 py-3 divide-y divide-gray-200">
-              <p className="text-sm font-semibold text-gray-700 pb-2">Currently scanning:</p>
-              {desktopJobId && <JobRow jobId={desktopJobId} label="Desktop" />}
-              {mobileJobId && <JobRow jobId={mobileJobId} label="Mobile" />}
+            {/* Right illustration */}
+            <div className="hidden sm:flex w-40 shrink-0 items-center justify-center p-5 bg-gray-50">
+              <svg viewBox="0 0 120 110" className="w-full" fill="none">
+                <rect x="8" y="8" width="104" height="74" rx="6" fill="#BFDBFE" />
+                <rect x="8" y="8" width="104" height="18" rx="6" fill="#3B82F6" />
+                <rect x="16" y="34" width="30" height="20" rx="3" fill="#93C5FD" />
+                <rect x="52" y="34" width="30" height="20" rx="3" fill="#93C5FD" />
+                <rect x="88" y="34" width="16" height="20" rx="3" fill="#93C5FD" />
+                <rect x="16" y="60" width="88" height="8" rx="2" fill="#BAE6FD" />
+                <rect x="16" y="72" width="60" height="8" rx="2" fill="#BAE6FD" />
+                <ellipse cx="60" cy="94" rx="42" ry="6" fill="#DBEAFE" />
+              </svg>
             </div>
-          </div>
-
-          {/* Right illustration */}
-          <div className="hidden sm:flex w-44 shrink-0 bg-blue-50 items-center justify-center p-6">
-            <svg viewBox="0 0 120 110" className="w-full opacity-80" fill="none">
-              <rect x="10" y="8" width="100" height="70" rx="6" fill="#BFDBFE" />
-              <rect x="10" y="8" width="100" height="16" rx="6" fill="#3B82F6" />
-              <rect x="18" y="30" width="28" height="18" rx="3" fill="#93C5FD" />
-              <rect x="50" y="30" width="28" height="18" rx="3" fill="#93C5FD" />
-              <rect x="82" y="30" width="20" height="18" rx="3" fill="#93C5FD" />
-              <rect x="18" y="54" width="84" height="8" rx="2" fill="#BAE6FD" />
-              <rect x="18" y="66" width="60" height="8" rx="2" fill="#BAE6FD" />
-              <ellipse cx="60" cy="90" rx="40" ry="6" fill="#DBEAFE" />
-            </svg>
           </div>
         </div>
 
-        {/* Info box */}
-        <div className="mx-6 mb-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
-          <p className="text-sm text-gray-700 mb-2">
-            The scan is in progress and may take a few minutes, depending on your site's size and structure.
+        {/* Bottom info card */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-xl px-6 py-5">
+          <p className="text-sm text-gray-700 mb-3">
+            The scanning process is ongoing and may take minutes or even hours depending on the size of your website. Meanwhile, you can:
           </p>
           <ul className="text-sm text-gray-600 space-y-1 list-disc pl-4">
-            <li>The dashboard will be available to explore once the first page is scanned.</li>
-            <li>You'll get an email notification when the scan is complete.</li>
+            <li>Explore the dashboard</li>
+            <li>We'll notify you via email, once the scan is completed</li>
           </ul>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 pb-6 flex justify-end">
+        {/* Footer buttons */}
+        <div className="flex items-center justify-end gap-4 px-1">
+          <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+            Cancel scan
+          </button>
           <button
             onClick={handleExploreDashboard}
             className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
           >
-            Explore dashboard
+            Back to dashboard
           </button>
         </div>
       </div>
@@ -270,7 +272,7 @@ function AppLayout() {
   const [websiteDrop, setWebsiteDrop] = useState(false)
   const [strategyDrop, setStrategyDrop] = useState(false)
   const [userMenu, setUserMenu] = useState(false)
-  const [scanModal, setScanModal] = useState<{ desktopJobId: string | null; mobileJobId: string | null; url: string } | null>(null)
+  const [scanModal, setScanModal] = useState<{ desktopJobId: string | null; mobileJobId: string | null; url: string; websiteName: string } | null>(null)
   const websiteRef = useRef<HTMLDivElement>(null)
   const strategyRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
@@ -336,6 +338,7 @@ function AppLayout() {
         desktopJobId: desktopId ? String(desktopId) : null,
         mobileJobId: mobileId ? String(mobileId) : null,
         url: selectedWebsite?.url ?? '',
+        websiteName: selectedWebsite?.name ?? '',
       })
     },
     onError: () => toast.error('Could not start scan'),
@@ -367,6 +370,7 @@ function AppLayout() {
           desktopJobId={scanModal.desktopJobId}
           mobileJobId={scanModal.mobileJobId}
           websiteUrl={scanModal.url}
+          websiteName={scanModal.websiteName}
           onClose={() => setScanModal(null)}
         />
       )}

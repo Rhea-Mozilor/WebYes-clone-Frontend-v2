@@ -76,8 +76,13 @@ function AppLayout() {
       setWebsiteId(site.id)
       setNewName(''); setNewUrl(''); setShowAddForm(false); setWebsiteDrop(false)
       toast.success('Website added!')
-    } catch {
-      toast.error('Could not add website')
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      if (status === 409) {
+        toast.error('A website with that name or URL already exists')
+      } else {
+        toast.error('Could not add website')
+      }
     } finally {
       setAddLoading(false)
     }

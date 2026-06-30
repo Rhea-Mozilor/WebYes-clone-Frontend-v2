@@ -7,7 +7,7 @@ export const Route = createFileRoute('/_app/settings')({
   component: SettingsPage,
 })
 
-const TABS = ['General setting', 'Accessibility', 'Uptime settings'] as const
+const TABS = ['General setting', 'Accessibility'] as const
 type Tab = typeof TABS[number]
 
 const LOCATIONS = [
@@ -188,13 +188,6 @@ function AccessibilitySetting() {
   )
 }
 
-function UptimeSetting() {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-      <p className="text-sm text-gray-400 text-center py-8">Uptime settings coming soon.</p>
-    </div>
-  )
-}
 
 function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('General setting')
@@ -224,7 +217,7 @@ function SettingsPage() {
       <div className="flex-1 p-4 sm:p-6">
         {activeTab === 'General setting' && <GeneralSetting />}
         {activeTab === 'Accessibility' && <AccessibilitySetting />}
-        {activeTab === 'Uptime settings' && <UptimeSetting />}
+
       </div>
     </div>
   )

@@ -663,6 +663,7 @@ function AppLayout() {
 
           <Link
             to="/settings"
+            search={{ tab: '' }}
             title="Settings"
             className={cn(
               'w-10 h-10 rounded-xl flex items-center justify-center transition-colors',

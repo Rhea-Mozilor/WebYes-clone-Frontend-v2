@@ -325,6 +325,7 @@ function DashboardPage() {
   const { data: websites = [], refetch: refetchWebsites } = useQuery({
     queryKey: ['websites'],
     queryFn: listWebsites,
+    staleTime: Infinity,
   })
 
   const { data: history = [], isLoading: histLoading } = useQuery({

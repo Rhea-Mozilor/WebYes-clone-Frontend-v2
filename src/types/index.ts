@@ -364,6 +364,7 @@ export interface AccessibilityScoreResponse {
   wcag_level: string;
   level_a_score: number | null;
   level_aa_score: number | null;
+  level_aaa_score: number | null;
   total_issues: number;
   previous_total_issues: number | null;
   critical_issues: number;

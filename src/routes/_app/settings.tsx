@@ -4,6 +4,9 @@ import { Info, Wifi } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
 export const Route = createFileRoute('/_app/settings')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: typeof search.tab === 'string' ? search.tab : '',
+  }),
   component: SettingsPage,
 })
 
@@ -181,13 +184,20 @@ function GeneralSetting() {
 }
 
 function AccessibilitySetting() {
-  const [levelAAA, setLevelAAA] = useState(true)
+  const [levelAAA, setLevelAAA] = useState(
+    () => localStorage.getItem('levelAAAEnabled') !== 'false'
+  )
+
+  function toggleAAA(v: boolean) {
+    setLevelAAA(v)
+    localStorage.setItem('levelAAAEnabled', String(v))
+  }
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
       <div className="flex items-center gap-3">
         <span className="text-sm font-medium text-gray-800">Enable Level AAA checks</span>
         <button
-          onClick={() => setLevelAAA((v) => !v)}
+          onClick={() => toggleAAA(!levelAAA)}
           className={cn(
             'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none',
             levelAAA ? 'bg-blue-600' : 'bg-gray-200'
@@ -213,7 +223,10 @@ function AccessibilitySetting() {
 
 
 function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('General setting')
+  const { tab } = Route.useSearch()
+  const [activeTab, setActiveTab] = useState<Tab>(
+    tab === 'accessibility' ? 'Accessibility' : 'General setting'
+  )
 
   return (
     <div className="flex flex-col min-h-full">

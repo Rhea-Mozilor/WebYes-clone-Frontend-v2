@@ -126,6 +126,8 @@ function AccessibilityPage() {
 
   const levelA = scoreData?.level_a_score ?? 0
   const levelAA = scoreData?.level_aa_score ?? 0
+  const levelAAA = scoreData?.level_aaa_score ?? null
+  const levelAAAEnabled = localStorage.getItem('levelAAAEnabled') !== 'false'
 
   const trendPct = scoreData?.score_change_percent ?? null
 
@@ -224,11 +226,20 @@ function AccessibilityPage() {
                     <div className="text-xs text-gray-500 mb-1">Level AA</div>
                     <div className="text-xl font-bold text-gray-900">{levelAA}%</div>
                   </div>
-                  <div className="text-center p-3 border border-gray-100 rounded-xl bg-gray-50">
-                    <div className="text-xs text-gray-400 leading-tight">
-                      Level AAA via <span className="text-blue-600">settings</span>
+                  {levelAAAEnabled ? (
+                    <div className="text-center p-3 border border-gray-100 rounded-xl">
+                      <div className="text-xs text-gray-500 mb-1">Level AAA</div>
+                      <div className="text-xl font-bold text-gray-900">
+                        {levelAAA !== null ? `${levelAAA}%` : '—'}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="text-center p-3 border border-gray-100 rounded-xl bg-gray-50">
+                      <div className="text-xs text-gray-400 leading-tight">
+                        Level AAA via <Link to="/settings" search={{ tab: 'accessibility' }} className="text-blue-600 hover:underline">settings</Link>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -32,7 +32,7 @@ import toast from 'react-hot-toast'
 import { cn } from '../lib/utils'
 import { getMe, logout } from '../api/auth'
 import { listWebsites, createWebsite } from '../api/websites'
-import { triggerScan } from '../api/scans'
+import { triggerScan, getScanJob } from '../api/scans'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/authStore'
 import { useSiteStore } from '../store/siteStore'
@@ -43,6 +43,124 @@ export const Route = createFileRoute('/_app')({
   },
   component: AppLayout,
 })
+
+// ---------------------------------------------------------------------------
+// Scan progress modal
+// ---------------------------------------------------------------------------
+
+function ScanProgressModal({
+  scanJobId,
+  websiteUrl,
+  onClose,
+}: {
+  scanJobId: string
+  websiteUrl: string
+  onClose: () => void
+}) {
+  const navigate = useNavigate()
+
+  const { data: job } = useQuery({
+    queryKey: ['scan-progress', scanJobId],
+    queryFn: () => getScanJob(scanJobId),
+    refetchInterval: (query) => {
+      const s = (query.state.data as { status?: string } | undefined)?.status
+      return s === 'completed' || s === 'failed' ? false : 3_000
+    },
+  })
+
+  const pagesScanned = job?.progress?.done ?? 0
+  const currentPage = job?.pages?.find((p: { status: string }) => p.status === 'running')
+    ?? job?.pages?.[job.pages.length - 1]
+  const isComplete = job?.status === 'completed' || job?.status === 'failed'
+
+  function handleExploreDashboard() {
+    onClose()
+    navigate({ to: '/dashboard' })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+        {/* Main card */}
+        <div className="flex gap-0">
+          {/* Left content */}
+          <div className="flex-1 p-8">
+            <div className="flex items-center gap-3 mb-2">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {isComplete ? 'Scan complete!' : 'Scanning...'}
+              </h2>
+              <span className="px-2.5 py-1 text-xs font-semibold bg-amber-100 text-amber-700 rounded-full">
+                Quick scan
+              </span>
+            </div>
+            <p className="text-sm text-gray-500 mb-6">
+              Run a quick single-page scan for a snapshot of key issues affecting this page.
+            </p>
+
+            <div className="flex items-center gap-2 mb-5">
+              <div className="w-5 h-5 border-2 border-blue-500 rounded-sm flex items-center justify-center shrink-0">
+                <div className="w-2.5 h-0.5 bg-blue-500" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">{pagesScanned} pages scanned</span>
+            </div>
+
+            <div className="rounded-xl bg-gray-100 px-4 py-3">
+              <p className="text-sm font-semibold text-gray-700 mb-3">Currently scanning:</p>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-gray-600 truncate">
+                  {currentPage?.url ?? websiteUrl}
+                </span>
+                {!isComplete && (
+                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                )}
+                {isComplete && (
+                  <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right illustration */}
+          <div className="hidden sm:flex w-48 shrink-0 bg-blue-50 items-center justify-center p-6">
+            <svg viewBox="0 0 120 110" className="w-full opacity-80" fill="none">
+              <rect x="10" y="8" width="100" height="70" rx="6" fill="#BFDBFE" />
+              <rect x="10" y="8" width="100" height="16" rx="6" fill="#3B82F6" />
+              <rect x="18" y="30" width="28" height="18" rx="3" fill="#93C5FD" />
+              <rect x="50" y="30" width="28" height="18" rx="3" fill="#93C5FD" />
+              <rect x="82" y="30" width="20" height="18" rx="3" fill="#93C5FD" />
+              <rect x="18" y="54" width="84" height="8" rx="2" fill="#BAE6FD" />
+              <rect x="18" y="66" width="60" height="8" rx="2" fill="#BAE6FD" />
+              <ellipse cx="60" cy="90" rx="40" ry="6" fill="#DBEAFE" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Info box */}
+        <div className="mx-6 mb-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
+          <p className="text-sm text-gray-700 mb-2">
+            The scan is in progress and may take a few minutes, depending on your site's size and structure.
+          </p>
+          <ul className="text-sm text-gray-600 space-y-1 list-disc pl-4">
+            <li>The dashboard will be available to explore once the first page is scanned.</li>
+            <li>You'll get an email notification when the scan is complete.</li>
+          </ul>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 pb-6 flex justify-end">
+          <button
+            onClick={handleExploreDashboard}
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            Explore dashboard
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function AppLayout() {
   const navigate = useNavigate()
@@ -56,6 +174,7 @@ function AppLayout() {
   const [websiteDrop, setWebsiteDrop] = useState(false)
   const [strategyDrop, setStrategyDrop] = useState(false)
   const [userMenu, setUserMenu] = useState(false)
+  const [scanModal, setScanModal] = useState<{ jobId: string; url: string } | null>(null)
   const websiteRef = useRef<HTMLDivElement>(null)
   const strategyRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
@@ -114,13 +233,12 @@ function AppLayout() {
   const scanMutation = useMutation({
     mutationFn: () => triggerScan(websiteId!),
     onSuccess: (job) => {
-      toast.success('Scan started!')
       const scanId =
         strategy === 'mobile'
           ? (job.mobile_scan_job_id ?? job.scan_job_id)
           : (job.desktop_scan_job_id ?? job.scan_job_id)
       if (!scanId) { toast.error('Scan started but could not get job ID'); return }
-      navigate({ to: '/scans/$scanId', params: { scanId: String(scanId) } })
+      setScanModal({ jobId: String(scanId), url: selectedWebsite?.url ?? '' })
     },
     onError: () => toast.error('Could not start scan'),
   })
@@ -146,6 +264,13 @@ function AppLayout() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+      {scanModal && (
+        <ScanProgressModal
+          scanJobId={scanModal.jobId}
+          websiteUrl={scanModal.url}
+          onClose={() => setScanModal(null)}
+        />
+      )}
       {/* ── Full-width header ─────────────────────────────────────── */}
       <header className="h-14 bg-white border-b border-gray-100 flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 z-20 shrink-0 w-full">
           <span className="font-bold text-xl text-gray-900 mr-1 hidden sm:block">

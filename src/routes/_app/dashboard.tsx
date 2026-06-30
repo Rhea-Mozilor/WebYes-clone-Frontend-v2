@@ -37,7 +37,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '../../components/ui/dialog'
-import type { IssueCategory, IssuePriority, IssueSeverity } from '../../types'
+import type { IssueCategory, IssuePriority, IssueSeverity, ScanHistoryItem } from '../../types'
 
 export const Route = createFileRoute('/_app/dashboard')({
   component: DashboardPage,
@@ -331,9 +331,9 @@ function DashboardPage() {
     queryKey: ['history', websiteId],
     queryFn: () => getWebsiteScanHistory(websiteId!),
     enabled: !!websiteId,
-    refetchInterval: (query) => {
-      const data = query.state.data as typeof history | undefined
-      const hasActive = data?.some((h) => h.status === 'pending' || h.status === 'running')
+    refetchInterval: (query): number | false => {
+      const data = query.state.data as ScanHistoryItem[] | undefined
+      const hasActive = data?.some((h: ScanHistoryItem) => h.status === 'pending' || h.status === 'running')
       return hasActive ? 5_000 : false
     },
   })

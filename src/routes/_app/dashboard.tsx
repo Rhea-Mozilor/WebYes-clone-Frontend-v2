@@ -331,7 +331,11 @@ function DashboardPage() {
     queryKey: ['history', websiteId],
     queryFn: () => getWebsiteScanHistory(websiteId!),
     enabled: !!websiteId,
-    refetchInterval: 10_000,
+    refetchInterval: (query) => {
+      const data = query.state.data as typeof history | undefined
+      const hasActive = data?.some((h) => h.status === 'pending' || h.status === 'running')
+      return hasActive ? 5_000 : false
+    },
   })
 
   const completedScans = history.filter((h) => h.status === 'completed')

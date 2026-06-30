@@ -181,9 +181,32 @@ function GeneralSetting() {
 }
 
 function AccessibilitySetting() {
+  const [levelAAA, setLevelAAA] = useState(true)
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-      <p className="text-sm text-gray-400 text-center py-8">Accessibility settings coming soon.</p>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium text-gray-800">Enable Level AAA checks</span>
+        <button
+          onClick={() => setLevelAAA((v) => !v)}
+          className={cn(
+            'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none',
+            levelAAA ? 'bg-blue-600' : 'bg-gray-200'
+          )}
+        >
+          <span className={cn(
+            'inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200',
+            levelAAA ? 'translate-x-5' : 'translate-x-0'
+          )} />
+        </button>
+      </div>
+      <div className="flex items-start gap-2.5 px-3 py-3 bg-blue-50 rounded-xl border border-blue-100">
+        <svg className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <p className="text-xs text-blue-700 leading-relaxed">
+          Enabling Level AAA checks will include AAA compliance scores and issues in your dashboard. If disabled, only Level AA compliance will be assessed.
+        </p>
+      </div>
     </div>
   )
 }

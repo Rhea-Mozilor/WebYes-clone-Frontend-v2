@@ -8,7 +8,7 @@ import {
 import {
   AlertTriangle, Info, Loader2, CheckCircle2, ClipboardList, Ban,
   AlertCircle, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Check, X,
+  Check, X, Search, SlidersHorizontal, Download,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useSiteStore } from '../../store/siteStore'
@@ -44,10 +44,24 @@ function scoreColor(s: number) {
   return '#ef4444'
 }
 
+function pageName(url: string): string {
+  try {
+    const path = new URL(url).pathname.replace(/\/$/, '')
+    const parts = path.split('/').filter(Boolean)
+    if (!parts.length) return 'Home'
+    return decodeURIComponent(parts[parts.length - 1])
+      .replace(/[-_]/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+  } catch {
+    return url
+  }
+}
+
 function AccessibilityPage() {
   const { websiteId } = useSiteStore()
   const [activeTab, setActiveTab] = useState('Dashboard')
   const [issuesLogPage, setIssuesLogPage] = useState(1)
+  const [pagesSearch, setPagesSearch] = useState('')
 
   const { data: history = [], isLoading } = useQuery({
     queryKey: ['history', websiteId],
@@ -442,54 +456,123 @@ function AccessibilityPage() {
 
       {/* Affected pages */}
       {activeTab === 'Affected pages' && (
-        <div className="flex-1 p-3 sm:p-6">
+        <div className="flex-1 p-3 sm:p-6 space-y-4">
+          {/* Top: most-affected page cards */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h3 className="text-sm font-bold text-gray-900 mb-4">
-              Affected pages {pagesList ? `(${pagesList.items.length})` : ''}
-            </h3>
+            <h3 className="text-base font-bold text-gray-900 mb-1">Accessibility issues per page</h3>
+            <p className="text-xs text-gray-400 mb-4">Pages with most issues</p>
             {!pagesList ? (
-              <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-400" /></div>
+              <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
             ) : pagesList.items.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center py-12">No affected pages found</p>
+              <p className="text-xs text-gray-400 text-center py-8">No page data</p>
+            ) : (
+              <div className="flex gap-4 overflow-x-auto pb-2">
+                {pagesList.items.slice().sort((a, b) => b.total_issues - a.total_issues).slice(0, 8).map((item, i) => {
+                  const barColor = item.priority === 'high' ? '#ef4444' : item.priority === 'medium' ? '#f59e0b' : '#22c55e'
+                  const name = pageName(item.page_url)
+                  return (
+                    <div key={i} className="shrink-0 w-44 rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+                      <div className="h-28 bg-gray-100 flex items-center justify-center px-2 text-center">
+                        <span className="text-xs text-gray-400 leading-snug">{name}</span>
+                      </div>
+                      <div className="p-3 flex-1">
+                        <div className="flex items-start justify-between gap-1 mb-3">
+                          <span className="text-xs font-semibold text-gray-800 leading-tight line-clamp-2">{name}</span>
+                          <a href={item.page_url} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-blue-600 shrink-0 mt-0.5">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" /></svg>
+                          </a>
+                        </div>
+                        <div className="flex gap-4">
+                          <div>
+                            <div className="text-sm font-bold text-gray-900">{item.total_issues}</div>
+                            <div className="text-[10px] text-gray-400">Total issues</div>
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-gray-900">{item.critical_issues}</div>
+                            <div className="text-[10px] text-gray-400">Critical issues</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="h-1.5" style={{ backgroundColor: barColor }} />
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Bottom: pages list table */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+              <h3 className="text-base font-bold text-gray-900">Pages list</h3>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
+                  <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search by pages"
+                    value={pagesSearch}
+                    onChange={(e) => setPagesSearch(e.target.value)}
+                    className="text-xs text-gray-700 placeholder-gray-400 outline-none w-36"
+                  />
+                </div>
+                <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-400 transition-colors">
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                </button>
+                <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-400 transition-colors">
+                  <Download className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+            {!pagesList ? (
+              <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
+            ) : pagesList.items.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-8">No affected pages found</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100">
-                      <th className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4">Page URL</th>
-                      <th className="text-right text-xs font-semibold text-gray-500 pb-3 pr-4 w-24">Score</th>
-                      <th className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4 w-24">Priority</th>
-                      <th className="text-right text-xs font-semibold text-gray-500 pb-3 pr-4 w-28">Total Issues</th>
-                      <th className="text-right text-xs font-semibold text-gray-500 pb-3 w-28">Critical</th>
+                      <th className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4">Pages</th>
+                      <th className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4 w-20">Score</th>
+                      <th className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4 w-28">
+                        <span className="flex items-center gap-1">Priority <ChevronDown className="w-3 h-3" /></span>
+                      </th>
+                      <th className="text-right text-xs font-semibold text-gray-500 pb-3 pr-4 w-32">Critical issues</th>
+                      <th className="text-right text-xs font-semibold text-gray-500 pb-3 w-24">Total issues</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {pagesList.items.map((item, i) => {
-                      const s = item.score ?? 0
-                      return (
-                        <tr key={i} className="hover:bg-gray-50">
-                          <td className="py-3 pr-4">
-                            <span className="text-xs text-gray-700 truncate block max-w-sm">{item.page_url}</span>
-                          </td>
-                          <td className="py-3 pr-4 text-right">
-                            <span className="text-xs font-bold" style={{ color: scoreColor(s) }}>{s}%</span>
-                          </td>
-                          <td className="py-3 pr-4">
-                            {item.priority && (
-                              <span className={cn('inline-flex px-2 py-0.5 rounded-full text-xs font-medium', priorityBadgeClass(item.priority))}>
-                                {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 pr-4 text-right">
-                            <span className="text-xs text-gray-700">{item.total_issues}</span>
-                          </td>
-                          <td className="py-3 text-right">
-                            <span className="text-xs font-semibold text-red-600">{item.critical_issues}</span>
-                          </td>
-                        </tr>
-                      )
-                    })}
+                    {pagesList.items
+                      .filter((item) => !pagesSearch || item.page_url.toLowerCase().includes(pagesSearch.toLowerCase()))
+                      .map((item, i) => {
+                        const s = item.score ?? 0
+                        const shortUrl = item.page_url.replace(/^https?:\/\//, '')
+                        return (
+                          <tr key={i} className="hover:bg-gray-50">
+                            <td className="py-3 pr-4">
+                              <div className="text-xs font-medium text-gray-800">{pageName(item.page_url)}</div>
+                              <div className="text-xs text-gray-400 mt-0.5">URL : <a href={item.page_url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600">{shortUrl}</a></div>
+                            </td>
+                            <td className="py-3 pr-4">
+                              <span className="text-xs font-bold" style={{ color: scoreColor(s) }}>{s}%</span>
+                            </td>
+                            <td className="py-3 pr-4">
+                              {item.priority && (
+                                <span className={cn('inline-flex px-2 py-0.5 rounded-full text-xs font-medium', priorityBadgeClass(item.priority))}>
+                                  {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 pr-4 text-right">
+                              <span className="text-xs font-semibold text-red-500">{item.critical_issues}</span>
+                            </td>
+                            <td className="py-3 text-right">
+                              <span className="text-xs text-gray-700">{item.total_issues}</span>
+                            </td>
+                          </tr>
+                        )
+                      })}
                   </tbody>
                 </table>
               </div>

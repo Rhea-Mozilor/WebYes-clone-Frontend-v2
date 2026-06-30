@@ -82,7 +82,7 @@ function WebsiteDetailPage() {
           {(['mobile', 'desktop'] as const).map((s) => (
             <button
               key={s}
-              onClick={() => scanMutation.mutate(s)}
+              onClick={() => scanMutation.mutate()}
               disabled={scanMutation.isPending}
               className="flex items-center gap-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50 capitalize"
             >

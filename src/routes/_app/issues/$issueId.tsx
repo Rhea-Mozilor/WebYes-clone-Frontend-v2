@@ -137,7 +137,7 @@ function OpportunityTable({ items }: { items: Record<string, unknown>[] }) {
             {isOpen && sub.length > 0 && (
               <div className="bg-gray-50 border-t border-gray-100 px-6 py-3">
                 {/* Node snippet */}
-                {item.node && nodeSnippet(item.node as LHCell) && (
+                {!!item.node && nodeSnippet(item.node as LHCell) && (
                   <pre className="text-[10px] bg-white border border-gray-200 rounded p-2 mb-3 overflow-x-auto whitespace-pre-wrap break-all text-gray-600">
                     {nodeSnippet(item.node as LHCell)}
                   </pre>

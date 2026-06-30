@@ -65,12 +65,6 @@ const PIE_COLORS: Record<IssueCategory, string> = {
   seo: '#7b8fd4',
 }
 
-function scoreIconBg(score: number) {
-  if (score >= 90) return 'bg-green-50 text-green-600'
-  if (score >= 50) return 'bg-amber-50 text-amber-600'
-  return 'bg-red-50 text-red-600'
-}
-
 function scoreTextColor(score: number | null) {
   if (score == null) return 'text-gray-300'
   if (score < 50) return 'text-red-500'

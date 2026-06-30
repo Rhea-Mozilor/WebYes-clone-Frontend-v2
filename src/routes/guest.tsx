@@ -42,7 +42,7 @@ function formatMetric(key: string, value: number | null) {
   return `${Math.round(value)} ms`
 }
 
-function ScoreRing({ score, label, color }: { score: number | null; label: string; color: string }) {
+function ScoreRing({ score, label }: { score: number | null; label: string }) {
   const r = 40
   const circ = 2 * Math.PI * r
   const fill = score != null ? (score / 100) * circ : 0
@@ -275,8 +275,8 @@ function GuestScanPage() {
 
               {/* Score rings */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {SCORE_CATEGORIES.map(({ key, label, color }) => (
-                  <ScoreRing key={key} score={result.scores[key]?.score ?? null} label={label} color={color} />
+                {SCORE_CATEGORIES.map(({ key, label }) => (
+                  <ScoreRing key={key} score={result.scores[key]?.score ?? null} label={label} />
                 ))}
               </div>
             </div>

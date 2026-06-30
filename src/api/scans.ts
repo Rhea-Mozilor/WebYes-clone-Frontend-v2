@@ -18,8 +18,11 @@ import type {
 } from '../types';
 
 // Core
-export const triggerScan = (website_id: string, strategy: ScanStrategy, max_pages: number = 5) =>
-  client.post<TriggerScanResponse>('/scans/', { website_id, strategy, max_pages });
+export const triggerScan = (website_id: string) =>
+  client.post<TriggerScanResponse>('/scans/', { website_id });
+
+export const getScanReportUrl = (scanJobId: string) =>
+  `/api/scans/${scanJobId}/report`;
 
 export const getScanJob = (id: string) =>
   client.get<ScanJob>(`/scans/${id}`);

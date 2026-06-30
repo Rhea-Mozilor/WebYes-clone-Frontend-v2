@@ -46,7 +46,8 @@ export interface ScanJob {
 
 // Matches backend TriggerScanResponse
 export interface TriggerScanResponse {
-  scan_job_id: string;
+  desktop_scan_job_id: string;
+  mobile_scan_job_id: string;
   status: string;
   message: string;
 }

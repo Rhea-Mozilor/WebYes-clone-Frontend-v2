@@ -107,10 +107,11 @@ function AppLayout() {
   const selectedWebsite = websites.find((w) => w.id === websiteId)
 
   const scanMutation = useMutation({
-    mutationFn: () => triggerScan(websiteId!, strategy, 5),
+    mutationFn: () => triggerScan(websiteId!),
     onSuccess: (job) => {
       toast.success('Scan started!')
-      navigate({ to: '/scans/$scanId', params: { scanId: job.scan_job_id } })
+      const scanId = strategy === 'mobile' ? job.mobile_scan_job_id : job.desktop_scan_job_id
+      navigate({ to: '/scans/$scanId', params: { scanId: String(scanId) } })
     },
     onError: () => toast.error('Could not start scan'),
   })

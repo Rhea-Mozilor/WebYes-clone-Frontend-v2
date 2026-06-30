@@ -11,12 +11,16 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as GuestRouteImport } from './routes/guest'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppUpgradeRouteImport } from './routes/_app/upgrade'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSeoRouteImport } from './routes/_app/seo'
 import { Route as AppQualityRouteImport } from './routes/_app/quality'
 import { Route as AppPerformanceRouteImport } from './routes/_app/performance'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppCheckoutRouteImport } from './routes/_app/checkout'
 import { Route as AppAccessibilityRouteImport } from './routes/_app/accessibility'
 import { Route as AppWebsitesIndexRouteImport } from './routes/_app/websites/index'
 import { Route as AppWebsitesWebsiteIdRouteImport } from './routes/_app/websites/$websiteId'
@@ -34,6 +38,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GuestRoute = GuestRouteImport.update({
+  id: '/guest',
+  path: '/guest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -42,6 +51,16 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppUpgradeRoute = AppUpgradeRouteImport.update({
+  id: '/upgrade',
+  path: '/upgrade',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppSeoRoute = AppSeoRouteImport.update({
   id: '/seo',
@@ -61,6 +80,11 @@ const AppPerformanceRoute = AppPerformanceRouteImport.update({
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCheckoutRoute = AppCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAccessibilityRoute = AppAccessibilityRouteImport.update({
@@ -96,13 +120,17 @@ const AppScansScanIdIssuesRoute = AppScansScanIdIssuesRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/guest': typeof GuestRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/accessibility': typeof AppAccessibilityRoute
+  '/checkout': typeof AppCheckoutRoute
   '/dashboard': typeof AppDashboardRoute
   '/performance': typeof AppPerformanceRoute
   '/quality': typeof AppQualityRoute
   '/seo': typeof AppSeoRoute
+  '/settings': typeof AppSettingsRoute
+  '/upgrade': typeof AppUpgradeRoute
   '/issues/$issueId': typeof AppIssuesIssueIdRoute
   '/websites/$websiteId': typeof AppWebsitesWebsiteIdRoute
   '/websites/': typeof AppWebsitesIndexRoute
@@ -111,13 +139,17 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/guest': typeof GuestRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/accessibility': typeof AppAccessibilityRoute
+  '/checkout': typeof AppCheckoutRoute
   '/dashboard': typeof AppDashboardRoute
   '/performance': typeof AppPerformanceRoute
   '/quality': typeof AppQualityRoute
   '/seo': typeof AppSeoRoute
+  '/settings': typeof AppSettingsRoute
+  '/upgrade': typeof AppUpgradeRoute
   '/issues/$issueId': typeof AppIssuesIssueIdRoute
   '/websites/$websiteId': typeof AppWebsitesWebsiteIdRoute
   '/websites': typeof AppWebsitesIndexRoute
@@ -128,13 +160,17 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/guest': typeof GuestRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/_app/accessibility': typeof AppAccessibilityRoute
+  '/_app/checkout': typeof AppCheckoutRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/performance': typeof AppPerformanceRoute
   '/_app/quality': typeof AppQualityRoute
   '/_app/seo': typeof AppSeoRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/upgrade': typeof AppUpgradeRoute
   '/_app/issues/$issueId': typeof AppIssuesIssueIdRoute
   '/_app/websites/$websiteId': typeof AppWebsitesWebsiteIdRoute
   '/_app/websites/': typeof AppWebsitesIndexRoute
@@ -145,13 +181,17 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/guest'
     | '/login'
     | '/signup'
     | '/accessibility'
+    | '/checkout'
     | '/dashboard'
     | '/performance'
     | '/quality'
     | '/seo'
+    | '/settings'
+    | '/upgrade'
     | '/issues/$issueId'
     | '/websites/$websiteId'
     | '/websites/'
@@ -160,13 +200,17 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/guest'
     | '/login'
     | '/signup'
     | '/accessibility'
+    | '/checkout'
     | '/dashboard'
     | '/performance'
     | '/quality'
     | '/seo'
+    | '/settings'
+    | '/upgrade'
     | '/issues/$issueId'
     | '/websites/$websiteId'
     | '/websites'
@@ -176,13 +220,17 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/guest'
     | '/login'
     | '/signup'
     | '/_app/accessibility'
+    | '/_app/checkout'
     | '/_app/dashboard'
     | '/_app/performance'
     | '/_app/quality'
     | '/_app/seo'
+    | '/_app/settings'
+    | '/_app/upgrade'
     | '/_app/issues/$issueId'
     | '/_app/websites/$websiteId'
     | '/_app/websites/'
@@ -193,6 +241,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  GuestRoute: typeof GuestRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
 }
@@ -213,6 +262,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/guest': {
+      id: '/guest'
+      path: '/guest'
+      fullPath: '/guest'
+      preLoaderRoute: typeof GuestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app': {
       id: '/_app'
       path: ''
@@ -226,6 +282,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/upgrade': {
+      id: '/_app/upgrade'
+      path: '/upgrade'
+      fullPath: '/upgrade'
+      preLoaderRoute: typeof AppUpgradeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/seo': {
       id: '/_app/seo'
@@ -253,6 +323,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/checkout': {
+      id: '/_app/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof AppCheckoutRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/accessibility': {
@@ -302,10 +379,13 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAccessibilityRoute: typeof AppAccessibilityRoute
+  AppCheckoutRoute: typeof AppCheckoutRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppPerformanceRoute: typeof AppPerformanceRoute
   AppQualityRoute: typeof AppQualityRoute
   AppSeoRoute: typeof AppSeoRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppUpgradeRoute: typeof AppUpgradeRoute
   AppIssuesIssueIdRoute: typeof AppIssuesIssueIdRoute
   AppWebsitesWebsiteIdRoute: typeof AppWebsitesWebsiteIdRoute
   AppWebsitesIndexRoute: typeof AppWebsitesIndexRoute
@@ -315,10 +395,13 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAccessibilityRoute: AppAccessibilityRoute,
+  AppCheckoutRoute: AppCheckoutRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppPerformanceRoute: AppPerformanceRoute,
   AppQualityRoute: AppQualityRoute,
   AppSeoRoute: AppSeoRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppUpgradeRoute: AppUpgradeRoute,
   AppIssuesIssueIdRoute: AppIssuesIssueIdRoute,
   AppWebsitesWebsiteIdRoute: AppWebsitesWebsiteIdRoute,
   AppWebsitesIndexRoute: AppWebsitesIndexRoute,
@@ -331,6 +414,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  GuestRoute: GuestRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
 }

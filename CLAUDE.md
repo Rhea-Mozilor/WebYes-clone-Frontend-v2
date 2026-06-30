@@ -21,7 +21,7 @@ React + TypeScript frontend for WebYes, a web auditing platform. Consumes the Fa
 | State | Zustand (auth store only) |
 | Toasts | react-hot-toast |
 | Icons | lucide-react |
-| HTTP | Axios |
+| HTTP | Native fetch (custom `client.ts` wrapper) |
 
 ---
 

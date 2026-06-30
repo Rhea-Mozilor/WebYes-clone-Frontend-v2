@@ -44,6 +44,13 @@ const client = {
   delete<T = void>(path: string): Promise<T> {
     return fetch(buildUrl(path), { method: 'DELETE', headers: getHeaders() }).then(handleResponse<T>);
   },
+  patch<T>(path: string, body?: unknown): Promise<T> {
+    return fetch(buildUrl(path), {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }).then(handleResponse<T>);
+  },
 };
 
 export default client;

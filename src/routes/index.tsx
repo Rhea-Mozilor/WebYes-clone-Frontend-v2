@@ -6,7 +6,7 @@ export const Route = createFileRoute('/')({
     if (token) {
       throw redirect({ to: '/dashboard' })
     }
-    throw redirect({ to: '/login' })
+    throw redirect({ to: '/guest' })
   },
   component: () => null,
 })

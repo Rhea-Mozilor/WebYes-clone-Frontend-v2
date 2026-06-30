@@ -115,7 +115,11 @@ function AppLayout() {
     mutationFn: () => triggerScan(websiteId!),
     onSuccess: (job) => {
       toast.success('Scan started!')
-      const scanId = strategy === 'mobile' ? job.mobile_scan_job_id : job.desktop_scan_job_id
+      const scanId =
+        strategy === 'mobile'
+          ? (job.mobile_scan_job_id ?? job.scan_job_id)
+          : (job.desktop_scan_job_id ?? job.scan_job_id)
+      if (!scanId) { toast.error('Scan started but could not get job ID'); return }
       navigate({ to: '/scans/$scanId', params: { scanId: String(scanId) } })
     },
     onError: () => toast.error('Could not start scan'),

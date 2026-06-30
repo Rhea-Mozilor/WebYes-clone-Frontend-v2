@@ -44,10 +44,11 @@ export interface ScanJob {
   pages: PageProgress[];
 }
 
-// Matches backend TriggerScanResponse
+// Matches backend TriggerScanResponse (new: dual-job; legacy: single scan_job_id)
 export interface TriggerScanResponse {
-  desktop_scan_job_id: string;
-  mobile_scan_job_id: string;
+  desktop_scan_job_id?: string;
+  mobile_scan_job_id?: string;
+  scan_job_id?: string; // legacy backend
   status: string;
   message: string;
 }

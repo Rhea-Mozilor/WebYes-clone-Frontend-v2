@@ -130,6 +130,63 @@ function ScanProgressModal({
     navigate({ to: '/dashboard' })
   }
 
+  // ── Completed state ──────────────────────────────────────────────────────
+  if (bothComplete) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+          {/* X button */}
+          <div className="flex justify-end px-4 pt-4">
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
+
+          {/* Illustration */}
+          <div className="mx-5 mb-5 rounded-2xl bg-blue-100 flex items-center justify-center py-8 relative">
+            <svg viewBox="0 0 220 150" className="w-56" fill="none">
+              <rect x="30" y="10" width="160" height="110" rx="8" fill="#BFDBFE" />
+              <rect x="30" y="10" width="160" height="24" rx="8" fill="#3730A3" />
+              <rect x="44" y="44" width="38" height="28" rx="4" fill="#C7D2FE" />
+              <rect x="90" y="44" width="38" height="28" rx="4" fill="#C7D2FE" />
+              <rect x="136" y="44" width="38" height="28" rx="4" fill="#C7D2FE" />
+              <rect x="44" y="80" width="130" height="10" rx="3" fill="#DDD6FE" />
+              <rect x="44" y="96" width="95" height="10" rx="3" fill="#DDD6FE" />
+            </svg>
+            {/* Green checkmark circle */}
+            <div className="absolute bottom-6 left-12 w-14 h-14 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
+              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            {/* Accessibility circle */}
+            <div className="absolute bottom-4 right-14 w-12 h-12 rounded-full bg-blue-200 flex items-center justify-center shadow">
+              <svg className="w-6 h-6 text-blue-700" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="4" r="1.5" />
+                <path d="M12 7c-2.8 0-5 .8-5 .8l1 3.2h3v7h2v-7h3l1-3.2S14.8 7 12 7z" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Text */}
+          <div className="px-6 pb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Your website scan is complete</h2>
+            <p className="text-sm text-gray-600 mb-6">
+              The audit for <span className="font-bold text-gray-900">{websiteUrl}</span> is ready - review your results and fix the issues.
+            </p>
+            <button
+              onClick={handleExploreDashboard}
+              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              View results
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── In-progress state ────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
@@ -138,9 +195,7 @@ function ScanProgressModal({
           {/* Left content */}
           <div className="flex-1 p-8">
             <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {bothComplete ? 'Scan complete!' : 'Scanning...'}
-              </h2>
+              <h2 className="text-2xl font-bold text-gray-900">Scanning...</h2>
               <span className="px-2.5 py-1 text-xs font-semibold bg-amber-100 text-amber-700 rounded-full">
                 Quick scan
               </span>
@@ -156,7 +211,7 @@ function ScanProgressModal({
               <span className="text-sm font-medium text-gray-700">{totalPages} pages scanned total</span>
             </div>
 
-            <div className="rounded-xl bg-gray-100 px-4 py-3 space-y-1 divide-y divide-gray-200">
+            <div className="rounded-xl bg-gray-100 px-4 py-3 divide-y divide-gray-200">
               <p className="text-sm font-semibold text-gray-700 pb-2">Currently scanning:</p>
               {desktopJobId && <JobRow jobId={desktopJobId} label="Desktop" />}
               {mobileJobId && <JobRow jobId={mobileJobId} label="Mobile" />}

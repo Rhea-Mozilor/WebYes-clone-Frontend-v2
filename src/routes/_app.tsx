@@ -32,7 +32,7 @@ import toast from 'react-hot-toast'
 import { cn } from '../lib/utils'
 import { getMe, logout } from '../api/auth'
 import { listWebsites, createWebsite } from '../api/websites'
-import { triggerScan, getScanJob } from '../api/scans'
+import { triggerScan, getScanJob, cancelScan } from '../api/scans'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/authStore'
 import { useSiteStore } from '../store/siteStore'
@@ -62,6 +62,20 @@ function ScanProgressModal({
   onClose: () => void
 }) {
   const navigate = useNavigate()
+  const [cancelling, setCancelling] = useState(false)
+
+  async function handleCancel() {
+    setCancelling(true)
+    try {
+      await Promise.allSettled([
+        desktopJobId ? cancelScan(desktopJobId) : Promise.resolve(),
+        mobileJobId ? cancelScan(mobileJobId) : Promise.resolve(),
+      ])
+    } finally {
+      setCancelling(false)
+      onClose()
+    }
+  }
 
   const { data: desktopJob } = useQuery({
     queryKey: ['scan-progress', desktopJobId],
@@ -245,8 +259,12 @@ function ScanProgressModal({
 
         {/* Footer buttons */}
         <div className="flex items-center justify-end gap-4 px-1">
-          <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
-            Cancel scan
+          <button
+            onClick={handleCancel}
+            disabled={cancelling}
+            className="text-sm text-gray-500 hover:text-red-600 disabled:opacity-50 transition-colors"
+          >
+            {cancelling ? 'Cancelling...' : 'Cancel scan'}
           </button>
           <button
             onClick={handleExploreDashboard}

@@ -131,6 +131,8 @@ export interface IssueRichDetail {
   category: string;
   description: string | null;
   display_value: string | null;
+  impact: string | null;
+  tags: string[];
   affected_pages: IssueAffectedPage[];
 }
 

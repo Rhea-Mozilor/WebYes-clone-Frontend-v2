@@ -45,12 +45,11 @@ function IssuesPage() {
   return (
     <div className="p-8">
       <Link
-        to="/scans/$scanId"
-        params={{ scanId }}
+        to="/dashboard"
         className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-6"
       >
         <ArrowLeft className="w-4 h-4" />
-        Back to Results
+        Back to Dashboard
       </Link>
 
       <div className="flex items-center justify-between mb-6">

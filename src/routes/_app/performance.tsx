@@ -11,7 +11,6 @@ import {
   AlertTriangle,
   Info,
   Loader2,
-  Calendar,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -365,10 +364,6 @@ function PerformancePage() {
                     {f}
                   </button>
                 ))}
-                <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 border border-gray-200 hover:bg-gray-50">
-                  <Calendar className="w-3.5 h-3.5" />
-                  Custom range
-                </button>
               </div>
             </div>
             {chartData.length > 0 ? (

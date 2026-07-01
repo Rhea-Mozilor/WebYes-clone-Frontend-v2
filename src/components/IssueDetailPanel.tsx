@@ -241,7 +241,7 @@ function ResourceAccordionView({ detail }: { detail: IssueRichDetail }) {
                           <span className="font-bold text-gray-900">{savingsLine.split(':')[1]}</span>
                         </p>
                       )}
-                      <ResourceTable els={els} detailsType={detail.details_type} />
+                      <ResourceTable els={els} detailsType={detail.details_type ?? null} />
                     </div>
                   )}
                 </div>
@@ -262,8 +262,8 @@ function ElementView({ detail }: { detail: IssueRichDetail }) {
   const [copied, setCopied] = useState(false)
   const cur = els[idx]
 
-  const wcag = parseWcag(detail.tags)
-  const disabilities = parseDisabilities(detail.tags)
+  const wcag = parseWcag(detail.tags ?? [])
+  const disabilities = parseDisabilities(detail.tags ?? [])
 
   const explanation = cur?.extra?.explanation as string | undefined
   const nodeLabel = cur?.extra?.nodeLabel as string | undefined

@@ -131,11 +131,11 @@ export interface IssueRichDetail {
   category: string;
   description: string | null;
   display_value: string | null;
-  impact: string | null;
-  tags: string[];
-  details_type: string | null;
-  wasted_ms: number | null;
-  wasted_bytes: number | null;
+  impact?: string | null;
+  tags?: string[];
+  details_type?: string | null;
+  wasted_ms?: number | null;
+  wasted_bytes?: number | null;
   affected_pages: IssueAffectedPage[];
 }
 

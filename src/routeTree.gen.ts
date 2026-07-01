@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as GuestRouteImport } from './routes/guest'
 import { Route as AppRouteImport } from './routes/_app'
@@ -17,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppUpgradeRouteImport } from './routes/_app/upgrade'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSeoRouteImport } from './routes/_app/seo'
+import { Route as AppScanningRouteImport } from './routes/_app/scanning'
 import { Route as AppQualityRouteImport } from './routes/_app/quality'
 import { Route as AppPerformanceRouteImport } from './routes/_app/performance'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
@@ -31,6 +33,11 @@ import { Route as AppScansScanIdIssuesRouteImport } from './routes/_app/scans/$s
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -65,6 +72,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
 const AppSeoRoute = AppSeoRouteImport.update({
   id: '/seo',
   path: '/seo',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppScanningRoute = AppScanningRouteImport.update({
+  id: '/scanning',
+  path: '/scanning',
   getParentRoute: () => AppRoute,
 } as any)
 const AppQualityRoute = AppQualityRouteImport.update({
@@ -122,12 +134,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/guest': typeof GuestRoute
   '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
   '/accessibility': typeof AppAccessibilityRoute
   '/checkout': typeof AppCheckoutRoute
   '/dashboard': typeof AppDashboardRoute
   '/performance': typeof AppPerformanceRoute
   '/quality': typeof AppQualityRoute
+  '/scanning': typeof AppScanningRoute
   '/seo': typeof AppSeoRoute
   '/settings': typeof AppSettingsRoute
   '/upgrade': typeof AppUpgradeRoute
@@ -141,12 +155,14 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/guest': typeof GuestRoute
   '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
   '/accessibility': typeof AppAccessibilityRoute
   '/checkout': typeof AppCheckoutRoute
   '/dashboard': typeof AppDashboardRoute
   '/performance': typeof AppPerformanceRoute
   '/quality': typeof AppQualityRoute
+  '/scanning': typeof AppScanningRoute
   '/seo': typeof AppSeoRoute
   '/settings': typeof AppSettingsRoute
   '/upgrade': typeof AppUpgradeRoute
@@ -162,12 +178,14 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/guest': typeof GuestRoute
   '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
   '/_app/accessibility': typeof AppAccessibilityRoute
   '/_app/checkout': typeof AppCheckoutRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/performance': typeof AppPerformanceRoute
   '/_app/quality': typeof AppQualityRoute
+  '/_app/scanning': typeof AppScanningRoute
   '/_app/seo': typeof AppSeoRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/upgrade': typeof AppUpgradeRoute
@@ -183,12 +201,14 @@ export interface FileRouteTypes {
     | '/'
     | '/guest'
     | '/login'
+    | '/onboarding'
     | '/signup'
     | '/accessibility'
     | '/checkout'
     | '/dashboard'
     | '/performance'
     | '/quality'
+    | '/scanning'
     | '/seo'
     | '/settings'
     | '/upgrade'
@@ -202,12 +222,14 @@ export interface FileRouteTypes {
     | '/'
     | '/guest'
     | '/login'
+    | '/onboarding'
     | '/signup'
     | '/accessibility'
     | '/checkout'
     | '/dashboard'
     | '/performance'
     | '/quality'
+    | '/scanning'
     | '/seo'
     | '/settings'
     | '/upgrade'
@@ -222,12 +244,14 @@ export interface FileRouteTypes {
     | '/_app'
     | '/guest'
     | '/login'
+    | '/onboarding'
     | '/signup'
     | '/_app/accessibility'
     | '/_app/checkout'
     | '/_app/dashboard'
     | '/_app/performance'
     | '/_app/quality'
+    | '/_app/scanning'
     | '/_app/seo'
     | '/_app/settings'
     | '/_app/upgrade'
@@ -243,6 +267,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   GuestRoute: typeof GuestRoute
   LoginRoute: typeof LoginRoute
+  OnboardingRoute: typeof OnboardingRoute
   SignupRoute: typeof SignupRoute
 }
 
@@ -253,6 +278,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -302,6 +334,13 @@ declare module '@tanstack/react-router' {
       path: '/seo'
       fullPath: '/seo'
       preLoaderRoute: typeof AppSeoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/scanning': {
+      id: '/_app/scanning'
+      path: '/scanning'
+      fullPath: '/scanning'
+      preLoaderRoute: typeof AppScanningRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/quality': {
@@ -383,6 +422,7 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppPerformanceRoute: typeof AppPerformanceRoute
   AppQualityRoute: typeof AppQualityRoute
+  AppScanningRoute: typeof AppScanningRoute
   AppSeoRoute: typeof AppSeoRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppUpgradeRoute: typeof AppUpgradeRoute
@@ -399,6 +439,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppPerformanceRoute: AppPerformanceRoute,
   AppQualityRoute: AppQualityRoute,
+  AppScanningRoute: AppScanningRoute,
   AppSeoRoute: AppSeoRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppUpgradeRoute: AppUpgradeRoute,
@@ -416,6 +457,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   GuestRoute: GuestRoute,
   LoginRoute: LoginRoute,
+  OnboardingRoute: OnboardingRoute,
   SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport

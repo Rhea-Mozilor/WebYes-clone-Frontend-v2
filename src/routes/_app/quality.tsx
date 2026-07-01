@@ -21,7 +21,7 @@ export const Route = createFileRoute('/_app/quality')({
   component: QualityPage,
 })
 
-const TABS = ['Dashboard', 'Affected pages', 'Issues list']
+const TABS = ['Dashboard', 'Affected pages', 'Issue list']
 
 function scoreColor(s: number) {
   if (s >= 90) return '#22c55e'
@@ -61,6 +61,7 @@ function QualityPage() {
   const [issueListPage, setIssueListPage] = useState(1)
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [issueSearch, setIssueSearch] = useState('')
 
   const { data: history = [], isLoading } = useQuery({
     queryKey: ['history', websiteId],
@@ -98,7 +99,7 @@ function QualityPage() {
   const { data: issueList } = useQuery({
     queryKey: ['quality-issue-list', latestScan?.scan_job_id, issueListPage],
     queryFn: () => getQualityIssueList(latestScan!.scan_job_id, issueListPage, 10),
-    enabled: !!latestScan && activeTab === 'Issues list',
+    enabled: !!latestScan && activeTab === 'Issue list',
   })
 
   const { data: dashIssues } = useQuery({
@@ -438,53 +439,128 @@ function QualityPage() {
         </div>
       )}
 
-      {/* Issues list tab */}
-      {activeTab === 'Issues list' && (
+      {/* Issue list tab */}
+      {activeTab === 'Issue list' && (
         <div className="flex-1 p-3 sm:p-6">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h3 className="text-sm font-bold text-gray-900 mb-4">
-              Issues {issueList ? `(${issueList.total})` : ''}
-            </h3>
-            {!issueList ? (
-              <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-400" /></div>
-            ) : issueList.items.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center py-12">No issues found</p>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-100">
-                        <th className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4">Issue</th>
-                        <th className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4 w-28">Priority</th>
-                        <th className="text-right text-xs font-semibold text-gray-500 pb-3 w-28">Pages affected</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {issueList.items.map((item) => (
-                        <tr key={item.id} className="hover:bg-gray-50">
-                          <td className="py-3 pr-4">
-                            <div className="text-xs text-gray-800 font-medium">{item.title}</div>
-                            {item.description && (
-                              <div className="text-xs text-gray-400 mt-0.5 line-clamp-1">{item.description}</div>
-                            )}
-                          </td>
-                          <td className="py-3 pr-4">
-                            <span className={cn('inline-flex px-2 py-0.5 rounded-full text-xs font-medium', priorityBadge(item.priority))}>
-                              {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
-                            </span>
-                          </td>
-                          <td className="py-3 text-right">
-                            <span className="text-xs text-gray-600">{item.pages_affected}</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <Pagination page={issueListPage} totalPages={issueList.total_pages} onPage={setIssueListPage} />
-              </>
-            )}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+            <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">All issues</h2>
+            </div>
+            <div className="p-6">
+              {!issueList ? (
+                <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
+              ) : (
+                <>
+                  {/* Stat cards */}
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="border border-gray-200 rounded-xl p-4 flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center shrink-0">
+                        <span className="text-xs font-bold text-green-700">&lt;/&gt;</span>
+                      </div>
+                      <div>
+                        <div className="text-xs text-green-700 font-medium">Critical</div>
+                        <div className="text-base font-bold text-gray-900">{issueList.items.filter(i => i.priority === 'high').length} issues</div>
+                      </div>
+                    </div>
+                    <div className="border border-gray-200 rounded-xl p-4 flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0">
+                        <span className="text-xs text-purple-600">✏</span>
+                      </div>
+                      <div>
+                        <div className="text-xs text-purple-600 font-medium">Non-critical</div>
+                        <div className="text-base font-bold text-gray-900">{issueList.items.filter(i => i.priority !== 'high').length} issues</div>
+                      </div>
+                    </div>
+                    <div className="border border-gray-200 rounded-xl p-4 flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                        <span className="text-xs text-blue-600 font-bold">{issueList.total}</span>
+                      </div>
+                      <div>
+                        <div className="text-xs text-blue-600 font-medium">Total issues</div>
+                        <div className="text-base font-bold text-gray-900">this scan</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Search + filters */}
+                  <div className="flex items-center gap-3 mb-4 flex-wrap">
+                    <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 min-w-48 max-w-xs">
+                      <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                      <input type="text" placeholder="Search issues" value={issueSearch}
+                        onChange={(e) => setIssueSearch(e.target.value)}
+                        className="text-xs text-gray-700 placeholder-gray-400 outline-none flex-1" />
+                    </div>
+                    <div className="flex items-center gap-2 ml-auto flex-wrap">
+                      <button className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 transition-colors">
+                        Filter by <ChevronDown className="w-3 h-3" />
+                      </button>
+                      <button className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 transition-colors">
+                        All categories <ChevronDown className="w-3 h-3" />
+                      </button>
+                      <button className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 transition-colors">
+                        <Download className="w-3.5 h-3.5" /> Export
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Table */}
+                  {issueList.items.length === 0 ? (
+                    <p className="text-xs text-gray-400 text-center py-12">No issues found</p>
+                  ) : (
+                    <>
+                      <div className="overflow-x-auto rounded-xl border border-gray-100">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-gray-50 border-b border-gray-100">
+                              <th className="text-left text-xs font-semibold text-gray-500 px-4 py-3">Issues</th>
+                              <th className="text-left text-xs font-semibold text-gray-500 px-4 py-3 w-28">Pages affected</th>
+                              <th className="text-left text-xs font-semibold text-gray-500 px-4 py-3 w-32">
+                                <span className="flex items-center gap-1">Priority <ChevronDown className="w-3 h-3" /></span>
+                              </th>
+                              <th className="text-left text-xs font-semibold text-gray-500 px-4 py-3 w-36">Category</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {issueList.items
+                              .filter(i => !issueSearch || i.title.toLowerCase().includes(issueSearch.toLowerCase()))
+                              .map((item) => (
+                              <tr key={item.id} className="hover:bg-gray-50/60">
+                                <td className="px-4 py-4">
+                                  <div className="flex items-start flex-wrap gap-2">
+                                    <span className="text-sm text-blue-600 hover:underline leading-snug cursor-pointer">{item.title}</span>
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500 border border-gray-200 self-center">Best practice</span>
+                                  </div>
+                                  {item.description && <div className="text-xs text-gray-400 mt-1 line-clamp-1">{item.description}</div>}
+                                </td>
+                                <td className="px-4 py-4 text-sm text-gray-700">{item.pages_affected}</td>
+                                <td className="px-4 py-4">
+                                  <span className={cn('inline-flex px-3 py-1 rounded-full text-xs font-medium border',
+                                    item.priority === 'high' ? 'border-orange-300 bg-orange-50 text-orange-600'
+                                    : item.priority === 'medium' ? 'border-amber-200 bg-amber-50 text-amber-600'
+                                    : 'border-gray-300 bg-gray-50 text-gray-500')}>
+                                    {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-4">
+                                  <span className={cn('inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border',
+                                    item.priority === 'high'
+                                      ? 'border-green-200 bg-green-50 text-green-700'
+                                      : 'border-purple-200 bg-purple-50 text-purple-700')}>
+                                    {item.priority === 'high' ? <span className="font-mono">&lt;/&gt;</span> : <span>✏</span>}
+                                    {item.priority === 'high' ? 'Development' : 'Design'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <Pagination page={issueListPage} totalPages={issueList.total_pages} onPage={setIssueListPage} />
+                    </>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

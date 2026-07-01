@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useSiteStore } from '../../store/siteStore'
+import { IssueDetailPanel } from '../../components/IssueDetailPanel'
 import {
   getWebsiteScanHistory,
   getAccessibilityScore,
@@ -64,6 +65,7 @@ function AccessibilityPage() {
   const [pagesSearch, setPagesSearch] = useState('')
   const [issueSubTab, setIssueSubTab] = useState('Confirmed checks')
   const [issueSearch, setIssueSearch] = useState('')
+  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
 
   const { data: history = [], isLoading } = useQuery({
     queryKey: ['history', websiteId],
@@ -705,7 +707,7 @@ function AccessibilityPage() {
                           <tbody className="divide-y divide-gray-50">
                             {filtered.map((item) => (
                               <tr key={item.issue_id} className="hover:bg-gray-50/60 cursor-pointer"
-                                onClick={() => { window.location.href = `/issues/${item.issue_id}` }}>
+                                onClick={() => setSelectedIssueId(item.issue_id)}>
                                 <td className="px-4 py-4">
                                   <div className="flex items-start flex-wrap gap-2">
                                     <span className="text-sm text-blue-600 hover:underline leading-snug">{item.title}</span>
@@ -834,6 +836,10 @@ function AccessibilityPage() {
             )}
           </div>
         </div>
+      )}
+
+      {selectedIssueId && (
+        <IssueDetailPanel issueId={selectedIssueId} onClose={() => setSelectedIssueId(null)} />
       )}
     </div>
   )

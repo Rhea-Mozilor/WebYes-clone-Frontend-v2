@@ -1,5 +1,5 @@
 import client from './client';
-import type { Issue, IssueCategory, IssueSeverity } from '../types';
+import type { Issue, IssueCategory, IssueSeverity, IssueRichDetail } from '../types';
 
 interface ListIssuesParams {
   scan_job_id?: string;
@@ -12,3 +12,6 @@ export const listIssues = (params: ListIssuesParams) =>
 
 export const getIssue = (id: string) =>
   client.get<Issue>(`/issues/${id}`);
+
+export const getIssueDetail = (id: string) =>
+  client.get<IssueRichDetail>(`/issues/${id}/detail`);

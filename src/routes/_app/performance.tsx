@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useSiteStore } from '../../store/siteStore'
+import { IssueDetailPanel } from '../../components/IssueDetailPanel'
 import {
   getWebsiteScanHistory,
   getPerformanceScore,
@@ -114,6 +115,7 @@ function PerformancePage() {
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [issueSearch, setIssueSearch] = useState('')
+  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
 
   const { data: history = [], isLoading } = useQuery({
     queryKey: ['history', websiteId],
@@ -708,7 +710,7 @@ function PerformancePage() {
                             {issueList.items
                               .filter(i => !issueSearch || i.title.toLowerCase().includes(issueSearch.toLowerCase()))
                               .map((item) => (
-                              <tr key={item.id} className="hover:bg-gray-50/60">
+                              <tr key={item.id} className="hover:bg-gray-50/60 cursor-pointer" onClick={() => setSelectedIssueId(item.id)}>
                                 <td className="px-4 py-4">
                                   <div className="flex items-start flex-wrap gap-2">
                                     <span className="text-sm text-blue-600 hover:underline leading-snug cursor-pointer">{item.title}</span>
@@ -747,6 +749,10 @@ function PerformancePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {selectedIssueId && (
+        <IssueDetailPanel issueId={selectedIssueId} onClose={() => setSelectedIssueId(null)} />
       )}
     </div>
   )

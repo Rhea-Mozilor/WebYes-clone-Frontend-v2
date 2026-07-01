@@ -108,6 +108,32 @@ export type IssueSeverity = 'critical' | 'non_critical';
 export type IssuePriority = 'low' | 'medium' | 'high';
 export type DetailsType = 'opportunity' | 'table' | 'list' | 'numeric' | 'criticalrequestchain' | 'n/a';
 
+export interface IssueElement {
+  thumbnail: string | null;
+  selector: string | null;
+  snippet: string | null;
+  url: string | null;
+  extra: Record<string, unknown> | null;
+}
+
+export interface IssueAffectedPage {
+  page_title: string;
+  page_url: string;
+  elements: IssueElement[];
+}
+
+export interface IssueRichDetail {
+  id: string;
+  rule_id: string;
+  title: string;
+  priority: string;
+  severity: string;
+  category: string;
+  description: string | null;
+  display_value: string | null;
+  affected_pages: IssueAffectedPage[];
+}
+
 export interface Issue {
   id: string;
   scan_result_id: string;

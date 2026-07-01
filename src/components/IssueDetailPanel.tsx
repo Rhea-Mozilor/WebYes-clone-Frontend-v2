@@ -184,7 +184,17 @@ function ResourceAccordionView({ detail }: { detail: IssueRichDetail }) {
 
       {/* Page accordions */}
       <div className="px-4 py-3 space-y-3">
-        {detail.affected_pages.map((page, i) => {
+        {detail.affected_pages
+          .reduce((acc, page) => {
+            const existing = acc.find(p => p.page_url === page.page_url)
+            if (existing) {
+              existing.elements.push(...page.elements)
+            } else {
+              acc.push({ ...page, elements: [...page.elements] })
+            }
+            return acc
+          }, [] as typeof detail.affected_pages)
+          .map((page, i) => {
           const isOpen = openIdx === i
           const els = flatElements(page)
           const hasData = els.some(e => e.url || (e.extra && Object.keys(e.extra).length > 0))

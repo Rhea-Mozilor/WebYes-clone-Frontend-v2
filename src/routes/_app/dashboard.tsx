@@ -44,10 +44,10 @@ export const Route = createFileRoute('/_app/dashboard')({
 })
 
 const CATEGORIES = [
-  { key: 'accessibility' as IssueCategory, label: 'Accessibility', Icon: User },
-  { key: 'performance' as IssueCategory, label: 'Performance', Icon: Activity },
-  { key: 'best_practices' as IssueCategory, label: 'Quality', Icon: Award },
-  { key: 'seo' as IssueCategory, label: 'SEO', Icon: Search },
+  { key: 'accessibility' as IssueCategory, label: 'Accessibility', Icon: User, route: '/accessibility' },
+  { key: 'performance' as IssueCategory, label: 'Performance', Icon: Activity, route: '/performance' },
+  { key: 'best_practices' as IssueCategory, label: 'Quality', Icon: Award, route: '/quality' },
+  { key: 'seo' as IssueCategory, label: 'SEO', Icon: Search, route: '/seo' },
 ]
 
 const TABS: { key: IssueCategory | 'all'; label: string; Icon: React.ElementType }[] = [
@@ -586,7 +586,7 @@ function DashboardPage() {
 
         {/* Score cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-          {CATEGORIES.map(({ key, label, Icon }) => {
+          {CATEGORIES.map(({ key, label, Icon, route }) => {
             const stats = summary.scores[key]
             const score = stats ? Math.round(stats.avg) : null
             const prevStats = prevSummary?.scores?.[key]
@@ -595,7 +595,7 @@ function DashboardPage() {
             const count = issueCounts[key as keyof typeof issueCounts] as number
 
             return (
-              <div key={key} className="border border-gray-100 rounded-xl p-5">
+              <Link key={key} to={route} className="block border border-gray-100 rounded-xl p-5 hover:border-blue-200 hover:shadow-sm transition-all cursor-pointer">
                 {/* Icon */}
                 <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center mb-4">
                   <Icon className="w-5 h-5 text-blue-500" />
@@ -625,7 +625,7 @@ function DashboardPage() {
                   <span>Total issues : <span className="text-gray-800">{count}</span></span>
                   <Info className="w-3.5 h-3.5 text-gray-300" />
                 </div>
-              </div>
+              </Link>
             )
           })}
         </div>

@@ -24,6 +24,7 @@ const CATEGORY_ICON: Record<IssueCategory, ReactNode> = {
   performance:    <PerformanceIcon className="w-5 h-5 text-gray-900" />,
   seo:            <SeoIcon className="w-5 h-5 text-gray-900" />,
   best_practices: <QualityIcon className="w-5 h-5 text-gray-900" />,
+  quality:        <QualityIcon className="w-5 h-5 text-gray-900" />,
 }
 
 function CategoryIcon({ category }: { category: IssueCategory }) {

@@ -5,7 +5,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts'
-import { AlertTriangle, Info, Loader2, AlertCircle, Search, ChevronLeft, ChevronRight, SlidersHorizontal, Download } from 'lucide-react'
+import { AlertTriangle, Loader2, AlertCircle, Search, ChevronLeft, ChevronRight, SlidersHorizontal, Download } from 'lucide-react'
 import UrlSvg from '../../components/svgicons/url.svg'
 import { cn } from '../../lib/utils'
 import { PriorityBadge } from '../../components/ui/PriorityBadge'
@@ -31,13 +31,6 @@ export const Route = createFileRoute('/_app/seo')({
 
 const TABS = ['Dashboard', 'Affected pages', 'Issues list']
 
-function scoreLabel(score: number): { text: string; color: string } {
-  if (score >= 90) return { text: 'Excellent', color: '#22c55e' }
-  if (score >= 70) return { text: 'Good', color: '#f59e0b' }
-  if (score >= 50) return { text: 'Needs Improvement', color: '#f97316' }
-  return { text: 'Poor', color: '#ef4444' }
-}
-
 function scoreColor(s: number) {
   if (s >= 90) return '#22c55e'
   if (s >= 50) return '#f59e0b'
@@ -56,12 +49,6 @@ function pageName(url: string): string {
   } catch {
     return url
   }
-}
-
-function derivePriority(score: number | null, critical: number): string {
-  if (score !== null && score < 50) return 'high'
-  if (critical > 0) return 'medium'
-  return 'low'
 }
 
 function SeoPage() {

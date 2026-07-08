@@ -398,6 +398,7 @@ function AppLayout() {
   const [userMenu, setUserMenu] = useState(false)
   const [scanJobs, setScanJobs] = useState<{ desktopJobId: string | null; mobileJobId: string | null; url: string; websiteName: string; websiteId: string } | null>(null)
   const [scanModalVisible, setScanModalVisible] = useState(false)
+  const [confirmScanOpen, setConfirmScanOpen] = useState(false)
   const websiteRef = useRef<HTMLDivElement>(null)
   const strategyRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
@@ -467,6 +468,38 @@ function AppLayout() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+      {/* ── Rescan confirmation modal ──────────────────────────────── */}
+      {confirmScanOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 relative">
+            <button
+              onClick={() => setConfirmScanOpen(false)}
+              className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
+            <h2 className="text-[20px] font-bold text-gray-900 mb-5">Finalise rescan details</h2>
+            <p className="text-[15px] text-gray-600 leading-relaxed mb-10">
+              You are about to rescan the URLs from your previous scan. Would you like to proceed?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmScanOpen(false)}
+                className="flex-1 py-3 border border-gray-300 rounded-lg text-[15px] font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setConfirmScanOpen(false); scanMutation.mutate() }}
+                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-[15px] font-medium text-white transition-colors"
+              >
+                Scan now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {scanJobs && (
         <ScanProgressModal
           desktopJobId={scanJobs.desktopJobId}
@@ -634,7 +667,7 @@ function AppLayout() {
           {/* Run scan — split button */}
           <div className="flex items-stretch rounded-sm overflow-hidden">
             <button
-              onClick={() => websiteId && scanMutation.mutate()}
+              onClick={() => websiteId && setConfirmScanOpen(true)}
               disabled={!websiteId || scanMutation.isPending}
               className="px-3 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm transition-colors"
             >

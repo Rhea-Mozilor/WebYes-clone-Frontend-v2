@@ -36,7 +36,7 @@ function pageName(url: string): string {
 }
 
 export function AccessibilityPageDetail({ scanJobId, scanResultId, pageUrl, onBack }: Props) {
-  const [search, setSearch] = useState('')
+  const [search, _setSearch] = useState('')
   const [catFilter, setCatFilter] = useState<string | null>(null)
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
 

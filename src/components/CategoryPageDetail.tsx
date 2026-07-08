@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, Loader2, Search, Download } from 'lucide-react'
-import { cn } from '../lib/utils'
 import { PriorityBadge } from './ui/PriorityBadge'
 import { getPageCategoryIssues } from '../api/scans'
 import { IssueDetailPanel } from './IssueDetailPanel'

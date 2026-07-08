@@ -839,19 +839,6 @@ function FixSuggestion({ text }: { text: string }) {
   )
 }
 
-function InspectorIcon() {
-  return (
-    <svg viewBox="0 0 18 18" className="w-4 h-4 shrink-0" fill="none">
-      <rect x="1" y="1" width="16" height="11" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M1 4.5h16" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="9" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M11 11.5l1.5 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M6 16.5h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M9 12v1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  )
-}
-
 // ─── Full-page screenshot lightbox ───────────────────────────────────────────
 
 function ScreenshotModal({ el, onClose }: { el: ElEntry; onClose: () => void }) {
@@ -1112,9 +1099,9 @@ function AccessibilityMeta({ detail }: { detail: IssueRichDetail }) {
         <>
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-gray-500">Affected users:</span>
-            {disabilities.includes('blind') && <EyeOff className="w-4 h-4 text-gray-500" title="Blind users" />}
-            {disabilities.includes('lowVision') && <Eye className="w-4 h-4 text-gray-500" title="Low vision users" />}
-            {disabilities.includes('cognitive') && <Brain className="w-4 h-4 text-gray-500" title="Cognitive disabilities" />}
+            {disabilities.includes('blind') && <EyeOff className="w-4 h-4 text-gray-500" />}
+            {disabilities.includes('lowVision') && <Eye className="w-4 h-4 text-gray-500" />}
+            {disabilities.includes('cognitive') && <Brain className="w-4 h-4 text-gray-500" />}
           </div>
           <span className="text-gray-200 text-sm">|</span>
         </>

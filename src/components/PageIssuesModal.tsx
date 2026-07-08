@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { X, Loader2 } from 'lucide-react'
-import { cn } from '../lib/utils'
 import { PriorityBadge } from './ui/PriorityBadge'
 import { getPageCategoryIssues } from '../api/scans'
 import type { PageCategoryIssue } from '../types'

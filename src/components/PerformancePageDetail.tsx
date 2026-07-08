@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, Loader2, Search, Download } from 'lucide-react'
-import { cn } from '../lib/utils'
 import { PriorityBadge } from './ui/PriorityBadge'
 import { getPerformancePageIssues } from '../api/scans'
 import { IssueDetailPanel } from './IssueDetailPanel'
@@ -30,7 +29,7 @@ function formatVital(key: VitalKey, value: number, unit: string): string {
   return `${value.toFixed(2)}ms`
 }
 
-function tickPct(key: VitalKey, value: number, good: number, needs: number): number {
+function tickPct(_key: VitalKey, value: number, good: number, needs: number): number {
   const max = needs * 1.67
   if (value <= good)  return (value / good) * 33
   if (value <= needs) return 33 + ((value - good) / (needs - good)) * 33

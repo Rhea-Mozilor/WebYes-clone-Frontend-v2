@@ -39,7 +39,6 @@ import { cn } from '../lib/utils'
 import { getMe, logout } from '../api/auth'
 import { listWebsites } from '../api/websites'
 import { triggerScan, getScanJob, cancelScan } from '../api/scans'
-import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/authStore'
 import { useSiteStore } from '../store/siteStore'
 
@@ -59,7 +58,6 @@ function ScanProgressModal({
   mobileJobId,
   websiteUrl,
   websiteName,
-  websiteId,
   visible,
   onHide,
   onClose,
@@ -389,7 +387,6 @@ function ScanProgressModal({
 
 function AppLayout() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const { clearAuth } = useAuthStore()
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const { data: websites = [] } = useQuery({ queryKey: ['websites'], queryFn: listWebsites })

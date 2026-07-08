@@ -13,7 +13,6 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  ChevronDown, ChevronUp,
   SlidersHorizontal,
   Download,
 } from 'lucide-react'

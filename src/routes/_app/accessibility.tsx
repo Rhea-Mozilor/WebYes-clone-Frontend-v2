@@ -8,7 +8,7 @@ import {
 import {
   AlertTriangle, Loader2, CheckCircle2, ClipboardList, Flag,
   ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Search, Code2, Pen, AlignLeft, Download,
+  Search, Code2, Pen, AlignLeft,
 } from 'lucide-react'
 import AccessibilitySvg from '../../components/svgicons/Accessibility.svg'
 import UrlSvg from '../../components/svgicons/url.svg'
@@ -39,22 +39,7 @@ export const Route = createFileRoute('/_app/accessibility')({
 
 const TABS = ['Dashboard', 'Affected pages', 'Issues list', 'Check list']
 
-function normPriority(priority: string) {
-  const p = priority?.toLowerCase()
-  if (p === 'high' || p === 'critical') return 'high'
-  if (p === 'medium' || p === 'moderate' || p === 'major') return 'medium'
-  if (p === 'low' || p === 'minor') return 'low'
-  return 'none'
-}
-
-
 const PIE_COLORS = ['#8b7cf8', '#3b82f6', '#06b6d4', '#f59e0b', '#10b981']
-
-function scoreColor(s: number) {
-  if (s >= 90) return '#22c55e'
-  if (s >= 50) return '#f59e0b'
-  return '#ef4444'
-}
 
 function splitUrlForDisplay(url: string): { grey: string; bold: string } {
   try {
@@ -95,7 +80,6 @@ function AccessibilityPage() {
   const [pagesSearch, setPagesSearch] = useState('')
   const [issueSearch, setIssueSearch] = useState('')
   const [catFilter, setCatFilter] = useState<string | null>(null)
-  const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null)
   const [checklistSearch, setChecklistSearch] = useState('')
   const [pageDetailView, setPageDetailView] = useState<{ scanResultId: string; pageUrl: string } | null>(null)
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
@@ -228,7 +212,7 @@ function AccessibilityPage() {
                       className="text-[#0a5dcf] underline">Learn more</a>
                   </p>
                 </div>
-                <Link to="/accessibility" search={{ tab: 'Issues list' }}
+                <Link to="/accessibility" search={{ tab: 'Issues list', issueId: undefined }}
                   className="inline-flex items-center justify-center bg-[#0b66e4] text-white text-[14px] font-medium rounded-[4px] px-8 py-3.5 self-start">
                   View all issues
                 </Link>
@@ -467,7 +451,7 @@ function AccessibilityPage() {
               <div className="w-full lg:w-[476px] shrink-0 bg-white rounded-lg border border-[#dfe4f3] p-5">
                 <div className="flex items-center justify-between mb-5">
                   <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Issues per page</h3>
-                  <Link to="/accessibility" search={{ tab: 'Issues list' }}
+                  <Link to="/accessibility" search={{ tab: 'Issues list', issueId: undefined }}
                     className="text-[14px] font-medium text-[#0b66e4] whitespace-nowrap">
                     View all issues →
                   </Link>
@@ -547,7 +531,7 @@ function AccessibilityPage() {
                               <PriorityBadge priority={priority} />
                             </td>
                             <td className="px-4 py-[18px]">
-                              <Link to="/accessibility" search={{ tab: 'Issues list' }} className="text-[14px] font-medium text-[#0a5dcf] underline">View more</Link>
+                              <Link to="/accessibility" search={{ tab: 'Issues list', issueId: undefined }} className="text-[14px] font-medium text-[#0a5dcf] underline">View more</Link>
                             </td>
                           </tr>
                         )
@@ -1056,10 +1040,3 @@ function EmptyState({ msg }: { msg: string }) {
   )
 }
 
-function Spinner() {
-  return (
-    <div className="flex items-center justify-center h-full py-32">
-      <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
-    </div>
-  )
-}

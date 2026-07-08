@@ -532,6 +532,7 @@ export interface AccessibilityIssuesLogItem {
   title: string;
   page_url: string;
   wcag_level: string | null;
+  conformance_level?: string | null;
   priority: string;
 }
 

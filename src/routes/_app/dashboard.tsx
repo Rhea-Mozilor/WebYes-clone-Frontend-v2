@@ -22,7 +22,6 @@ import { cn } from '../../lib/utils'
 import { PriorityBadge } from '../../components/ui/PriorityBadge'
 import { AccessibilityIcon, PerformanceIcon, QualityIcon, SeoIcon } from '../../components/ui/CategoryIcons'
 import { useSiteStore } from '../../store/siteStore'
-import { useAuthStore } from '../../store/authStore'
 import { listWebsites, createWebsite } from '../../api/websites'
 import { getScanDashboard, getScanIssues, getScanPages, getPageScores } from '../../api/scans'
 import {
@@ -57,6 +56,7 @@ const PIE_COLORS: Record<IssueCategory, string> = {
   performance: '#c5d0e8',
   accessibility: '#1a2f5e',
   best_practices: '#4dcfca',
+  quality: '#4dcfca',
   seo: '#7b8fd4',
 }
 
@@ -180,7 +180,6 @@ function DashboardPage() {
   const scanInfo = websiteId ? scansByWebsite[websiteId] : undefined
   const scanId = scanInfo?.scanId ?? null
   const prevScanId = scanInfo?.prevScanId ?? null
-  const { user } = useAuthStore()
   const [activeTab, setActiveTab] = useState<IssueCategory | 'all'>('all')
   const [addOpen, setAddOpen] = useState(false)
   const [pagesOpen, setPagesOpen] = useState(false)

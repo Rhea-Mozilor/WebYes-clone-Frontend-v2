@@ -67,7 +67,6 @@ function derivePriority(score: number | null, critical: number): string {
 function SeoPage() {
   const { websiteId, strategy, scansByWebsite } = useSiteStore()
   const scanId = websiteId ? scansByWebsite[websiteId]?.scanId ?? null : null
-  const [issueLogCategory, setIssueLogCategory] = useState<string>('all')
   const { tab: activeTab, issueId: preselectedIssueId } = Route.useSearch()
   const navigate = useNavigate({ from: '/seo' })
   const setActiveTab = (tab: string) => navigate({ search: (s) => ({ ...s, tab }), replace: true })
@@ -76,7 +75,6 @@ function SeoPage() {
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [issueSearch, setIssueSearch] = useState('')
-  const [issueSubTab, setIssueSubTab] = useState<'all' | 'critical'>('all')
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
   const [pageDetailView, setPageDetailView] = useState<{ scanResultId: string; pageUrl: string } | null>(null)
 
@@ -121,7 +119,6 @@ function SeoPage() {
   })
 
   const score = scoreData?.score ?? 0
-  const label = scoreLabel(score)
   const totalIssues = scoreData?.total_issues ?? 0
   const criticalCount = scoreData?.critical_issues ?? 0
   const prevTotalIssues = scoreData?.previous_total_issues ?? null
@@ -181,7 +178,7 @@ function SeoPage() {
                   <p className="text-[13px] text-[#505050] mb-2">Target your ideal customers.</p>
                   <p className="text-[13px] text-[#73767f] mb-6">Presenting your website's SEO score.</p>
                 </div>
-                <Link to="/seo" search={{ tab: 'Issues list' }}
+                <Link to="/seo" search={{ tab: 'Issues list', issueId: undefined }}
                   className="inline-flex items-center justify-center bg-[#0b66e4] text-white text-[14px] font-medium rounded-[4px] px-8 py-3.5 self-start">
                   View all issues
                 </Link>
@@ -285,7 +282,7 @@ function SeoPage() {
             <div className="w-full lg:w-[340px] shrink-0 bg-white rounded-[8px] border border-[#dfe4f3] p-5">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Critical issues</h3>
-                <Link to="/seo" search={{ tab: 'Issues list' }}
+                <Link to="/seo" search={{ tab: 'Issues list', issueId: undefined }}
                   className="text-[14px] font-medium text-[#0b66e4] whitespace-nowrap">
                   View all issues →
                 </Link>
@@ -352,7 +349,7 @@ function SeoPage() {
                               <PriorityBadge priority={priority} />
                             </td>
                             <td className="px-4 py-[18px]">
-                              <Link to="/seo" search={{ tab: 'Issues list' }} className="text-[14px] font-medium text-[#0a5dcf] underline">View more</Link>
+                              <Link to="/seo" search={{ tab: 'Issues list', issueId: undefined }} className="text-[14px] font-medium text-[#0a5dcf] underline">View more</Link>
                             </td>
                           </tr>
                         )
@@ -482,7 +479,6 @@ function SeoPage() {
                     <tbody>
                       {affectedPages.items.map((item, i) => {
                         const s = item.page_score ?? 0
-                        const prio = item.priority ?? derivePriority(s, item.critical_issues)
                         const shortUrl = item.page_url.replace(/^https?:\/\//, '').replace(/\/$/, '')
                         return (
                           <tr key={i}
@@ -617,10 +613,3 @@ function EmptyState({ msg }: { msg: string }) {
   )
 }
 
-function Spinner() {
-  return (
-    <div className="flex items-center justify-center h-full py-32">
-      <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
-    </div>
-  )
-}

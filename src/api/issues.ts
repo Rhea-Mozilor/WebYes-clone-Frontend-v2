@@ -15,3 +15,6 @@ export const getIssue = (id: string) =>
 
 export const getIssueDetail = (id: string) =>
   client.get<IssueRichDetail>(`/issues/${id}/detail`);
+
+export const getAccessibilityIssueDetail = (id: string) =>
+  client.get<IssueRichDetail>(`/issues/${id}/accessibility-detail`);

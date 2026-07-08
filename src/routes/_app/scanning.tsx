@@ -1,7 +1,10 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { X } from 'lucide-react'
 import { getScanJob, cancelScan } from '../../api/scans'
+import ScanModalGif from '../../components/svgicons/scanmodal.gif'
+import { useSiteStore } from '../../store/siteStore'
 
 export const Route = createFileRoute('/_app/scanning')({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -11,10 +14,47 @@ export const Route = createFileRoute('/_app/scanning')({
   component: ScanningPage,
 })
 
+function siteName(rawUrl: string) {
+  try { return new URL(rawUrl).hostname.replace(/^www\./, '') } catch { return rawUrl }
+}
+
+function CheckIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" className="shrink-0">
+      <circle cx="11" cy="11" r="11" fill="#219653" />
+      <path d="M6 11.5l3.5 3.5 6.5-6.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+
+function SpinnerIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 animate-spin">
+      <circle cx="8" cy="8" r="7" stroke="#adbbd8" strokeWidth="1.5" />
+      <path d="M8 1a7 7 0 0 1 7 7" stroke="#0b66e4" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function ScanIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <path d="M2 7V3.5A1.5 1.5 0 0 1 3.5 2H7" stroke="#0a165b" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M15 2h3.5A1.5 1.5 0 0 1 20 3.5V7" stroke="#0a165b" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M20 15v3.5A1.5 1.5 0 0 1 18.5 20H15" stroke="#0a165b" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M7 20H3.5A1.5 1.5 0 0 1 2 18.5V15" stroke="#0a165b" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="2" y1="11" x2="20" y2="11" stroke="#0a165b" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function ScanningPage() {
   const { jobId, url } = Route.useSearch()
   const navigate = useNavigate()
   const [cancelling, setCancelling] = useState(false)
+  const [showComplete, setShowComplete] = useState(false)
+  const { websiteId, setScanForWebsite } = useSiteStore()
 
   const { data: job } = useQuery({
     queryKey: ['onboarding-scan', jobId],
@@ -26,10 +66,17 @@ function ScanningPage() {
     },
   })
 
-  const pagesScanned = job?.progress?.done ?? 0
   const pages = job?.pages ?? []
-  const running = pages.filter((p) => p.status === 'running')
-  const currentUrl = running[0]?.url ?? pages[pages.length - 1]?.url ?? url
+  const pagesScanned = job?.pages_scanned ?? pages.length
+  const currentUrl = job?.current_url ?? null
+  const name = siteName(url)
+
+  useEffect(() => {
+    if ((job?.status === 'completed' || job?.status === 'failed') && jobId && websiteId) {
+      setScanForWebsite(websiteId, jobId)
+      setShowComplete(true)
+    }
+  }, [job?.status, jobId, websiteId, setScanForWebsite])
 
   async function handleCancel() {
     if (!jobId) { navigate({ to: '/dashboard' }); return }
@@ -38,91 +85,209 @@ function ScanningPage() {
     navigate({ to: '/dashboard' })
   }
 
-  return (
-    <div className="flex-1 p-4 sm:p-6 space-y-4">
-      {/* Main scan card */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="flex">
-          {/* Left */}
-          <div className="flex-1 p-6 sm:p-8">
-            <div className="flex items-center gap-3 mb-3">
-              <h1 className="text-2xl font-bold text-gray-900">Scanning...</h1>
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 border border-amber-300 text-amber-700">
-                Quick scan
-              </span>
-            </div>
-            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              Run a quick single-page scan for a snapshot of key issues affecting this page.
-            </p>
+  if (showComplete) {
+    const hasFailed = job?.status === 'failed'
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-sm shadow-2xl w-full max-w-sm overflow-hidden">
+          <div className="flex justify-end px-4 pt-4">
+            <button
+              onClick={() => { setShowComplete(false); if (!hasFailed) navigate({ to: '/dashboard' }) }}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
 
-            <div className="flex items-center gap-2 mb-5 text-blue-600">
-              <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <path d="M3 9h18M9 21V9" />
-              </svg>
-              <span className="text-sm font-semibold">{pagesScanned} pages scanned</span>
-            </div>
-
-            {/* Currently scanning section */}
-            <div>
-              <div className="bg-blue-50 rounded-t-lg px-4 py-2.5">
-                <span className="text-sm font-semibold text-gray-700">Currently scanning:</span>
+          {hasFailed ? (
+            <>
+              <div className="mx-5 mb-5 rounded-sm bg-red-50 flex items-center justify-center py-8 relative min-h-[200px]">
+                <svg viewBox="0 0 220 150" className="w-56" fill="none">
+                  <rect x="30" y="10" width="160" height="110" rx="8" fill="#FEE2E2" />
+                  <rect x="30" y="10" width="160" height="24" rx="8" fill="#991B1B" />
+                  <rect x="44" y="44" width="38" height="28" rx="4" fill="#FECACA" />
+                  <rect x="90" y="44" width="38" height="28" rx="4" fill="#FECACA" />
+                  <rect x="136" y="44" width="38" height="28" rx="4" fill="#FECACA" />
+                  <rect x="44" y="80" width="130" height="10" rx="3" fill="#FCA5A5" />
+                  <rect x="44" y="96" width="95" height="10" rx="3" fill="#FCA5A5" />
+                </svg>
+                <div className="absolute bottom-6 left-10 w-16 h-16 rounded-full bg-red-500 flex items-center justify-center shadow-lg">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
               </div>
-              <div className="border border-gray-100 rounded-b-lg">
-                {pages.length === 0 ? (
-                  <div className="px-4 py-3 text-sm text-gray-400">Waiting for scanner...</div>
-                ) : (
-                  <div className="flex items-center justify-between px-4 py-3 gap-3">
-                    <span className="text-sm text-gray-600 truncate">{currentUrl}</span>
-                    <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin shrink-0" />
+              <div className="px-6 pb-7">
+                <h2 className="text-[20px] font-bold text-gray-900 mb-2">Scan failed</h2>
+                <p className="text-sm text-gray-600 mb-6">
+                  The scan for <span className="font-bold text-gray-900">{url}</span> could not be completed. Please try running the scan again.
+                </p>
+                <button
+                  onClick={() => setShowComplete(false)}
+                  className="w-full py-3 bg-gray-800 hover:bg-gray-900 text-white text-sm font-semibold rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mx-5 mb-5 rounded-sm bg-[#e8eeff] flex items-center justify-center py-8 relative min-h-[200px]">
+                <svg viewBox="0 0 220 150" className="w-56" fill="none">
+                  <rect x="30" y="10" width="160" height="110" rx="8" fill="#BFDBFE" />
+                  <rect x="30" y="10" width="160" height="24" rx="8" fill="#3730A3" />
+                  <rect x="44" y="44" width="38" height="28" rx="4" fill="#C7D2FE" />
+                  <rect x="90" y="44" width="38" height="28" rx="4" fill="#C7D2FE" />
+                  <rect x="136" y="44" width="38" height="28" rx="4" fill="#C7D2FE" />
+                  <rect x="44" y="80" width="130" height="10" rx="3" fill="#DDD6FE" />
+                  <rect x="44" y="96" width="95" height="10" rx="3" fill="#DDD6FE" />
+                </svg>
+                <div className="absolute bottom-6 left-10 w-16 h-16 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div className="absolute bottom-4 right-12 w-12 h-12 rounded-full bg-blue-200 flex items-center justify-center shadow">
+                  <svg className="w-6 h-6 text-blue-700" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="4" r="1.5" />
+                    <path d="M12 7c-2.8 0-5 .8-5 .8l1 3.2h3v7h2v-7h3l1-3.2S14.8 7 12 7z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="px-6 pb-7">
+                <h2 className="text-[20px] font-bold text-gray-900 mb-2">Your website scan is complete</h2>
+                <p className="text-sm text-gray-600 mb-6">
+                  The audit for <span className="font-bold text-gray-900">{url}</span> is ready — review your results and fix the issues.
+                </p>
+                <button
+                  onClick={() => { setShowComplete(false); navigate({ to: '/dashboard' }) }}
+                  className="w-full py-3 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-sm font-semibold rounded-lg transition-colors"
+                >
+                  View results
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex-1 flex items-center justify-center p-6 sm:p-10 min-h-0 overflow-y-auto">
+      <div
+        className="relative bg-white rounded-[12px] w-full flex flex-col gap-5"
+        style={{ maxWidth: 886, boxShadow: '0px 0px 20px 0px rgba(16,6,57,0.13)' }}
+      >
+        {/* Padding wrapper */}
+        <div className="px-8 pt-8 pb-0 flex flex-col gap-5">
+
+          {/* Close button */}
+          <button
+            onClick={() => navigate({ to: '/dashboard' })}
+            className="absolute top-5 right-5 text-[#585b66] hover:text-[#141414] transition-colors"
+          >
+            <X size={18} />
+          </button>
+
+          {/* Main bordered content box */}
+          <div className="border border-[#adbbd8] rounded-[8px] flex overflow-hidden" style={{ minHeight: 324 }}>
+
+            {/* Left: scanning info */}
+            <div className="flex-1 py-8 pl-9 pr-6 flex flex-col min-w-0">
+
+              <h1
+                className="text-[24px] font-semibold text-[#141414] leading-[32px]"
+                style={{ letterSpacing: '-0.2px' }}
+              >
+                {name} scanning...
+              </h1>
+
+              <p className="text-[13px] text-[#73767f] mt-2 leading-[19px]">
+                Your scan profile '{name}' has been saved. You can access it later from the Scan Profiles menu.
+              </p>
+
+              {/* Pages scanned */}
+              <div className="flex items-center gap-2 mt-5">
+                <ScanIcon />
+                <span className="text-[13px] font-medium text-[#0a165b]">
+                  {pagesScanned} pages scanned
+                </span>
+              </div>
+
+              {/* Currently scanning bar */}
+              <div className="mt-5 bg-[#e2e9f3] px-5 py-2">
+                <span className="text-[13px] font-medium text-[#0a165b]">Currently scanning :</span>
+              </div>
+
+              {/* URL list: completed pages + active current_url */}
+              <div className="flex-1 overflow-y-auto max-h-[130px] pr-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#323232 transparent' }}>
+                {pages.length === 0 && !currentUrl ? (
+                  <div className="flex items-center gap-3 py-2.5">
+                    <SpinnerIcon />
+                    <span className="text-[13px] text-[#73767f]">Waiting for scanner...</span>
                   </div>
+                ) : (
+                  <>
+                    {pages.map((p) => (
+                      <div key={p.url} className="flex items-center justify-between gap-3 py-2 border-b border-[#f0f0f0]">
+                        <span className="text-[13px] text-black truncate">{p.url}</span>
+                        <CheckIcon />
+                      </div>
+                    ))}
+                    {currentUrl && !pages.find(p => p.url === currentUrl) && (
+                      <div key={currentUrl} className="flex items-center justify-between gap-3 py-2">
+                        <span className="text-[13px] text-black truncate">{currentUrl}</span>
+                        <SpinnerIcon />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
+
+            {/* Vertical divider */}
+            <div className="w-px bg-[#adbbd8] self-stretch shrink-0" />
+
+            {/* Right: animated illustration */}
+            <div className="w-[260px] shrink-0 flex items-center justify-center p-6">
+              <img
+                src={ScanModalGif}
+                alt="Scanning illustration"
+                className="w-[210px] h-[210px] object-contain"
+              />
+            </div>
           </div>
 
-          {/* Right illustration */}
-          <div className="hidden sm:flex w-52 shrink-0 items-center justify-center p-8 bg-gradient-to-br from-blue-50 to-indigo-100">
-            <svg viewBox="0 0 160 145" className="w-full" fill="none">
-              <rect x="8" y="8" width="144" height="100" rx="8" fill="#BFDBFE" />
-              <rect x="8" y="8" width="144" height="24" rx="8" fill="#4F6FE8" />
-              <rect x="20" y="44" width="40" height="28" rx="4" fill="#93C5FD" />
-              <rect x="68" y="44" width="40" height="28" rx="4" fill="#93C5FD" />
-              <rect x="116" y="44" width="28" height="28" rx="4" fill="#93C5FD" />
-              <rect x="20" y="82" width="124" height="9" rx="3" fill="#BAE6FD" />
-              <rect x="20" y="97" width="80" height="9" rx="3" fill="#BAE6FD" />
-              <ellipse cx="80" cy="130" rx="55" ry="9" fill="#DBEAFE" />
-            </svg>
+          {/* Info box */}
+          <div className="border border-[#adbbd8] rounded-[6px] px-8 py-5">
+            <p className="text-[14px] text-[#2e3240] leading-[24px]">
+              The scanning process is ongoing and may take minutes or even hours depending on the size of your website. Meanwhile, you can:
+            </p>
+            <ul className="list-disc pl-5 mt-2 text-[14px] text-[#2e3240]">
+              <li className="leading-[28px]">Explore the dashboard</li>
+              <li className="leading-[28px]">We'll notify you via email, once the scan is completed</li>
+            </ul>
           </div>
         </div>
-      </div>
 
-      {/* Info card */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-7 py-5">
-        <p className="text-sm text-gray-700 mb-3">
-          The scan is in progress and may take a few minutes, depending on your site's size and structure.
-        </p>
-        <ul className="text-sm text-gray-600 space-y-1.5 list-disc pl-5">
-          <li>The dashboard will be available to explore once the first page is scanned.</li>
-          <li>You'll get an email notification when the scan is complete.</li>
-        </ul>
-      </div>
-
-      {/* Footer buttons */}
-      <div className="flex items-center justify-end gap-5 pt-1">
-        <button
-          onClick={handleCancel}
-          disabled={cancelling}
-          className="text-sm text-gray-500 hover:text-red-600 disabled:opacity-50 transition-colors"
-        >
-          {cancelling ? 'Cancelling...' : 'Cancel scan'}
-        </button>
-        <button
-          onClick={() => navigate({ to: '/dashboard' })}
-          className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-xl transition-colors"
-        >
-          Explore dashboard
-        </button>
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-4 px-8 pb-7">
+          <button
+            onClick={handleCancel}
+            disabled={cancelling}
+            className="text-[14px] font-medium text-[#585b66] hover:text-[#141414] disabled:opacity-50 transition-colors"
+            style={{ fontFamily: 'DM Sans, sans-serif', letterSpacing: '-0.28px' }}
+          >
+            {cancelling ? 'Cancelling...' : 'Cancel scan'}
+          </button>
+          <button
+            onClick={() => navigate({ to: '/dashboard' })}
+            className="px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[14px] font-medium rounded-[4px] transition-colors"
+            style={{ letterSpacing: '-0.28px' }}
+          >
+            Back to dashboard
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '../../../lib/utils'
+import { PriorityBadge } from '../../../components/ui/PriorityBadge'
 import { getIssue } from '../../../api/issues'
 import type { Issue } from '../../../types'
 
@@ -89,7 +90,7 @@ function OpportunityTable({ items }: { items: Record<string, unknown>[] }) {
   const hasTotalBytes = items.some((i) => typeof i.totalBytes === 'number')
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden text-xs">
+    <div className="border border-gray-200 rounded-sm overflow-hidden text-xs">
       {/* Header */}
       <div className="grid bg-gray-50 border-b border-gray-200 px-4 py-2 font-semibold text-gray-500 uppercase tracking-wide text-[10px]"
         style={{ gridTemplateColumns: hasNode ? '1fr 180px 140px' : '1fr 140px' }}>
@@ -170,7 +171,7 @@ function GenericTable({ items }: { items: Record<string, unknown>[] }) {
   if (!keys.length) return null
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden text-xs overflow-x-auto">
+    <div className="border border-gray-200 rounded-sm overflow-hidden text-xs overflow-x-auto">
       <table className="w-full min-w-max">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
@@ -300,7 +301,7 @@ function CriticalRequestChainView({ items }: { items: Record<string, unknown>[] 
   }
   if (!allChains.length) return <p className="text-xs text-gray-400">No chain data.</p>
   return (
-    <div className="border border-gray-200 rounded-xl p-4 bg-gray-50 divide-y divide-gray-100">
+    <div className="border border-gray-200 rounded-sm p-4 bg-gray-50 divide-y divide-gray-100">
       {allChains.map((chain, i) => (
         <ChainNode key={i} node={chain} depth={0} />
       ))}
@@ -327,7 +328,7 @@ function DetailsSection({ issue }: { issue: Issue }) {
   const title = type === 'opportunity' ? 'Opportunities' : 'Details'
 
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+    <div className="bg-white border border-gray-100 rounded-sm p-5 shadow-sm">
       <div className="flex items-center gap-2 mb-4">
         <h2 className="text-sm font-bold text-gray-900">{title}</h2>
         {issue.item_count != null && (
@@ -383,7 +384,7 @@ function IssueDetailPage() {
       </Link>
 
       {/* Header card */}
-      <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm mb-4">
+      <div className="bg-white border border-gray-100 rounded-sm p-5 shadow-sm mb-4">
         <div className="flex items-start gap-3 mb-4">
           {isCritical
             ? <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
@@ -405,12 +406,7 @@ function IssueDetailPage() {
                 isCritical ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700')}>
                 {isCritical ? 'Critical' : 'Non-Critical'}
               </span>
-              <span className={cn('text-xs px-2.5 py-1 rounded-full font-medium',
-                issue.priority === 'high' ? 'bg-red-100 text-red-700'
-                : issue.priority === 'medium' ? 'bg-amber-50 text-amber-700'
-                : 'bg-gray-100 text-gray-500')}>
-                {issue.priority} priority
-              </span>
+              <PriorityBadge priority={issue.priority} />
               <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-gray-100 text-gray-600 capitalize">
                 {issue.category.replace('_', ' ')}
               </span>
@@ -425,7 +421,7 @@ function IssueDetailPage() {
 
         {/* Metrics row */}
         {(issue.wasted_ms != null || issue.wasted_bytes != null) && (
-          <div className="flex gap-4 mb-4 p-3 bg-gray-50 rounded-lg">
+          <div className="flex gap-4 mb-4 p-3 bg-gray-50 rounded-sm">
             {issue.wasted_ms != null && (
               <div>
                 <div className="text-[10px] text-gray-400 uppercase tracking-wide">Wasted time</div>

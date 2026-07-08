@@ -12,7 +12,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://webyes-alb-1392888365.ap-south-1.elb.amazonaws.com',
         changeOrigin: true,
       },
     },

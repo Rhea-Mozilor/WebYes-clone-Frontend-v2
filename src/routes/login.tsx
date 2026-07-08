@@ -1,9 +1,14 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Eye, EyeOff, CheckCircle2 } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { login, getMe } from '../api/auth'
 import { useAuthStore } from '../store/authStore'
+import Login1 from '../components/svgicons/login/login1.png'
+import Login2 from '../components/svgicons/login/login2.png'
+import Login3 from '../components/svgicons/login/login3.png'
+import Login4 from '../components/svgicons/login/login4.png'
+import WebYesLogo from '../components/svgicons/Webyes-logo.svg'
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
@@ -15,6 +20,7 @@ function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -34,127 +40,115 @@ function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left panel */}
-      <div
-        className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden"
-        style={{ background: 'linear-gradient(145deg, #0038c8 0%, #1a5ff8 60%, #3b82f6 100%)' }}
-      >
-        {/* Decorative background circles */}
-        <div className="absolute -top-24 -left-24 w-64 h-64 rounded-full opacity-10 bg-white" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full opacity-5 bg-white" />
+    <div className="flex min-h-screen bg-white">
 
-        {/* Logo */}
-        <span className="font-bold text-2xl text-white relative z-10">
-          <span className="opacity-80">W</span>ebYes
-        </span>
+      {/* ── Left panel ─────────────────────────────────────────────────── */}
+      {/* Figma: 773px of 1440px frame = 53.68% */}
+      <div className="hidden lg:block relative overflow-hidden flex-none" style={{ width: '53.68%' }}>
 
-        {/* Dashboard preview mockup */}
-        <div className="relative z-10 flex-1 flex flex-col justify-center">
-          <div className="bg-white/10 backdrop-blur rounded-xl p-4 mb-6 border border-white/20 shadow-2xl">
-            {/* Scan complete banner */}
-            <div className="bg-white rounded-lg px-3 py-2 mb-3 flex items-center gap-2 text-sm shadow">
-              <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-              <div>
-                <div className="font-medium text-gray-800 text-xs">Scanning Completed.</div>
-                <div className="text-gray-500 text-xs">Good job with Performance and SEO! Needs improvement with Accessibility, Quality.</div>
-              </div>
-            </div>
+        {/* Background image */}
+        <img src={Login4} alt="" className="absolute inset-0 w-full h-full object-cover" />
 
-            {/* Issues per page mini widget */}
-            <div className="bg-white/90 rounded-lg p-3 mb-3 shadow">
-              <div className="text-xs font-semibold text-gray-700 mb-2">Issues per page</div>
-              {[
-                { name: 'Dashboard', count: 32 },
-                { name: 'Login', count: 44 },
-                { name: 'Register', count: 28 },
-                { name: 'Home', count: 15 },
-                { name: 'Checkout', count: 22 },
-              ].map((p) => (
-                <div key={p.name} className="flex items-center gap-2 mb-1">
-                  <span className="text-xs text-gray-500 w-16 truncate">{p.name}</span>
-                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-blue-500"
-                      style={{ width: `${(p.count / 50) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-xs text-gray-600 w-5 text-right">{p.count}</span>
-                </div>
-              ))}
-            </div>
+        {/* Issues-per-page card  (imgImage1: left=84, top=207, w=362, h=344 in 773×929) */}
+        <img
+          src={Login1}
+          alt=""
+          className="absolute rounded-[12px] shadow-[0px_0px_20px_0px_rgba(0,0,0,0.35)]"
+          style={{ left: '10.87%', top: '22.28%', width: '46.83%' }}
+        />
 
-            {/* Score badges */}
-            <div className="flex gap-2">
-              {[
-                { label: 'Level A', pct: '81%', color: '#22c55e' },
-                { label: 'Level AA', pct: '21%', color: '#f59e0b' },
-                { label: 'Level AAA', pct: '6%', color: '#ef4444' },
-              ].map((s) => (
-                <div key={s.label} className="bg-white/90 rounded-lg p-2 flex-1 shadow text-center">
-                  <div className="text-xs text-gray-500">{s.label}</div>
-                  <div className="text-base font-bold" style={{ color: s.color }}>{s.pct}</div>
-                </div>
-              ))}
-            </div>
+        {/* Level-A/AA/AAA card  (imgImage2: left=305, top=355, w=281, h=258) */}
+        <img
+          src={Login2}
+          alt=""
+          className="absolute shadow-[-3px_0px_16px_0px_rgba(22,43,149,0.1)]"
+          style={{ left: '39.46%', top: '38.21%', width: '36.35%' }}
+        />
 
-            {/* Totals */}
-            <div className="mt-3 flex gap-4">
-              <div>
-                <div className="text-xs text-gray-500">Total Issues</div>
-                <div className="text-xl font-bold text-blue-600">26</div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500">Critical Issues</div>
-                <div className="text-xl font-bold text-red-500">05</div>
-              </div>
-            </div>
-          </div>
+        {/* Toast card  (left=373, top=172, w=284) */}
+        <img
+          src={Login3}
+          alt=""
+          className="absolute rounded-[7px] shadow-[-3.5px_2.6px_12px_0px_rgba(16,6,57,0.12)]"
+          style={{ left: '48.25%', top: '18.51%', width: '36.74%' }}
+        />
 
-          <h2 className="text-white text-2xl font-bold leading-tight mb-2">
-            Get ready to explore<br />our intuitive dashboard
-          </h2>
-          <p className="text-blue-200 text-sm leading-relaxed">
-            Unlock the full potential of your website<br />with our comprehensive audits.
+        {/* Bottom text  (left=240, top=663, w=276, h=181 in 773×929) */}
+        <div
+          className="absolute text-center"
+          style={{ left: '31.05%', top: '71.37%', width: '35.71%' }}
+        >
+          {/* Heading — font 28px, medium, line-height 41px */}
+          <p className="text-white font-medium text-[28px] leading-[41px] mb-0">
+            Get ready to explore our intuitive dashboard
           </p>
-        </div>
-
-        {/* Pagination dots */}
-        <div className="flex gap-2 justify-center relative z-10">
-          <div className="w-6 h-1.5 bg-white rounded-full" />
-          <div className="w-1.5 h-1.5 bg-white/40 rounded-full" />
-          <div className="w-1.5 h-1.5 bg-white/40 rounded-full" />
+          {/* Subtitle — font 14px, regular, line-height 21px */}
+          <p className="text-white text-[14px] leading-[21px] mt-[10px] mb-[8px]">
+            Unlock the full potential of your website with our comprehensive audits.
+          </p>
+          {/* Pagination dots */}
+          <div className="flex items-center justify-center gap-[8px] mt-[4px]">
+            <div className="h-[7px] w-[20px] rounded-[16px] bg-[#0b66e4]" />
+            <div className="size-[7px] rounded-full bg-[#d9d9d9]" />
+            <div className="size-[7px] rounded-full bg-[#d9d9d9]" />
+          </div>
         </div>
       </div>
 
-      {/* Right panel — login form */}
-      <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-8 py-12 bg-white">
-        <div className="w-full max-w-sm">
-          {/* Mobile logo */}
-          <div className="lg:hidden mb-8 text-center">
-            <span className="font-bold text-2xl text-gray-900">
-              <span className="text-blue-600">W</span>ebYes
-            </span>
+      {/* ── Right panel ────────────────────────────────────────────────── */}
+      <div className="flex flex-col justify-center items-center flex-1 bg-white">
+        {/* Form container — Figma: 382px wide */}
+        <div style={{ width: '382px' }}>
+
+          {/* Logo — Figma node 501-63561: w=140px, h=52.97px, centered */}
+          <div className="flex justify-center mb-[8px]">
+            <img src={WebYesLogo} alt="WebYes" style={{ height: '52.973px' }} />
           </div>
 
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back!</h1>
-          <p className="text-sm text-gray-500 mb-7">Enter your credentials to continue</p>
+          {/* Welcome back — font 28px bold, top=218 (8px below logo bottom 210) */}
+          <h1
+            className="font-bold text-[#2e3240] text-center"
+            style={{ fontSize: '28px', lineHeight: 'normal', marginBottom: '10px' }}
+          >
+            Welcome back !
+          </h1>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          {/* Subtitle — font 14px, top=262 */}
+          <p
+            className="text-center text-black/60"
+            style={{ fontSize: '14px', lineHeight: 'normal', marginBottom: '63px' }}
+          >
+            Log in to continue
+          </p>
+
+          <form onSubmit={handleSubmit}>
+            {/* Email — label top=345, input top=368 h=51 */}
+            <div style={{ marginBottom: '45px' }}>
+              <label
+                className="block font-medium text-black"
+                style={{ fontSize: '14px', marginBottom: '6px' }}
+              >
+                Email
+              </label>
               <input
                 type="email"
                 placeholder="name@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400"
+                className="w-full border border-black/50 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-[rgba(36,36,36,0.4)]"
+                style={{ height: '51px', paddingLeft: '21px', paddingRight: '21px', fontSize: '13px', borderRadius: '4px' }}
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            {/* Password — label top=464, input top=486 h=51 */}
+            <div style={{ marginBottom: '23px' }}>
+              <label
+                className="block font-medium text-black"
+                style={{ fontSize: '14px', marginBottom: '6px' }}
+              >
+                Password
+              </label>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
@@ -162,38 +156,70 @@ function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 placeholder:text-gray-400"
+                  className="w-full border border-black/50 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-black/40"
+                  style={{ height: '51px', paddingLeft: '21px', paddingRight: '48px', fontSize: '13px', borderRadius: '4px' }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-[14px] top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                 >
-                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <div className="text-right mt-1">
-                <button type="button" className="text-xs text-blue-600 hover:underline">
-                  Forgot password?
+                  {showPass ? <EyeOff className="w-[18.75px] h-[12.5px]" /> : <Eye className="w-[18.75px] h-[12.5px]" />}
                 </button>
               </div>
             </div>
 
+            {/* Remember me + Forgot password — top=560 */}
+            <div className="flex items-center justify-between" style={{ marginBottom: '63px' }}>
+              <label className="flex items-center gap-[10px] cursor-pointer select-none">
+                <div className="relative" style={{ width: '15px', height: '15px' }}>
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div
+                    className={`absolute inset-0 rounded-[2px] border border-[#aeaeb2] flex items-center justify-center transition-colors ${rememberMe ? 'bg-[#0b66e4] border-[#0b66e4]' : 'bg-white'}`}
+                    onClick={() => setRememberMe(!rememberMe)}
+                  >
+                    {rememberMe && (
+                      <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                        <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span style={{ fontSize: '13px', color: '#000' }}>Remember me</span>
+              </label>
+              <button
+                type="button"
+                className="underline text-black hover:text-gray-600"
+                style={{ fontSize: '13px' }}
+              >
+                Forgot password?
+              </button>
+            </div>
+
+            {/* Login button — top=638, py=16px */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors mt-1"
+              className="w-full bg-[#0b66e4] hover:bg-blue-700 disabled:opacity-60 text-white font-medium rounded transition-colors"
+              style={{ fontSize: '16px', paddingTop: '16px', paddingBottom: '16px', borderRadius: '4px', marginBottom: '39px' }}
             >
               {loading ? 'Signing in…' : 'Login'}
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
+          {/* New to WebYes — top=725 */}
+          <p className="text-center font-medium" style={{ fontSize: '13px', color: '#333' }}>
             New to WebYes?{' '}
-            <Link to="/signup" className="text-blue-600 font-medium hover:underline">
+            <Link to="/signup" className="text-[#2b69d4] font-medium underline hover:opacity-80">
               Create an account
             </Link>
           </p>
+
         </div>
       </div>
     </div>

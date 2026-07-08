@@ -1,12 +1,14 @@
-
-
-
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { signup, login, getMe } from '../api/auth'
 import { useAuthStore } from '../store/authStore'
+import Login1 from '../components/svgicons/login/login1.png'
+import Login2 from '../components/svgicons/login/login2.png'
+import Login3 from '../components/svgicons/login/login3.png'
+import Login4 from '../components/svgicons/login/login4.png'
+import WebYesLogo from '../components/svgicons/Webyes-logo.svg'
 
 export const Route = createFileRoute('/signup')({
   component: SignupPage,
@@ -15,16 +17,23 @@ export const Route = createFileRoute('/signup')({
 function SignupPage() {
   const navigate = useNavigate()
   const setAuth = useAuthStore((s) => s.setAuth)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
-  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
+  const [agreed, setAgreed] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!agreed) {
+      toast.error('Please agree to the Terms and Conditions')
+      return
+    }
     setLoading(true)
     try {
+      const username = `${firstName}${lastName}`.toLowerCase()
       await signup(email, username, password)
       const tokens = await login(email, password)
       localStorage.setItem('access_token', tokens.access_token)
@@ -42,123 +51,189 @@ function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left panel */}
-      <div
-        className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden"
-        style={{ background: 'linear-gradient(145deg, #0038c8 0%, #1a5ff8 60%, #3b82f6 100%)' }}
-      >
-        <div className="absolute -top-24 -left-24 w-64 h-64 rounded-full opacity-10 bg-white" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full opacity-5 bg-white" />
+    <div className="flex min-h-screen bg-white">
 
-        <span className="font-bold text-2xl text-white relative z-10">
-          <span className="opacity-80">W</span>ebYes
-        </span>
+      {/* ── Left panel — identical to login ────────────────────────────── */}
+      <div className="hidden lg:block relative overflow-hidden flex-none" style={{ width: '53.68%' }}>
+        <img src={Login4} alt="" className="absolute inset-0 w-full h-full object-cover" />
 
-        <div className="relative z-10 flex-1 flex flex-col justify-center">
-          <h2 className="text-white text-3xl font-bold leading-tight mb-4">
-            Start auditing your<br />websites today
-          </h2>
-          <p className="text-blue-200 text-sm leading-relaxed">
-            Get detailed insights into performance,<br />
-            accessibility, best practices and SEO.
+        {/* Issues-per-page card */}
+        <img
+          src={Login1}
+          alt=""
+          className="absolute rounded-[12px] shadow-[0px_0px_20px_0px_rgba(0,0,0,0.35)]"
+          style={{ left: '10.87%', top: '22.28%', width: '46.83%' }}
+        />
+
+        {/* Level-A/AA/AAA card */}
+        <img
+          src={Login2}
+          alt=""
+          className="absolute shadow-[-3px_0px_16px_0px_rgba(22,43,149,0.1)]"
+          style={{ left: '39.46%', top: '38.21%', width: '36.35%' }}
+        />
+
+        {/* Toast card */}
+        <img
+          src={Login3}
+          alt=""
+          className="absolute rounded-[7px] shadow-[-3.5px_2.6px_12px_0px_rgba(16,6,57,0.12)]"
+          style={{ left: '48.25%', top: '18.51%', width: '36.74%' }}
+        />
+
+        {/* Bottom text */}
+        <div
+          className="absolute text-center"
+          style={{ left: '31.05%', top: '71.37%', width: '35.71%' }}
+        >
+          <p className="text-white font-medium text-[28px] leading-[41px]">
+            Get ready to explore our intuitive dashboard
           </p>
-          <div className="mt-8 grid grid-cols-2 gap-3">
-            {[
-              { label: 'Performance', icon: '⚡' },
-              { label: 'Accessibility', icon: '♿' },
-              { label: 'Best Practices', icon: '✅' },
-              { label: 'SEO', icon: '🔍' },
-            ].map((f) => (
-              <div key={f.label} className="bg-white/10 border border-white/20 rounded-xl p-3 backdrop-blur">
-                <div className="text-xl mb-1">{f.icon}</div>
-                <div className="text-white text-sm font-medium">{f.label}</div>
-              </div>
-            ))}
+          <p className="text-white text-[14px] leading-[21px] mt-[10px] mb-[8px]">
+            Unlock the full potential of your website with our comprehensive audits.
+          </p>
+          <div className="flex items-center justify-center gap-[8px] mt-[4px]">
+            <div className="h-[7px] w-[20px] rounded-[16px] bg-[#0b66e4]" />
+            <div className="size-[7px] rounded-full bg-[#d9d9d9]" />
+            <div className="size-[7px] rounded-full bg-[#d9d9d9]" />
           </div>
-        </div>
-
-        <div className="flex gap-2 justify-center relative z-10">
-          <div className="w-1.5 h-1.5 bg-white/40 rounded-full" />
-          <div className="w-6 h-1.5 bg-white rounded-full" />
-          <div className="w-1.5 h-1.5 bg-white/40 rounded-full" />
         </div>
       </div>
 
-      {/* Right panel */}
-      <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-8 py-12 bg-white">
-        <div className="w-full max-w-sm">
-          <div className="lg:hidden mb-8 text-center">
-            <span className="font-bold text-2xl text-gray-900">
-              <span className="text-blue-600">W</span>ebYes
-            </span>
+      {/* ── Right panel ────────────────────────────────────────────────── */}
+      <div className="flex flex-col justify-center items-center flex-1 bg-white py-10">
+        <div style={{ width: '430px' }}>
+
+          {/* Logo */}
+          <div className="flex justify-center mb-[16px]">
+            <img src={WebYesLogo} alt="WebYes" style={{ height: '52.973px' }} />
           </div>
 
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Create an account</h1>
-          <p className="text-sm text-gray-500 mb-7">Join WebYes and start auditing</p>
+          {/* Heading */}
+          <h1 className="font-bold text-[#2e3240] text-center" style={{ fontSize: '28px', lineHeight: 'normal', marginBottom: '8px' }}>
+            Start your 3 day free trial
+          </h1>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-              <input
-                type="text"
-                placeholder="johndoe"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400"
-              />
+          {/* Subtitle */}
+          <p className="text-center text-black/60" style={{ fontSize: '14px', lineHeight: 'normal', marginBottom: '32px' }}>
+            Free for 3 days, then $59/Month. Cancel anytime.
+          </p>
+
+          <form onSubmit={handleSubmit}>
+            {/* First name + Last name */}
+            <div className="flex gap-[14px]" style={{ marginBottom: '16px' }}>
+              <div className="flex-1">
+                <label className="block font-medium text-black" style={{ fontSize: '14px', marginBottom: '6px' }}>
+                  First name<span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="First name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                  className="w-full border border-black/20 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-black/30"
+                  style={{ height: '51px', paddingLeft: '16px', paddingRight: '16px', fontSize: '13px', borderRadius: '4px' }}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block font-medium text-black" style={{ fontSize: '14px', marginBottom: '6px' }}>
+                  Last name<span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Last name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                  className="w-full border border-black/20 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-black/30"
+                  style={{ height: '51px', paddingLeft: '16px', paddingRight: '16px', fontSize: '13px', borderRadius: '4px' }}
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            {/* Business email */}
+            <div style={{ marginBottom: '16px' }}>
+              <label className="block font-medium text-black" style={{ fontSize: '14px', marginBottom: '6px' }}>
+                Business email<span className="text-red-500">*</span>
+              </label>
               <input
                 type="email"
-                placeholder="name@email.com"
+                placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400"
+                className="w-full border border-black/20 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-black/30"
+                style={{ height: '51px', paddingLeft: '16px', paddingRight: '16px', fontSize: '13px', borderRadius: '4px' }}
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            {/* Password */}
+            <div style={{ marginBottom: '20px' }}>
+              <label className="block font-medium text-black" style={{ fontSize: '14px', marginBottom: '6px' }}>
+                Password<span className="text-red-500">*</span>
+              </label>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={8}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 placeholder:text-gray-400"
+                  className="w-full border border-black/20 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-black/30"
+                  style={{ height: '51px', paddingLeft: '16px', paddingRight: '48px', fontSize: '13px', borderRadius: '4px' }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-[14px] top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                 >
-                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPass ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
                 </button>
               </div>
             </div>
 
+            {/* Terms checkbox */}
+            <div className="flex items-center gap-[10px]" style={{ marginBottom: '20px' }}>
+              <div
+                className={`shrink-0 flex items-center justify-center border rounded cursor-pointer transition-colors ${agreed ? 'bg-[#0b66e4] border-[#0b66e4]' : 'bg-white border-[#aeaeb2]'}`}
+                style={{ width: '15px', height: '15px', borderRadius: '2px' }}
+                onClick={() => setAgreed(!agreed)}
+              >
+                {agreed && (
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
+                    <path d="M3 8.5l3.5 3.5 7-7" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </div>
+              <span style={{ fontSize: '13px', color: '#000' }}>
+                I agree to the{' '}
+                <a href="#" className="text-[#0b66e4] underline hover:opacity-80">Terms and Conditions</a>
+                {' '}&amp;{' '}
+                <a href="#" className="text-[#0b66e4] underline hover:opacity-80">Privacy Policy</a>
+              </span>
+            </div>
+
+            {/* Get Started */}
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors mt-1"
+              disabled={loading || !agreed}
+              className="w-full bg-[#0b66e4] hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded transition-colors"
+              style={{ fontSize: '16px', paddingTop: '16px', paddingBottom: '16px', borderRadius: '4px', marginBottom: '20px' }}
             >
-              {loading ? 'Creating account…' : 'Create account'}
+              {loading ? 'Creating account…' : 'Get Started'}
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
+          {/* Login link */}
+          <p className="text-center font-medium" style={{ fontSize: '13px', color: '#333' }}>
             Already have an account?{' '}
-            <Link to="/login" className="text-blue-600 font-medium hover:underline">
-              Sign in
+            <Link to="/login" className="text-[#2b69d4] font-medium underline hover:opacity-80">
+              Log in
             </Link>
           </p>
+
         </div>
       </div>
     </div>

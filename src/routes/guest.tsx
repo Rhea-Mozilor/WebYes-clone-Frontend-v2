@@ -141,7 +141,7 @@ function GuestScanPage() {
         <div className="flex-1" />
         <Link to="/login" className="text-sm text-gray-600 hover:text-gray-900 font-medium">Login</Link>
         <Link to="/signup"
-          className="px-4 py-1.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+          className="px-4 py-1.5 bg-blue-600 text-white text-sm font-semibold rounded-sm hover:bg-blue-700 transition-colors">
           Sign up free
         </Link>
       </header>
@@ -162,10 +162,10 @@ function GuestScanPage() {
 
         {/* Scan form */}
         {phase === 'idle' && (
-          <form onSubmit={handleScan} className="w-full max-w-xl bg-white rounded-2xl border border-gray-200 shadow-xl p-6 space-y-4">
+          <form onSubmit={handleScan} className="w-full max-w-xl bg-white rounded-sm border border-gray-200 shadow-xl p-6 space-y-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Website URL</label>
-              <div className="flex items-center border border-gray-200 rounded-xl px-3 py-2.5 gap-2 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+              <div className="flex items-center border border-gray-200 rounded-sm px-3 py-2.5 gap-2 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                 <Globe className="w-4 h-4 text-gray-400 shrink-0" />
                 <input
                   type="url"
@@ -184,7 +184,7 @@ function GuestScanPage() {
                 {(['mobile', 'desktop'] as const).map((s) => (
                   <button key={s} type="button" onClick={() => setStrategy(s)}
                     className={cn(
-                      'py-2.5 rounded-xl text-sm font-medium border-2 transition-colors capitalize',
+                      'py-2.5 rounded-sm text-sm font-medium border-2 transition-colors capitalize',
                       strategy === s
                         ? 'border-blue-600 bg-blue-50 text-blue-700'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'
@@ -196,7 +196,7 @@ function GuestScanPage() {
             </div>
 
             <button type="submit"
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-colors">
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-sm transition-colors">
               Run free audit
             </button>
 
@@ -210,7 +210,7 @@ function GuestScanPage() {
 
         {/* Scanning state */}
         {phase === 'scanning' && (
-          <div className="w-full max-w-xl bg-white rounded-2xl border border-gray-200 shadow-xl p-10 flex flex-col items-center gap-5">
+          <div className="w-full max-w-xl bg-white rounded-sm border border-gray-200 shadow-xl p-10 flex flex-col items-center gap-5">
             <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
             <div className="text-center">
               <div className="text-base font-bold text-gray-900 mb-1">Scanning your website…</div>
@@ -218,7 +218,7 @@ function GuestScanPage() {
             </div>
             <div className="flex gap-1.5">
               {['Performance', 'Accessibility', 'Best Practices', 'SEO'].map((c) => (
-                <span key={c} className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded-lg font-medium animate-pulse">{c}</span>
+                <span key={c} className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded-sm font-medium animate-pulse">{c}</span>
               ))}
             </div>
           </div>
@@ -226,14 +226,14 @@ function GuestScanPage() {
 
         {/* Error state */}
         {phase === 'error' && (
-          <div className="w-full max-w-xl bg-white rounded-2xl border border-red-100 shadow-xl p-8 flex flex-col items-center gap-4 text-center">
+          <div className="w-full max-w-xl bg-white rounded-sm border border-red-100 shadow-xl p-8 flex flex-col items-center gap-4 text-center">
             <AlertTriangle className="w-10 h-10 text-red-400" />
             <div>
               <div className="text-base font-bold text-gray-900 mb-1">Scan failed</div>
               <div className="text-sm text-gray-500">{errorMsg || 'The scanner could not audit this URL.'}</div>
             </div>
             <button onClick={handleReset}
-              className="px-6 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+              className="px-6 py-2 bg-blue-600 text-white text-sm font-semibold rounded-sm hover:bg-blue-700 transition-colors">
               Try again
             </button>
           </div>
@@ -243,7 +243,7 @@ function GuestScanPage() {
         {phase === 'done' && result && (
           <div className="w-full max-w-2xl space-y-5">
             {/* Header card */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-xl p-6">
+            <div className="bg-white rounded-sm border border-gray-200 shadow-xl p-6">
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -260,14 +260,14 @@ function GuestScanPage() {
                       href={guestScanPdfUrl(guestId)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-sm text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       <Download className="w-3.5 h-3.5" />
                       PDF report
                     </a>
                   )}
                   <button onClick={handleReset}
-                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                    className="px-3 py-1.5 border border-gray-200 rounded-sm text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                     Scan again
                   </button>
                 </div>
@@ -282,7 +282,7 @@ function GuestScanPage() {
             </div>
 
             {/* Summary */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <div className="bg-white rounded-sm border border-gray-200 shadow-sm p-5">
               <h3 className="text-sm font-bold text-gray-900 mb-4">Audit summary</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
@@ -291,7 +291,7 @@ function GuestScanPage() {
                   { label: 'Issues', value: result.summary.critical + result.summary.non_critical, color: 'text-amber-600' },
                   { label: 'Critical', value: result.summary.critical, color: 'text-red-600' },
                 ].map(({ label, value, color }) => (
-                  <div key={label} className="border border-gray-100 rounded-xl p-3 text-center">
+                  <div key={label} className="border border-gray-100 rounded-sm p-3 text-center">
                     <div className={cn('text-2xl font-bold', color)}>{value}</div>
                     <div className="text-xs text-gray-500 mt-0.5">{label}</div>
                   </div>
@@ -300,13 +300,13 @@ function GuestScanPage() {
             </div>
 
             {/* Metrics */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <div className="bg-white rounded-sm border border-gray-200 shadow-sm p-5">
               <h3 className="text-sm font-bold text-gray-900 mb-4">Core Web Vitals</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {Object.entries(METRICS_META).map(([key, meta]) => {
                   const m = result.metrics[key]
                   return (
-                    <div key={key} className="border border-gray-100 rounded-xl p-3">
+                    <div key={key} className="border border-gray-100 rounded-sm p-3">
                       <div className="text-xs text-gray-500 mb-1">{meta.label}</div>
                       <div className="text-base font-bold text-gray-900">
                         {m ? formatMetric(key, m.value) : '—'}
@@ -318,13 +318,13 @@ function GuestScanPage() {
             </div>
 
             {/* CTA */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-center text-white">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-sm p-6 text-center text-white">
               <h3 className="text-base font-bold mb-1">Want the full picture?</h3>
               <p className="text-sm text-blue-100 mb-4">
                 Sign up free to scan multiple pages, track history, and get detailed issue breakdowns.
               </p>
               <Link to="/signup"
-                className="inline-flex items-center px-6 py-2.5 bg-white text-blue-700 text-sm font-bold rounded-xl hover:bg-blue-50 transition-colors">
+                className="inline-flex items-center px-6 py-2.5 bg-white text-blue-700 text-sm font-bold rounded-sm hover:bg-blue-50 transition-colors">
                 Create free account →
               </Link>
             </div>

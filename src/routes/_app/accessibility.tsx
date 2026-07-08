@@ -1,48 +1,72 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts'
 import {
-  AlertTriangle, Info, Loader2, CheckCircle2, ClipboardList, Ban,
-  AlertCircle, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Check, X, Search, SlidersHorizontal, Download,
+  AlertTriangle, Loader2, CheckCircle2, ClipboardList, Flag,
+  ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
+  Search, Code2, Pen, AlignLeft, Download, Info,
 } from 'lucide-react'
+import AccessibilitySvg from '../../components/svgicons/Accessibility.svg'
+import UrlSvg from '../../components/svgicons/url.svg'
 import { cn } from '../../lib/utils'
+import { PriorityBadge } from '../../components/ui/PriorityBadge'
 import { useSiteStore } from '../../store/siteStore'
 import { IssueDetailPanel } from '../../components/IssueDetailPanel'
 import {
-  getWebsiteScanHistory,
   getAccessibilityScore,
   getAccessibilityCommonIssues,
   getAccessibilityWcagSummary,
   getAccessibilityScoreOverTime,
+  getAccessibilityAffectedPages,
+  getAccessibilityIssueList,
   getAccessibilityIssuesLog,
-  getAccessibilityPagesList,
   getAccessibilityIssuesPerPage,
-  getAccessibilityRequiredManualChecks,
   getAccessibilityChecklist,
-  resolveAccessibilityOutcome,
 } from '../../api/scans'
+import { AccessibilityPageDetail } from '../../components/AccessibilityPageDetail'
 
 export const Route = createFileRoute('/_app/accessibility')({
+  validateSearch: (s: Record<string, unknown>) => ({
+    tab: (typeof s.tab === 'string' ? s.tab : 'Dashboard') as string,
+    issueId: typeof s.issueId === 'string' ? s.issueId : undefined,
+  }),
   component: AccessibilityPage,
 })
 
-const TABS = ['Dashboard', 'Affected pages', 'Issue list', 'Required manual check', 'Check list']
+const TABS = ['Dashboard', 'Affected pages', 'Issues list', 'Check list']
 
-function priorityBadgeClass(priority: string) {
-  if (priority === 'high') return 'bg-red-100 text-red-700'
-  if (priority === 'medium') return 'bg-amber-50 text-amber-700'
-  return 'bg-gray-100 text-gray-500'
+function normPriority(priority: string) {
+  const p = priority?.toLowerCase()
+  if (p === 'high' || p === 'critical') return 'high'
+  if (p === 'medium' || p === 'moderate' || p === 'major') return 'medium'
+  if (p === 'low' || p === 'minor') return 'low'
+  return 'none'
 }
+
+
+const PIE_COLORS = ['#8b7cf8', '#3b82f6', '#06b6d4', '#f59e0b', '#10b981']
 
 function scoreColor(s: number) {
   if (s >= 90) return '#22c55e'
   if (s >= 50) return '#f59e0b'
   return '#ef4444'
+}
+
+function splitUrlForDisplay(url: string): { grey: string; bold: string } {
+  try {
+    const { host, pathname } = new URL(url)
+    const parts = pathname.replace(/\/$/, '').split('/').filter(Boolean)
+    if (!parts.length) return { grey: host, bold: '' }
+    const lastPart = parts.pop()!
+    const greyPath = host + (parts.length ? '/' + parts.join('/') + '/' : '/')
+    return { grey: greyPath, bold: lastPart }
+  } catch {
+    return { grey: url, bold: '' }
+  }
 }
 
 function pageName(url: string): string {
@@ -58,82 +82,82 @@ function pageName(url: string): string {
   }
 }
 
+
 function AccessibilityPage() {
-  const { websiteId } = useSiteStore()
-  const [activeTab, setActiveTab] = useState('Dashboard')
-  const [issuesLogPage, setIssuesLogPage] = useState(1)
+  const { websiteId, strategy, scansByWebsite } = useSiteStore()
+  const scanId = websiteId ? scansByWebsite[websiteId]?.scanId ?? null : null
+  const { tab: activeTab, issueId: preselectedIssueId } = Route.useSearch()
+  const navigate = useNavigate({ from: '/accessibility' })
+  const setActiveTab = (tab: string) => navigate({ search: (s) => ({ ...s, tab }), replace: true })
+  const [_issueLogCategory, _setIssueLogCategory] = useState<string>('all')
+  const [issueListPage, setIssueListPage] = useState(1)
+  const [affectedPagesPage, setAffectedPagesPage] = useState(1)
   const [pagesSearch, setPagesSearch] = useState('')
-  const [issueSubTab, setIssueSubTab] = useState('Confirmed checks')
+  const [issueSubTab, setIssueSubTab] = useState<'all' | 'critical'>('all')
   const [issueSearch, setIssueSearch] = useState('')
+  const [catFilter, setCatFilter] = useState<string | null>(null)
+  const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null)
+  const [checklistSearch, setChecklistSearch] = useState('')
+  const [pageDetailView, setPageDetailView] = useState<{ scanResultId: string; pageUrl: string } | null>(null)
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
 
-  const { data: history = [], isLoading } = useQuery({
-    queryKey: ['history', websiteId],
-    queryFn: () => getWebsiteScanHistory(websiteId!),
-    enabled: !!websiteId,
-  })
-
-  const completedScans = history.filter((h) => h.status === 'completed')
-  const latestScan = completedScans[0]
+  useEffect(() => {
+    if (preselectedIssueId) setSelectedIssueId(preselectedIssueId)
+  }, [preselectedIssueId])
 
   const { data: scoreData } = useQuery({
-    queryKey: ['accessibility-score', latestScan?.scan_job_id],
-    queryFn: () => getAccessibilityScore(latestScan!.scan_job_id),
-    enabled: !!latestScan,
+    queryKey: ['accessibility-score', scanId, strategy],
+    queryFn: () => getAccessibilityScore(scanId!, strategy),
+    enabled: !!scanId,
   })
 
   const { data: commonIssues } = useQuery({
-    queryKey: ['accessibility-common', latestScan?.scan_job_id],
-    queryFn: () => getAccessibilityCommonIssues(latestScan!.scan_job_id),
-    enabled: !!latestScan,
+    queryKey: ['accessibility-common', scanId, strategy],
+    queryFn: () => getAccessibilityCommonIssues(scanId!, strategy),
+    enabled: !!scanId,
   })
 
   const { data: wcagSummary } = useQuery({
-    queryKey: ['accessibility-wcag', latestScan?.scan_job_id],
-    queryFn: () => getAccessibilityWcagSummary(latestScan!.scan_job_id),
-    enabled: !!latestScan,
+    queryKey: ['accessibility-wcag', scanId, strategy],
+    queryFn: () => getAccessibilityWcagSummary(scanId!, strategy),
+    enabled: !!scanId,
   })
 
   const { data: scoreOverTime } = useQuery({
-    queryKey: ['accessibility-over-time', latestScan?.scan_job_id],
-    queryFn: () => getAccessibilityScoreOverTime(latestScan!.scan_job_id),
-    enabled: !!latestScan,
+    queryKey: ['accessibility-over-time', scanId, strategy],
+    queryFn: () => getAccessibilityScoreOverTime(scanId!, strategy),
+    enabled: !!scanId,
   })
 
-  const { data: pagesList } = useQuery({
-    queryKey: ['accessibility-pages', latestScan?.scan_job_id],
-    queryFn: () => getAccessibilityPagesList(latestScan!.scan_job_id),
-    enabled: !!latestScan && activeTab === 'Affected pages',
+  const { data: affectedPages } = useQuery({
+    queryKey: ['accessibility-affected-pages', scanId, affectedPagesPage, pagesSearch, strategy],
+    queryFn: () => getAccessibilityAffectedPages(scanId!, affectedPagesPage, 20, pagesSearch || undefined, strategy),
+    enabled: !!scanId && activeTab === 'Affected pages',
   })
 
-  const { data: issuesLog } = useQuery({
-    queryKey: ['accessibility-issues-log', latestScan?.scan_job_id, issuesLogPage],
-    queryFn: () => getAccessibilityIssuesLog(latestScan!.scan_job_id, issuesLogPage, 20),
-    enabled: !!latestScan && activeTab === 'Automated check',
+  const { data: issueList, isError: issueListError } = useQuery({
+    queryKey: ['accessibility-issue-list', scanId, issueListPage, strategy],
+    queryFn: () => getAccessibilityIssueList(scanId!, issueListPage, 20, strategy),
+    enabled: !!scanId && activeTab === 'Issues list',
+    retry: 1,
   })
 
   const { data: dashIssues } = useQuery({
-    queryKey: ['accessibility-dash-issues', latestScan?.scan_job_id],
-    queryFn: () => getAccessibilityIssuesLog(latestScan!.scan_job_id, 1, 5),
-    enabled: !!latestScan,
+    queryKey: ['accessibility-dash-issues', scanId, strategy],
+    queryFn: () => getAccessibilityIssuesLog(scanId!, 1, 5, strategy),
+    enabled: !!scanId,
   })
 
   const { data: issuesPerPage } = useQuery({
-    queryKey: ['accessibility-issues-per-page', latestScan?.scan_job_id],
-    queryFn: () => getAccessibilityIssuesPerPage(latestScan!.scan_job_id),
-    enabled: !!latestScan,
+    queryKey: ['accessibility-issues-per-page', scanId, strategy],
+    queryFn: () => getAccessibilityIssuesPerPage(scanId!, strategy),
+    enabled: !!scanId,
   })
 
-  const { data: requiredManualChecks } = useQuery({
-    queryKey: ['accessibility-manual', latestScan?.scan_job_id],
-    queryFn: () => getAccessibilityRequiredManualChecks(latestScan!.scan_job_id),
-    enabled: !!latestScan && activeTab === 'Required manual check',
-  })
-
-  const { data: checklist } = useQuery({
-    queryKey: ['accessibility-checklist', latestScan?.scan_job_id],
-    queryFn: () => getAccessibilityChecklist(latestScan!.scan_job_id),
-    enabled: !!latestScan && activeTab === 'Check list',
+  const { data: checklistData } = useQuery({
+    queryKey: ['accessibility-checklist', scanId, strategy],
+    queryFn: () => getAccessibilityChecklist(scanId!, strategy),
+    enabled: !!scanId && activeTab === 'Check list',
   })
 
   const score = scoreData?.score ?? 0
@@ -144,10 +168,7 @@ function AccessibilityPage() {
 
   const levelA = scoreData?.level_a_score ?? 0
   const levelAA = scoreData?.level_aa_score ?? 0
-  const levelAAA = scoreData?.level_aaa_score ?? null
-  const levelAAAEnabled = localStorage.getItem('levelAAAEnabled') !== 'false'
-
-  const trendPct = scoreData?.score_change_percent ?? null
+  const trendPct = scoreData?.score_change ?? null
 
   const chartData = (scoreOverTime?.data_points ?? []).map((pt, i) => ({
     label: `Scan ${i + 1}`,
@@ -157,347 +178,471 @@ function AccessibilityPage() {
   const commonItems = commonIssues?.items ?? []
   const totalCommon = commonIssues?.total_issues ?? totalIssues
 
-  const pieData = [
-    { value: totalCommon, fill: '#1e3a8a' },
-    { value: Math.max(0, 300 - totalCommon), fill: '#e0e7ff' },
-  ]
-
   if (!websiteId) return <EmptyState msg="Select a website from the top bar to get started." />
-  if (isLoading) return <Spinner />
-  if (!latestScan) return <EmptyState msg="No completed scans yet. Run a scan to see accessibility data." />
+  if (!scanId) return <EmptyState msg="No completed scans yet. Run a scan to see accessibility data." />
+
+  if (pageDetailView) {
+    return (
+      <AccessibilityPageDetail
+        scanJobId={scanId}
+        scanResultId={pageDetailView.scanResultId}
+        pageUrl={pageDetailView.pageUrl}
+        onBack={() => setPageDetailView(null)}
+      />
+    )
+  }
 
   return (
     <div className="flex flex-col min-h-full">
       {/* Tabs */}
-      <div className="bg-white border-b border-gray-100 px-4 sm:px-6">
-        <div className="flex overflow-x-auto">
-          {TABS.map((tab) => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className={cn('px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors',
-                activeTab === tab ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700')}>
-              {tab}
-            </button>
-          ))}
+      <div className="bg-white border-b border-[#d8dde9] px-4 sm:px-6">
+        <div className="flex items-center justify-between">
+          <div className="flex overflow-x-auto">
+            {TABS.map((tab) => (
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                className={cn('px-4 py-3.5 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors',
+                  activeTab === tab ? 'border-[#0b66e4] text-[#242424] font-semibold' : 'border-transparent text-[#73767f] font-normal hover:text-gray-700')}>
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Dashboard */}
       {activeTab === 'Dashboard' && (
         <div className="flex-1 p-3 sm:p-6 space-y-4 sm:space-y-5">
-          {/* Top row */}
-          <div className="flex flex-col lg:flex-row gap-4 sm:gap-5">
-            <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
-              <div className="flex flex-col sm:flex-row gap-6 items-start">
-                <div className="flex-1">
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 leading-snug mb-3">
-                    An accessible website reflects<br className="hidden sm:block" />
-                    positively on your brand image.
-                  </h2>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Comply with WCAG {wcagSummary?.wcag_version ?? '2.1'}.{' '}
-                    <a href="https://www.w3.org/WAI/standards-guidelines/wcag/" target="_blank" rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline">Learn more</a>
-                  </p>
-                  <p className="text-xs text-gray-400 mb-5">
-                    WCAG Level: <span className="font-semibold text-amber-500">{scoreData?.wcag_level ?? 'AA'}</span>
-                  </p>
-                  <Link to="/scans/$scanId/issues" params={{ scanId: latestScan.scan_job_id }}
-                    className="inline-flex items-center px-5 py-2 border-2 border-blue-600 text-blue-600 text-sm font-semibold rounded-lg hover:bg-blue-50 transition-colors">
-                    View all issues
-                  </Link>
-                </div>
-                <div className="flex flex-col items-center shrink-0">
-                  <div className="relative w-44 h-44">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={[{ value: score }, { value: 100 - score }]}
-                          cx="50%" cy="50%" startAngle={90} endAngle={-270}
-                          innerRadius={55} outerRadius={75} dataKey="value" strokeWidth={0}>
-                          <Cell fill="#3b82f6" />
-                          <Cell fill="#e5e7eb" />
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-bold text-gray-900">{score}%</span>
-                      <span className="text-[10px] text-gray-400 text-center leading-tight mt-0.5">Overall score<br />(automated check)</span>
-                    </div>
-                  </div>
-                  {trendPct != null && trendPct !== 0 && (
-                    <div className={cn('text-xs font-medium mt-1', trendPct > 0 ? 'text-green-600' : 'text-red-500')}>
-                      {trendPct > 0 ? '▲' : '▼'} {Math.abs(trendPct).toFixed(1)}%
-                    </div>
-                  )}
-                  <span className="text-xs font-semibold text-amber-500 mt-1">Level {scoreData?.wcag_level ?? 'AA'}</span>
-                </div>
-              </div>
-            </div>
 
-            <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4">
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="text-center p-3 border border-gray-100 rounded-xl">
-                    <div className="text-xs text-gray-500 mb-1">Level A</div>
-                    <div className="text-xl font-bold text-gray-900">{levelA}%</div>
-                  </div>
-                  <div className="text-center p-3 border border-gray-100 rounded-xl">
-                    <div className="text-xs text-gray-500 mb-1">Level AA</div>
-                    <div className="text-xl font-bold text-gray-900">{levelAA}%</div>
-                  </div>
-                  {levelAAAEnabled ? (
-                    <div className="text-center p-3 border border-gray-100 rounded-xl">
-                      <div className="text-xs text-gray-500 mb-1">Level AAA</div>
-                      <div className="text-xl font-bold text-gray-900">
-                        {levelAAA !== null ? `${levelAAA}%` : '—'}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center p-3 border border-gray-100 rounded-xl bg-gray-50">
-                      <div className="text-xs text-gray-400 leading-tight">
-                        Level AAA via <Link to="/settings" search={{ tab: 'accessibility' }} className="text-blue-600 hover:underline">settings</Link>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-1 text-xs text-gray-500 mb-0.5">
-                      Total issues <Info className="w-3 h-3 text-gray-300" />
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">{String(totalIssues).padStart(2, '0')}</div>
-                    {prevTotalIssues != null && (
-                      <div className="text-xs text-gray-400 mt-0.5">Previous: {prevTotalIssues}</div>
-                    )}
-                  </div>
-                  <AlertTriangle className="w-5 h-5 text-amber-400" />
-                </div>
-                <div className="h-px bg-gray-50" />
+          {/* === HERO CARD === */}
+          <div className="bg-white rounded-lg border border-[#9db7f4] p-5 sm:p-6">
+            <div className="flex flex-col lg:flex-row items-stretch gap-6">
+              {/* Left: text + button */}
+              <div className="flex flex-col justify-between lg:w-[30%] min-w-0">
                 <div>
-                  <div className="flex items-center gap-1 text-xs text-gray-500 mb-0.5">
-                    Critical issues <Info className="w-3 h-3 text-gray-300" />
+                  <h2 className="text-[22px] sm:text-[24px] font-semibold text-[#2e3240] tracking-[-0.48px] leading-[1.58] mb-5">
+                    An accessible website reflects positively on your brand image.
+                  </h2>
+                  <p className="text-[13px] text-[#505050] mb-6">
+                    Comply with{' '}
+                    <strong className="font-bold">WCAG {wcagSummary?.wcag_version ?? '2.2'}.</strong>{' '}
+                    <a href="https://www.w3.org/WAI/standards-guidelines/wcag/" target="_blank" rel="noopener noreferrer"
+                      className="text-[#0a5dcf] underline">Learn more</a>
+                  </p>
+                </div>
+                <Link to="/accessibility" search={{ tab: 'Issues list' }}
+                  className="inline-flex items-center justify-center bg-[#0b66e4] text-white text-[14px] font-medium rounded-[4px] px-8 py-3.5 self-start">
+                  View all issues
+                </Link>
+              </div>
+
+              {/* Center: score gauge */}
+              <div className="flex-1 flex flex-col items-center justify-center py-2">
+                <div className="relative overflow-hidden" style={{ width: 220, height: 175 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[{ value: score }, { value: Math.max(0, 100 - score) }]}
+                        cx="50%" cy="52%"
+                        startAngle={225} endAngle={-45}
+                        innerRadius={68} outerRadius={90}
+                        dataKey="value" strokeWidth={0}
+                      >
+                        <Cell fill={score < 50 ? '#d93025' : score < 80 ? '#f59e0b' : '#22c55e'} />
+                        <Cell fill="#eeeeee" />
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute left-0 right-0 flex flex-col items-center pointer-events-none" style={{ top: '56%', transform: 'translateY(-50%)' }}>
+                    <div className={`flex items-baseline font-semibold ${score < 50 ? 'text-[#d93025]' : score < 80 ? 'text-[#f59e0b]' : 'text-[#22c55e]'}`} style={{ letterSpacing: '-0.91px' }}>
+                      <span className="text-[48px] leading-none">{score}</span>
+                      <span className="text-[34px] leading-none">%</span>
+                    </div>
+                    <div className="text-[15px] font-medium text-[#2e3240] mt-1.5">Overall score</div>
                   </div>
-                  <div className="text-2xl font-bold text-red-500">{String(criticalCount).padStart(2, '0')}</div>
-                  {prevCriticalIssues != null && (
-                    <div className="text-xs text-gray-400 mt-0.5">Previous: {prevCriticalIssues}</div>
-                  )}
+                </div>
+                {trendPct != null && (
+                  <div className={cn('flex items-center gap-1 text-[14px] font-semibold mt-1',
+                    trendPct >= 0 ? 'text-[#0a843f]' : 'text-[#d93025]')}>
+                    {trendPct >= 0 ? '↑' : '↓'} {Math.abs(Math.round(trendPct))}%
+                  </div>
+                )}
+              </div>
+
+              {/* Right: level boxes + stats card */}
+              <div className="shrink-0 flex flex-col gap-3 lg:w-[38%]">
+                {/* 3 level mini-boxes */}
+                <div className="flex gap-3">
+                  {/* Level A */}
+                  <div className="bg-white border border-[#9cb3e0] rounded-[8px] relative flex-1 min-h-[142px]">
+                    <img src={AccessibilitySvg} alt="" className="absolute top-3.5 left-3.5 w-6 h-6" />
+                    <div className="absolute bottom-4 left-4 flex flex-col gap-1">
+                      <span className="text-[13px] font-medium text-[rgba(43,28,80,0.7)] tracking-[-0.26px]">Level A</span>
+                      <span className="text-[28px] font-semibold text-[#2e3240] leading-none">{levelA}%</span>
+                    </div>
+                  </div>
+                  {/* Level AA */}
+                  <div className="bg-white border border-[#9cb3e0] rounded-[8px] relative flex-1 min-h-[142px]">
+                    <img src={AccessibilitySvg} alt="" className="absolute top-3.5 left-3.5 w-6 h-6" />
+                    <div className="absolute bottom-4 left-4 flex flex-col gap-1">
+                      <span className="text-[13px] font-medium text-[rgba(43,28,80,0.7)] tracking-[-0.26px]">Level AA</span>
+                      <span className="text-[28px] font-semibold text-[#2e3240] leading-none">{levelAA}%</span>
+                    </div>
+                  </div>
+                  {/* Level AAA — upgrade prompt */}
+                  <div className="bg-white border border-[#9cb3e0] rounded-[8px] relative flex-1 min-h-[142px] overflow-hidden">
+                    <img src={AccessibilitySvg} alt="" className="absolute top-3.5 left-3.5 w-6 h-6 opacity-50" />
+                    <p className="text-[12px] font-medium text-black text-center leading-tight px-2 absolute left-0 right-0 top-[48px]">
+                      Want to see Level AAA?
+                    </p>
+                    <a href="#" className="absolute left-[9px] right-[9px] bottom-[44px] bg-[#ff9500] text-[#2e1401] text-[10.5px] font-semibold py-1.5 rounded-[3.5px] text-center">
+                      Upgrade Now
+                    </a>
+                    <div className="absolute bottom-3 left-4 blur-md pointer-events-none select-none">
+                      <div className="text-[13px] font-medium text-[rgba(43,28,80,0.7)]">Level AAA</div>
+                      <div className="text-[28px] font-semibold text-[#2b1c50] leading-none">6%</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stats card */}
+                <div className="bg-white border border-[#ced6ed] rounded-[8px] p-4 flex items-start gap-2">
+                  <div className="flex-1">
+                    <div>
+                      <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Total issues</div>
+                      <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
+                        {String(totalIssues).padStart(2, '0')}
+                      </div>
+                      {prevTotalIssues != null && (
+                        <div className="flex items-center gap-1 text-[13px] text-[#73767f] mt-1.5">
+                          Previous count : {String(prevTotalIssues).padStart(2, '0')}
+                        </div>
+                      )}
+                    </div>
+                    <div className="h-px bg-gray-100 my-3.5" />
+                    <div>
+                      <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Critical issues</div>
+                      <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
+                        {String(criticalCount).padStart(2, '0')}
+                      </div>
+                      {prevCriticalIssues != null && (
+                        <div className="flex items-center gap-1 text-[13px] text-[#73767f] mt-1.5">
+                          Previous count : {String(prevCriticalIssues).padStart(2, '0')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <AlertTriangle className="w-7 h-7 text-amber-500 shrink-0 mt-0.5" />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Bottom row */}
+          {/* === ROW 2: Common issues + WCAG === */}
           <div className="flex flex-col lg:flex-row gap-4 sm:gap-5">
-            <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h3 className="text-sm font-bold text-gray-900 mb-4">Common accessibility issues</h3>
-              <div className="flex flex-col sm:flex-row gap-5">
-                <div className="flex flex-col items-center shrink-0">
-                  <div className="relative w-32 h-32">
+            {/* Common accessibility issues */}
+            <div className="flex-1 bg-white rounded-lg border border-[#dfe4f3] p-5 min-w-0">
+              <h3 className="text-[20px] font-semibold text-[#2e3240] tracking-[-0.2px] leading-[24px] mb-5">
+                Common accessibility issues
+              </h3>
+              {commonItems.length === 0 ? (
+                <p className="text-xs text-gray-400 py-8 text-center">No common issues found</p>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-6 items-start">
+                  {/* Donut */}
+                  <div className="relative shrink-0" style={{ width: 200, height: 200 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={38} outerRadius={56}
-                          dataKey="value" strokeWidth={0}>
-                          {pieData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                        <Pie
+                          data={commonItems.slice(0, 5).map((item, i) => ({ value: item.elements_affected, fill: PIE_COLORS[i] }))}
+                          cx="50%" cy="50%" innerRadius={60} outerRadius={88}
+                          dataKey="value" strokeWidth={2} stroke="#fff"
+                        >
+                          {commonItems.slice(0, 5).map((_, i) => <Cell key={i} fill={PIE_COLORS[i]} />)}
                         </Pie>
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-xs text-gray-400">Total</span>
-                      <span className="text-lg font-bold text-gray-900">{totalCommon}</span>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <span className="text-[13px] text-[#73767f]">Total</span>
+                      <span className="text-[30px] font-semibold text-[#2e3240]">{totalCommon}</span>
                     </div>
                   </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  {commonItems.length === 0 ? (
-                    <p className="text-xs text-gray-400 py-6 text-center">No common issues found</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {commonItems.slice(0, 7).map((item, i) => (
-                        <div key={item.rule_id} className="flex items-start gap-2">
-                          <div className="w-2 h-2 rounded-sm mt-1 shrink-0"
-                            style={{ backgroundColor: i % 2 === 0 ? '#1e3a8a' : '#93c5fd' }} />
-                          <span className="flex-1 text-xs text-gray-700 leading-snug">{item.title}</span>
-                          <span className="w-16 text-xs font-semibold text-gray-800 text-right shrink-0">{item.pages_affected}</span>
+                  {/* Legend table */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-2 pr-1">
+                      <span className="text-[14px] font-semibold text-[#2e3240] ml-5">Issues</span>
+                      <span className="text-[14px] font-semibold text-[#2e3240]">Elements affected</span>
+                    </div>
+                    <div className="divide-y divide-[#f5f5f5]">
+                      {commonItems.slice(0, 5).map((item, i) => (
+                        <div key={item.rule_id} className="flex items-start justify-between py-2.5 gap-3">
+                          <div className="flex items-start gap-2 min-w-0 flex-1">
+                            <div className="w-[14px] h-[14px] shrink-0 mt-[3px] rounded-[3px]"
+                              style={{ backgroundColor: PIE_COLORS[i] }} />
+                            <span className="text-[14px] text-[#2e3240] leading-snug tracking-[-0.28px] line-clamp-2">{item.title}</span>
+                          </div>
+                          <span className="text-[14px] text-[#2e3240] shrink-0 min-w-[28px] text-right">{item.elements_affected}</span>
                         </div>
                       ))}
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Score over time */}
-              {chartData.length >= 2 && (
-                <div className="mt-6">
-                  <h4 className="text-xs font-bold text-gray-700 mb-3">Score over time</h4>
-                  <ResponsiveContainer width="100%" height={160}>
-                    <LineChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                      <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #f0f0f0' }}
-                        formatter={(v) => [`${Number(v)}%`, 'Accessibility']} />
-                      <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={2}
-                        dot={{ fill: '#3b82f6', r: 3 }} activeDot={{ r: 5 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  </div>
                 </div>
               )}
             </div>
 
-            <div className="w-full lg:w-64 shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h3 className="text-sm font-bold text-gray-900 mb-4">WCAG {wcagSummary?.wcag_version ?? '2.1'}</h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl">
-                  <CheckCircle2 className="w-8 h-8 text-green-500 shrink-0" />
-                  <div>
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      Passed Audits <Info className="w-3 h-3 text-gray-300" />
+            {/* WCAG card */}
+            <div className="w-full lg:w-[471px] shrink-0 bg-white rounded-lg border border-[#dfe4f3] p-5">
+              <h3 className="text-[20px] font-semibold text-[#2e3240] tracking-[-0.2px] leading-[24px] mb-5">
+                WCAG {wcagSummary?.wcag_version ?? '2.2'}
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Passed Audits */}
+                <div className="border border-[#dedede] rounded-[8px] p-4 relative" style={{ minHeight: 144 }}>
+                  <CheckCircle2 className="w-[30px] h-[30px] text-green-500 absolute top-3.5 right-3.5" />
+                  <div className="mt-10">
+                    <div className="flex items-center gap-1 text-[14px] text-[#73767f]">
+                      Passed Audits
                     </div>
-                    <div className="text-xl font-bold text-gray-900">{wcagSummary?.passed_audits ?? 0}</div>
+                    <div className="text-[24px] font-medium text-black mt-2">{wcagSummary?.passed_audits ?? 0}</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl">
-                  <ClipboardList className="w-8 h-8 text-blue-400 shrink-0" />
-                  <div>
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      Needs review <Info className="w-3 h-3 text-gray-300" />
+                {/* Required manual checks */}
+                <div className="border border-[#dedede] rounded-[8px] p-4 relative" style={{ minHeight: 144 }}>
+                  <ClipboardList className="w-[28px] h-[28px] text-blue-500 absolute top-3.5 right-3.5" />
+                  <div className="mt-10">
+                    <div className="text-[14px] text-[#73767f] leading-snug pr-2">
+                      Required manual checks
                     </div>
-                    <div className="text-xl font-bold text-gray-900">{wcagSummary?.needs_review_count ?? 0}</div>
+                    <div className="text-[24px] font-medium text-black mt-2">{wcagSummary?.needs_review_count ?? 0}</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl">
-                  <Ban className="w-8 h-8 text-gray-300 shrink-0" />
-                  <div>
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      Not Applicable <Info className="w-3 h-3 text-gray-300" />
+                {/* Not Applicable */}
+                <div className="border border-[#dedede] rounded-[8px] p-4 relative" style={{ minHeight: 144 }}>
+                  <Flag className="w-[28px] h-[28px] text-red-400 absolute top-3.5 right-3.5" />
+                  <div className="mt-10">
+                    <div className="flex items-center gap-1 text-[14px] text-[#73767f]">
+                      Not Applicable
                     </div>
-                    <div className="text-xl font-bold text-gray-900">{wcagSummary?.not_applicable_count ?? 0}</div>
+                    <div className="text-[24px] font-medium text-black mt-2">{wcagSummary?.not_applicable_count ?? 0}</div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Issues log */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-gray-900">Issues log {dashIssues ? `(${dashIssues.total})` : ''}</h3>
-              <button onClick={() => setActiveTab('Issue list')}
-                className="text-xs text-blue-600 hover:underline font-medium">View all →</button>
+          {/* === ROW 3: Accessibility over time + Issues per page === */}
+          <div className="flex flex-col lg:flex-row gap-4 sm:gap-5">
+            {/* Accessibility over time */}
+            <div className="flex-1 bg-white rounded-lg border border-[#dfe4f3] p-5 min-w-0">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Accessibility over time</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button className="border border-[#0b66e4] rounded-[6px] px-3 py-1.5 text-[12px] font-medium text-[#0b66e4] bg-white">Overall score</button>
+                  <button className="border border-[#e0e2e7] rounded-[6px] px-3 py-1.5 text-[12px] font-medium text-[#1a1a1a]">Level A</button>
+                  <div className="w-px h-5 bg-[#e0e2e7] mx-1" />
+                  <button className="border border-[#e0e2e7] rounded-[24px] px-3 py-1.5 text-[10px] text-[#242424]">Today</button>
+                  <button className="border border-[#e0e2e7] rounded-[24px] px-3 py-1.5 text-[10px] text-[#242424]">Yesterday</button>
+                  <button className="border border-[#e0e2e7] rounded-[24px] px-3 py-1.5 text-[10px] text-[#242424]">Last week</button>
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={240}>
+                <AreaChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
+                  <defs>
+                    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#0b66e4" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#0b66e4" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                  <YAxis domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #f0f0f0' }}
+                    formatter={(v) => [`${Number(v)}%`, 'Accessibility']} />
+                  <Area type="monotone" dataKey="score" stroke="#0b66e4" strokeWidth={2}
+                    fill="url(#areaGrad)" dot={{ fill: '#06387d', r: 3 }} activeDot={{ r: 5 }} />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-            {!dashIssues || dashIssues.items.length === 0 ? (
-              <p className="text-xs text-gray-400 py-4 text-center">No issues found</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="text-left text-xs font-semibold text-gray-500 pb-2 pr-4">Issue</th>
-                      <th className="text-left text-xs font-semibold text-gray-500 pb-2 pr-4 w-24">WCAG Level</th>
-                      <th className="text-left text-xs font-semibold text-gray-500 pb-2 pr-4 w-24">Priority</th>
-                      <th className="text-left text-xs font-semibold text-gray-500 pb-2 w-40">Page</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {dashIssues.items.map((item) => (
-                      <tr key={item.issue_id} className="hover:bg-gray-50 cursor-pointer"
-                        onClick={() => window.location.href = `/issues/${item.issue_id}`}>
-                        <td className="py-2.5 pr-4">
-                          <div className="text-xs text-blue-700 font-medium hover:underline">{item.title}</div>
-                        </td>
-                        <td className="py-2.5 pr-4">
-                          {item.wcag_level && (
-                            <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
-                              {item.wcag_level}
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-2.5 pr-4">
-                          <span className={cn('inline-flex px-2 py-0.5 rounded-full text-xs font-medium', priorityBadgeClass(item.priority))}>
-                            {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
-                          </span>
-                        </td>
-                        <td className="py-2.5">
-                          <span className="text-xs text-gray-500 truncate block max-w-xs">{item.page_url}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+
+            {/* Issues per page */}
+            {issuesPerPage && issuesPerPage.items.length > 0 && (
+              <div className="w-full lg:w-[476px] shrink-0 bg-white rounded-lg border border-[#dfe4f3] p-5">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Issues per page</h3>
+                  <Link to="/accessibility" search={{ tab: 'Issues list' }}
+                    className="text-[14px] font-medium text-[#0b66e4] whitespace-nowrap">
+                    View all issues →
+                  </Link>
+                </div>
+                <div className="space-y-3 mb-4">
+                  {issuesPerPage.items.slice(0, 5).map((item, i) => {
+                    const max = Math.max(...issuesPerPage.items.map((x) => x.issue_count), 1)
+                    const pct = Math.round((item.issue_count / max) * 100)
+                    const { grey, bold } = splitUrlForDisplay(item.page_url)
+                    return (
+                      <div key={i}>
+                        <div className="text-[12px] font-medium mb-1.5">
+                          <span className="text-[#9fa1a7]">{grey}</span>
+                          <span className="text-[#2e3240]">{bold}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 bg-gray-100 rounded overflow-hidden" style={{ height: '10px' }}>
+                            <div className="h-full bg-[#8590a2] rounded transition-all" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-[13px] font-semibold text-[#2e3240] w-8 text-right shrink-0">{item.issue_count}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="flex justify-between pr-11">
+                  {[0, Math.round(issuesPerPage.items[0]?.issue_count * 0.33), Math.round(issuesPerPage.items[0]?.issue_count * 0.66), issuesPerPage.items[0]?.issue_count].map((v, i) => (
+                    <span key={i} className="text-[12px] text-[#9fa1a7]">{v}</span>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
-          {/* Issues per page */}
-          {issuesPerPage && issuesPerPage.items.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h3 className="text-sm font-bold text-gray-900 mb-4">Issues per page</h3>
-              <div className="space-y-3">
-                {issuesPerPage.items.slice(0, 8).map((item, i) => {
-                  const max = Math.max(...issuesPerPage.items.map((x) => x.issue_count), 1)
-                  const pct = Math.round((item.issue_count / max) * 100)
-                  const shortUrl = item.page_url.replace(/^https?:\/\//, '').replace(/\/$/, '') || item.page_url
-                  return (
-                    <div key={i} className="flex items-center gap-3">
-                      <span className="text-xs text-gray-600 w-40 truncate shrink-0">{shortUrl}</span>
-                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
-                      </div>
-                      <span className="text-xs text-gray-700 w-6 text-right shrink-0">{item.issue_count}</span>
-                      {item.critical_count > 0 && (
-                        <span className="text-xs text-red-500 shrink-0">({item.critical_count} critical)</span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
+          {/* === ISSUES LOG === */}
+          <div className="bg-white rounded-lg border border-[#dfe4f3] p-6">
+            <div className="mb-5">
+              <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Issues log</h3>
+              <p className="text-[12px] text-[#73767f] mt-1 tracking-[-0.24px]">
+                Optimize your website for peak performance by resolving these issues
+              </p>
             </div>
-          )}
+
+            {!dashIssues || dashIssues.items.length === 0 ? (
+              <p className="text-sm text-gray-400 py-8 text-center">No issues found</p>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-[#f2f3f8]">
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 rounded-l-[10px]">Name</th>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-44">Page URL</th>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-28">Level</th>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-28">Priority</th>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-28 rounded-r-[10px]">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dashIssues.items.slice(0, 8).map((item, idx) => {
+                        const priority = item.priority ?? ''
+                        const rawLevel = item.conformance_level ?? item.wcag_level ?? 'AA'
+                        const level = rawLevel.startsWith('Level ') ? rawLevel : `Level ${rawLevel}`
+                        return (
+                          <tr key={item.issue_id} className={cn('border-t border-[#eaebec] transition-colors', idx >= 5 ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60')}>
+                            <td className="px-4 py-[18px] text-[14px] text-[#252833] tracking-[-0.14px] leading-snug">{item.title}</td>
+                            <td className="px-4 py-[18px]">
+                              {item.page_url ? (
+                                <a href={item.page_url} target="_blank" rel="noopener noreferrer"
+                                  className="text-[14px] text-[#0a5dcf] underline truncate block max-w-[160px]">
+                                  {item.page_url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                                </a>
+                              ) : <span className="text-[14px] text-[#9fa1a7]">—</span>}
+                            </td>
+                            <td className="px-4 py-[18px] text-[14px] text-[#252833] tracking-[-0.14px]">{level}</td>
+                            <td className="px-4 py-[18px]">
+                              <PriorityBadge priority={priority} />
+                            </td>
+                            <td className="px-4 py-[18px]">
+                              <Link to="/accessibility" search={{ tab: 'Issues list' }} className="text-[14px] font-medium text-[#0a5dcf] underline">View more</Link>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className={cn("text-center py-6 border-t border-gray-100 mt-2", dashIssues.items.length <= 5 && "hidden")}>
+                  <p className="text-[14px] text-[#2e3240] mb-4">Your free plan shows only 5 issues. Upgrade to unlock all issues and get the full picture of your website's health.</p>
+                  <button className="bg-[#2563eb] text-white text-[14px] font-medium px-8 py-2.5 rounded-[6px] hover:bg-blue-700 transition-colors">Unlock all issues</button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
 
       {/* Affected pages */}
       {activeTab === 'Affected pages' && (
         <div className="flex-1 p-3 sm:p-6 space-y-4">
+
           {/* Top: most-affected page cards */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h3 className="text-base font-bold text-gray-900 mb-1">Accessibility issues per page</h3>
-            <p className="text-xs text-gray-400 mb-4">Pages with most issues</p>
-            {!pagesList ? (
+          <div className="bg-white rounded-[8px] border border-[#9db7f4] p-5 sm:p-6">
+            <h3 className="text-[20px] font-semibold text-[#2e3240] tracking-[-0.4px] leading-[42px]">
+              Accessibility issues per page
+            </h3>
+            <p className="text-[15px] font-medium text-[#73767f] tracking-[-0.3px] mb-6">
+              Pages with most issues
+            </p>
+            {!affectedPages ? (
               <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
-            ) : pagesList.items.length === 0 ? (
+            ) : affectedPages.items.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-8">No page data</p>
             ) : (
-              <div className="flex gap-4 overflow-x-auto pb-2">
-                {pagesList.items.slice().sort((a, b) => b.total_issues - a.total_issues).slice(0, 8).map((item, i) => {
-                  const barColor = item.priority === 'high' ? '#ef4444' : item.priority === 'medium' ? '#f59e0b' : '#22c55e'
+              <div className="flex gap-4 overflow-x-auto pb-4 -mb-1">
+                {affectedPages.items.slice(0, 8).map((item, i) => {
+                  const s = item.page_score ?? 0
+                  const barColor = s < 50 ? '#d12929' : s < 80 ? '#e08632' : '#219653'
                   const name = pageName(item.page_url)
                   return (
-                    <div key={i} className="shrink-0 w-44 rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-                      <div className="h-28 bg-gray-100 flex items-center justify-center px-2 text-center">
-                        <span className="text-xs text-gray-400 leading-snug">{name}</span>
-                      </div>
-                      <div className="p-3 flex-1">
-                        <div className="flex items-start justify-between gap-1 mb-3">
-                          <span className="text-xs font-semibold text-gray-800 leading-tight line-clamp-2">{name}</span>
-                          <a href={item.page_url} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-blue-600 shrink-0 mt-0.5">
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" /></svg>
+                    <div key={i} className="shrink-0 relative" style={{ width: 224, height: 295 }}>
+                      {/* Purple shadow card (offset behind) */}
+                      <div className="absolute bg-[#eceefb] border border-[#dadada] rounded-[6.4px]"
+                        style={{ top: 3, left: 1, width: 224, height: 257 }} />
+                      {/* Main white card */}
+                      <button
+                        onClick={() => item.scan_result_id && item.total_issues > 0 && setPageDetailView({ scanResultId: item.scan_result_id, pageUrl: item.page_url })}
+                        className="absolute inset-0 bg-white border border-[#dadada] rounded-[6.4px] overflow-hidden flex flex-col text-left hover:shadow-md transition-shadow cursor-pointer"
+                        style={{ height: 288 }}
+                        disabled={!item.scan_result_id || item.total_issues === 0}
+                      >
+                        {/* Screenshot */}
+                        <div className="shrink-0 overflow-hidden rounded-t-[6.4px]" style={{ height: 125 }}>
+                          {item.screenshot ? (
+                            <img src={item.screenshot} alt={name} className="w-full h-full object-cover object-top" />
+                          ) : (
+                            <div className="w-full h-full bg-[#eceefb]" />
+                          )}
+                        </div>
+                        {/* Gradient fade below image */}
+                        <div className="shrink-0" style={{ height: 14, background: 'linear-gradient(to bottom, rgba(180,180,180,0.25), transparent)' }} />
+                        {/* Separator line */}
+                        <div className="shrink-0 border-t border-gray-200" />
+
+                        {/* Title + external link */}
+                        <div className="px-4 pt-3 flex items-start justify-between gap-2 shrink-0">
+                          <p className="text-[14px] font-medium text-[#2e3240] leading-[1.4] tracking-[-0.28px] line-clamp-2">
+                            {name}
+                          </p>
+                          <a href={item.page_url} target="_blank" rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            className="shrink-0 mt-0.5">
+                            <img src={UrlSvg} alt="" className="w-[18px] h-[18px]" />
                           </a>
                         </div>
-                        <div className="flex gap-4">
+
+                        {/* Spacer */}
+                        <div className="flex-1" />
+
+                        {/* Issue counts */}
+                        <div className="px-4 pb-5 flex justify-between">
                           <div>
-                            <div className="text-sm font-bold text-gray-900">{item.total_issues}</div>
-                            <div className="text-[10px] text-gray-400">Total issues</div>
+                            <div className="text-[22px] font-semibold text-[#2e3240] tracking-[-0.44px] leading-none">{item.total_issues}</div>
+                            <div className="text-[13px] text-[#2e3240] tracking-[-0.26px] mt-0.5">Total issues</div>
                           </div>
-                          <div>
-                            <div className="text-sm font-bold text-gray-900">{item.critical_issues}</div>
-                            <div className="text-[10px] text-gray-400">Critical issues</div>
+                          <div className="text-right">
+                            <div className="text-[22px] font-semibold text-[#2e3240] tracking-[-0.44px] leading-none">{item.critical_issues}</div>
+                            <div className="text-[13px] text-[#2e3240] tracking-[-0.26px] mt-0.5">Critical issues</div>
                           </div>
                         </div>
-                      </div>
-                      <div className="h-1.5" style={{ backgroundColor: barColor }} />
+
+                        {/* Colored severity bar */}
+                        <div className="shrink-0 rounded-b-[6.4px]" style={{ height: 7, backgroundColor: barColor }} />
+                      </button>
                     </div>
                   )
                 })}
@@ -505,454 +650,377 @@ function AccessibilityPage() {
             )}
           </div>
 
-          {/* Bottom: pages list table */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-              <h3 className="text-base font-bold text-gray-900">Pages list</h3>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
-                  <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+          {/* Bottom: Pages list table */}
+          <div className="bg-white rounded-[8px] border border-[#9db7f4] overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 gap-4 flex-wrap">
+              <h3 className="text-[18px] font-semibold text-[#252833] tracking-[-0.36px] whitespace-nowrap">
+                Pages list
+              </h3>
+              <div className="flex items-center gap-4">
+                {/* Search */}
+                <div className="relative flex items-center border border-[rgba(159,159,159,0.92)] rounded-[4px] h-[43px]" style={{ width: 313 }}>
                   <input
                     type="text"
                     placeholder="Search by pages"
                     value={pagesSearch}
-                    onChange={(e) => setPagesSearch(e.target.value)}
-                    className="text-xs text-gray-700 placeholder-gray-400 outline-none w-36"
+                    onChange={(e) => { setPagesSearch(e.target.value); setAffectedPagesPage(1) }}
+                    className="flex-1 px-4 text-[14px] text-[#242424] placeholder-[#24242499] outline-none bg-transparent"
                   />
+                  <Search className="w-6 h-6 text-gray-400 mr-3 shrink-0" />
                 </div>
-                <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-400 transition-colors">
-                  <SlidersHorizontal className="w-3.5 h-3.5" />
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-400 transition-colors">
-                  <Download className="w-3.5 h-3.5" />
-                </button>
               </div>
             </div>
-            {!pagesList ? (
-              <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
-            ) : pagesList.items.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center py-8">No affected pages found</p>
+
+            {!affectedPages ? (
+              <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
+            ) : affectedPages.items.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-12">No affected pages found</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4">Pages</th>
-                      <th className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4 w-20">Score</th>
-                      <th className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4 w-28">
-                        <span className="flex items-center gap-1">Priority <ChevronDown className="w-3 h-3" /></span>
-                      </th>
-                      <th className="text-right text-xs font-semibold text-gray-500 pb-3 pr-4 w-32">Critical issues</th>
-                      <th className="text-right text-xs font-semibold text-gray-500 pb-3 w-24">Total issues</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {pagesList.items
-                      .filter((item) => !pagesSearch || item.page_url.toLowerCase().includes(pagesSearch.toLowerCase()))
-                      .map((item, i) => {
-                        const s = item.score ?? 0
+              <>
+                <div className="overflow-x-auto px-6">
+                  <table className="w-full">
+                    <thead>
+                      <tr>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 bg-[#f2f3f8] rounded-l-[8px]">
+                          Pages
+                        </th>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 bg-[#f2f3f8] w-24">
+                          Score
+                        </th>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 bg-[#f2f3f8] w-36">
+                          Critical issues
+                        </th>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 bg-[#f2f3f8] rounded-r-[8px] w-28">
+                          Total issues
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {affectedPages.items.map((item, i) => {
+                        const s = item.page_score ?? 0
                         const shortUrl = item.page_url.replace(/^https?:\/\//, '')
                         return (
-                          <tr key={i} className="hover:bg-gray-50">
-                            <td className="py-3 pr-4">
-                              <div className="text-xs font-medium text-gray-800">{pageName(item.page_url)}</div>
-                              <div className="text-xs text-gray-400 mt-0.5">URL : <a href={item.page_url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600">{shortUrl}</a></div>
+                          <tr key={i}
+                            onClick={() => item.scan_result_id && item.total_issues > 0 && setPageDetailView({ scanResultId: item.scan_result_id, pageUrl: item.page_url })}
+                            className={cn('border-b border-[#ebebeb] hover:bg-gray-50/60 transition-colors', item.scan_result_id && item.total_issues > 0 && 'cursor-pointer')}>
+                            <td className="px-4 py-[18px]">
+                              <div className="text-[14px] font-medium text-[#2e3240] tracking-[-0.14px] leading-[1.4]">
+                                {pageName(item.page_url)}
+                              </div>
+                              <div className="text-[12px] text-[#73767f] mt-0.5">
+                                <span>URL : </span>
+                                <a href={item.page_url} target="_blank" rel="noopener noreferrer"
+                                  onClick={e => e.stopPropagation()}
+                                  className="underline hover:text-blue-600">
+                                  {shortUrl}
+                                </a>
+                              </div>
                             </td>
-                            <td className="py-3 pr-4">
-                              <span className="text-xs font-bold" style={{ color: scoreColor(s) }}>{s}%</span>
+                            <td className="px-4 py-[18px]">
+                              <span className="text-[13px] font-medium text-[#2e3240]">{s}%</span>
                             </td>
-                            <td className="py-3 pr-4">
-                              {item.priority && (
-                                <span className={cn('inline-flex px-2 py-0.5 rounded-full text-xs font-medium', priorityBadgeClass(item.priority))}>
-                                  {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
-                                </span>
-                              )}
+                            <td className="px-4 py-[18px]">
+                              <span className="text-[13px] font-medium text-[#2e3240]">{item.critical_issues}</span>
                             </td>
-                            <td className="py-3 pr-4 text-right">
-                              <span className="text-xs font-semibold text-red-500">{item.critical_issues}</span>
-                            </td>
-                            <td className="py-3 text-right">
-                              <span className="text-xs text-gray-700">{item.total_issues}</span>
+                            <td className="px-4 py-[18px]">
+                              <span className="text-[13px] font-medium text-[#2e3240]">{item.total_issues}</span>
                             </td>
                           </tr>
                         )
                       })}
-                  </tbody>
-                </table>
-              </div>
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-6 pb-6">
+                  <IssuesLogPagination
+                    page={affectedPagesPage}
+                    total={affectedPages.total}
+                    pageSize={20}
+                    onPage={setAffectedPagesPage}
+                  />
+                </div>
+              </>
             )}
           </div>
         </div>
       )}
 
-      {/* Issue list tab */}
-      {activeTab === 'Issue list' && (
+      {/* Issues list tab */}
+      {activeTab === 'Issues list' && (
         <div className="flex-1 p-3 sm:p-6">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
-            {/* Header + sub-tabs */}
-            <div className="px-6 pt-6 pb-0">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">All issues</h2>
-              <div className="flex gap-0 border-b border-gray-200">
-                {(['Confirmed checks', 'Needs review', 'Manual checks'] as const).map((t) => (
-                  <button key={t} onClick={() => setIssueSubTab(t)}
-                    className={cn('px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap',
-                      issueSubTab === t ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700')}>
-                    {t}
+          {/* Title */}
+          <h2 className="text-[20px] font-bold text-[#1a1a2e] tracking-[-0.4px] mb-5">All issues</h2>
+
+
+          {/* Responsibility cards */}
+          {issueList && (() => {
+            const devCount = issueList.items.filter(i => i.responsibility?.toLowerCase() === 'development').length
+            const designCount = issueList.items.filter(i => i.responsibility?.toLowerCase() === 'design').length
+            const contentCount = issueList.items.filter(i => i.responsibility?.toLowerCase() === 'content').length
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+                {[
+                  { key: 'development', label: 'Development', count: devCount, textCls: 'text-[#16a34a]', bgCls: 'bg-[#f0fdf4]', borderCls: 'border-[#bbf7d0]', icon: <Code2 className="w-5 h-5" /> },
+                  { key: 'design', label: 'Design', count: designCount, textCls: 'text-[#7c3aed]', bgCls: 'bg-[#faf5ff]', borderCls: 'border-[#e9d5ff]', icon: <Pen className="w-5 h-5" /> },
+                  { key: 'content', label: 'Content', count: contentCount, textCls: 'text-[#0891b2]', bgCls: 'bg-[#ecfeff]', borderCls: 'border-[#a5f3fc]', icon: <AlignLeft className="w-5 h-5" /> },
+                ].map((cat) => (
+                  <button
+                    key={cat.key}
+                    onClick={() => setCatFilter(catFilter === cat.key ? null : cat.key)}
+                    className={cn(
+                      'flex items-center gap-3 p-4 bg-white rounded-[10px] border text-left transition-all',
+                      catFilter === cat.key ? 'border-[#9db7f4] shadow-sm' : 'border-[#e8eaf0] hover:border-[#c0c8dc]'
+                    )}
+                  >
+                    <div className={cn('w-10 h-10 rounded-[8px] flex items-center justify-center shrink-0 border', cat.bgCls, cat.textCls, cat.borderCls)}>
+                      {cat.icon}
+                    </div>
+                    <div>
+                      <div className={cn('text-sm font-semibold', cat.textCls)}>{cat.label}</div>
+                      <div className="text-[13px] text-[#6b7280]">{cat.count} issues</div>
+                    </div>
                   </button>
                 ))}
               </div>
+            )
+          })()}
+
+          {/* Search + premium filters */}
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9ca3af]" />
+              <input
+                value={issueSearch}
+                onChange={(e) => setIssueSearch(e.target.value)}
+                placeholder="Search issues"
+                className="pl-9 pr-3 py-2 text-sm border border-[#e0e3eb] rounded-[6px] w-52 focus:outline-none focus:border-[#0b66e4] bg-white placeholder:text-[#9ca3af]"
+              />
             </div>
+          </div>
 
-            <div className="p-6">
-              {issueSubTab === 'Manual checks' ? (
-                <p className="text-sm text-gray-400 text-center py-12">Manual checks are not yet available</p>
-              ) : !issuesLog ? (
-                <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-400" /></div>
-              ) : (() => {
-                /* Group per-page log items into unique issues */
-                const map = new Map<string, { issue_id: string; title: string; wcag_level: string | null; priority: string; pages_affected: number }>()
-                for (const item of issuesLog.items) {
-                  if (map.has(item.title)) {
-                    map.get(item.title)!.pages_affected++
-                  } else {
-                    map.set(item.title, { issue_id: item.issue_id, title: item.title, wcag_level: item.wcag_level, priority: item.priority, pages_affected: 1 })
-                  }
-                }
-                const all = Array.from(map.values())
-                const filtered = all
-                  .filter((i) => issueSubTab === 'Confirmed checks' ? i.priority === 'high' : i.priority !== 'high')
-                  .filter((i) => !issueSearch || i.title.toLowerCase().includes(issueSearch.toLowerCase()))
-                const critCount = all.filter((i) => i.priority === 'high').length
-                const nonCritCount = all.filter((i) => i.priority !== 'high').length
-
-                return (
-                  <>
-                    {/* Subtitle + stat cards */}
-                    <p className="text-xs text-gray-500 mb-4">
-                      {issueSubTab === 'Confirmed checks'
-                        ? 'Automated and manually verified issues that require action.'
-                        : 'Issues that need further review before taking action.'}
-                    </p>
-                    <div className="grid grid-cols-3 gap-4 mb-6">
-                      <div className="border border-gray-200 rounded-xl p-4 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center shrink-0">
-                          <span className="text-xs font-bold text-green-700">&lt;/&gt;</span>
-                        </div>
-                        <div>
-                          <div className="text-xs text-green-700 font-medium">Critical</div>
-                          <div className="text-base font-bold text-gray-900">{critCount} issues</div>
-                        </div>
-                      </div>
-                      <div className="border border-gray-200 rounded-xl p-4 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0">
-                          <span className="text-xs text-purple-600">✏</span>
-                        </div>
-                        <div>
-                          <div className="text-xs text-purple-600 font-medium">Non-critical</div>
-                          <div className="text-base font-bold text-gray-900">{nonCritCount} issues</div>
-                        </div>
-                      </div>
-                      <div className="border border-gray-200 rounded-xl p-4 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                          <CheckCircle2 className="w-4 h-4 text-blue-500" />
-                        </div>
-                        <div>
-                          <div className="text-xs text-blue-600 font-medium">Passed</div>
-                          <div className="text-base font-bold text-gray-900">{wcagSummary?.passed_audits ?? 0} audits</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Search + filters */}
-                    <div className="flex items-center gap-3 mb-4 flex-wrap">
-                      <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 min-w-48 max-w-xs">
-                        <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                        <input type="text" placeholder="Search issues" value={issueSearch}
-                          onChange={(e) => setIssueSearch(e.target.value)}
-                          className="text-xs text-gray-700 placeholder-gray-400 outline-none flex-1" />
-                      </div>
-                      <div className="flex items-center gap-2 ml-auto flex-wrap">
-                        <button className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 transition-colors">
-                          Filter by <ChevronDown className="w-3 h-3" />
-                        </button>
-                        <button className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 transition-colors">
-                          All categories <ChevronDown className="w-3 h-3" />
-                        </button>
-                        <button className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 transition-colors">
-                          Guidelines <ChevronDown className="w-3 h-3" />
-                        </button>
-                        <button className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 transition-colors">
-                          <Download className="w-3.5 h-3.5" /> Export
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Table */}
+          {/* Issues table */}
+          {issueListError ? (
+            <p className="text-sm text-red-400 text-center py-12">Failed to load issues.</p>
+          ) : !issueList ? (
+            <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-400" /></div>
+          ) : (() => {
+            const filtered = issueList.items.filter((item) => {
+              if (issueSearch && !item.title.toLowerCase().includes(issueSearch.toLowerCase())) return false
+              if (catFilter && item.responsibility?.toLowerCase() !== catFilter) return false
+              return true
+            })
+            return (
+              <div className="bg-white rounded-[10px] border border-[#e8eaf0] overflow-x-auto">
+                <table className="w-full min-w-[700px]">
+                  <thead>
+                    <tr className="bg-[#f2f4f8] border-b border-[#e8eaf0]">
+                      <th className="text-left text-xs font-semibold text-[#6b7280] px-5 py-3">Issues</th>
+                      <th className="text-left text-xs font-semibold text-[#6b7280] px-4 py-3 w-28">Pages<br/>affected</th>
+                      <th className="text-left text-xs font-semibold text-[#6b7280] px-4 py-3 w-32">
+                        Priority
+                      </th>
+                      <th className="text-left text-xs font-semibold text-[#6b7280] px-4 py-3 w-40">Category</th>
+                      <th className="text-left text-xs font-semibold text-[#6b7280] px-4 py-3 w-32">Conformance<br/>level</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {filtered.length === 0 ? (
-                      <p className="text-xs text-gray-400 text-center py-12">No issues found</p>
-                    ) : (
-                      <div className="overflow-x-auto rounded-xl border border-gray-100">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="bg-gray-50 border-b border-gray-100">
-                              <th className="text-left text-xs font-semibold text-gray-500 px-4 py-3">Issues</th>
-                              <th className="text-left text-xs font-semibold text-gray-500 px-4 py-3 w-28">Pages affected</th>
-                              <th className="text-left text-xs font-semibold text-gray-500 px-4 py-3 w-32">
-                                <span className="flex items-center gap-1">Priority <ChevronDown className="w-3 h-3" /></span>
-                              </th>
-                              <th className="text-left text-xs font-semibold text-gray-500 px-4 py-3 w-36">Category</th>
-                              <th className="text-left text-xs font-semibold text-gray-500 px-4 py-3 w-36">Conformance level</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-50">
-                            {filtered.map((item) => (
-                              <tr key={item.issue_id} className="hover:bg-gray-50/60 cursor-pointer"
-                                onClick={() => setSelectedIssueId(item.issue_id)}>
-                                <td className="px-4 py-4">
-                                  <div className="flex items-start flex-wrap gap-2">
-                                    <span className="text-sm text-blue-600 hover:underline leading-snug">{item.title}</span>
-                                    {item.wcag_level
-                                      ? <span className="text-xs text-gray-400 self-center">WCAG | {item.wcag_level}</span>
-                                      : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500 border border-gray-200 self-center">Best practice</span>
-                                    }
-                                  </div>
-                                </td>
-                                <td className="px-4 py-4 text-sm text-gray-700">{item.pages_affected}</td>
-                                <td className="px-4 py-4">
-                                  <span className={cn('inline-flex px-3 py-1 rounded-full text-xs font-medium border',
-                                    item.priority === 'high' ? 'border-orange-300 bg-orange-50 text-orange-600'
-                                    : item.priority === 'medium' ? 'border-amber-200 bg-amber-50 text-amber-600'
-                                    : 'border-gray-300 bg-gray-50 text-gray-500')}>
-                                    {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-4">
-                                  <span className={cn('inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border',
-                                    item.priority === 'high'
-                                      ? 'border-green-200 bg-green-50 text-green-700'
-                                      : 'border-purple-200 bg-purple-50 text-purple-700')}>
-                                    {item.priority === 'high' ? <span className="font-mono text-xs">&lt;/&gt;</span> : <span>✏</span>}
-                                    {item.priority === 'high' ? 'Development' : 'Design'}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-4 text-sm text-gray-500">{item.wcag_level ?? '—'}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                    <IssuesLogPagination page={issuesLogPage} total={issuesLog.total} pageSize={20} onPage={setIssuesLogPage} />
-                  </>
-                )
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Required manual check */}
-      {activeTab === 'Required manual check' && (
-        <div className="flex-1 p-3 sm:p-6">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h3 className="text-sm font-bold text-gray-900 mb-4">
-              Required manual checks {requiredManualChecks ? `(${requiredManualChecks.items.length})` : ''}
-            </h3>
-            {!requiredManualChecks ? (
-              <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-400" /></div>
-            ) : requiredManualChecks.items.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center py-12">No manual checks required</p>
-            ) : (
-              <div className="space-y-3">
-                {requiredManualChecks.items.map((item) => (
-                  <ManualCheckAccordion key={item.audit_id} item={item} scanJobId={latestScan.scan_job_id} />
-                ))}
+                      <tr><td colSpan={5} className="py-14 text-center text-sm text-[#9ca3af]">No issues found.</td></tr>
+                    ) : filtered.map((item) => {
+                      const priority = item.priority ?? 'low'
+                      const resp = item.responsibility?.toLowerCase()
+                      return (
+                        <tr key={item.id} onClick={() => setSelectedIssueId(item.id)} className="border-t border-[#f0f1f5] hover:bg-[#fafbfd] transition-colors cursor-pointer">
+                          <td className="px-5 py-4">
+                            <div className="flex flex-wrap items-baseline gap-x-2">
+                              <span className="text-sm text-[#0b66e4] font-medium leading-snug">{item.title}</span>
+                              {item.wcag_version && item.wcag_criterion && (
+                                <span className="text-xs text-[#9ca3af] whitespace-nowrap">
+                                  WCAG {item.wcag_version} | {item.wcag_criterion}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-sm text-[#374151]">{item.pages_affected}</td>
+                          <td className="px-4 py-4">
+                            <PriorityBadge priority={priority} />
+                          </td>
+                          <td className="px-4 py-4">
+                            {resp === 'development' ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-xs font-medium bg-[#f0fdf4] text-[#16a34a] border border-[#bbf7d0]">
+                                <Code2 className="w-3.5 h-3.5" /> Development
+                              </span>
+                            ) : resp === 'design' ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-xs font-medium bg-[#faf5ff] text-[#7c3aed] border border-[#e9d5ff]">
+                                <Pen className="w-3.5 h-3.5" /> Design
+                              </span>
+                            ) : resp === 'content' ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-xs font-medium bg-[#ecfeff] text-[#0891b2] border border-[#a5f3fc]">
+                                <AlignLeft className="w-3.5 h-3.5" /> Content
+                              </span>
+                            ) : (
+                              <span className="text-sm text-[#9ca3af]">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-[#374151]">
+                            {item.conformance_level ?? item.wcag_level ?? '—'}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+                <div className="px-5 py-3 border-t border-[#f0f1f5]">
+                  <IssuesLogPagination page={issueListPage} total={issueList.total} pageSize={20} onPage={setIssueListPage} />
+                </div>
               </div>
-            )}
-          </div>
+            )
+          })()}
         </div>
       )}
 
-      {/* Check list */}
+      {/* Check list tab */}
       {activeTab === 'Check list' && (
-        <div className="flex-1 p-3 sm:p-6">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-gray-900">WCAG {checklist?.wcag_version ?? '2.1'} Checklist</h3>
+        <div className="flex-1 p-3 sm:p-6 space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h2 className="text-[20px] font-bold text-[#1a1a2e] tracking-[-0.4px]">
+              Accessibility checklist{checklistData?.wcag_version ? ` (WCAG ${checklistData.wcag_version})` : ''}
+            </h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button className="flex items-center gap-1.5 h-9 px-3 border border-[#e0e3eb] rounded-[6px] bg-white text-[13px] text-[#374151] hover:bg-gray-50 transition-colors">
+                Filter by
+                <ChevronDown className="w-4 h-4 text-[#9ca3af]" />
+              </button>
+              <div className="relative flex items-center border border-[#e0e3eb] rounded-[6px] h-9 w-56">
+                <Search className="absolute left-3 w-4 h-4 text-[#9ca3af]" />
+                <input
+                  type="text"
+                  placeholder="Search by title, URL"
+                  value={checklistSearch}
+                  onChange={e => setChecklistSearch(e.target.value)}
+                  className="pl-9 pr-3 text-[13px] text-[#374151] placeholder-[#9ca3af] outline-none bg-transparent w-full"
+                />
+              </div>
             </div>
-            {!checklist ? (
-              <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-400" /></div>
-            ) : checklist.items.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center py-12">No checklist available</p>
-            ) : (
-              <div className="space-y-6">
-                {checklist.items.map((principle) => (
-                  <div key={principle.principle}>
-                    <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-3">
-                      {principle.principle}. {principle.title}
-                    </h4>
-                    <div className="space-y-4">
-                      {principle.guidelines.map((guideline) => (
-                        <div key={guideline.guideline} className="pl-3 border-l-2 border-gray-100">
-                          <h5 className="text-xs font-semibold text-gray-700 mb-2">
-                            {guideline.guideline} {guideline.title}
-                          </h5>
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-xs">
-                              <thead>
-                                <tr className="border-b border-gray-100">
-                                  <th className="text-left font-semibold text-gray-500 pb-2 pr-3 w-20">Criterion</th>
-                                  <th className="text-left font-semibold text-gray-500 pb-2 pr-3">Description</th>
-                                  <th className="text-left font-semibold text-gray-500 pb-2 pr-3 w-16">Level</th>
-                                  <th className="text-right font-semibold text-gray-500 pb-2 pr-3 w-20">Affected</th>
-                                  <th className="text-left font-semibold text-gray-500 pb-2 w-20">Outcome</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-50">
-                                {guideline.criteria.map((crit) => (
-                                  <tr key={crit.criterion} className="hover:bg-gray-50">
-                                    <td className="py-2 pr-3 text-gray-600 font-medium">{crit.criterion}</td>
-                                    <td className="py-2 pr-3 text-gray-700">{crit.description}</td>
-                                    <td className="py-2 pr-3">
-                                      <span className="inline-flex px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-700 font-medium">
-                                        {crit.level}
-                                      </span>
-                                    </td>
-                                    <td className="py-2 pr-3 text-right text-gray-600">{crit.pages_affected}</td>
-                                    <td className="py-2">
-                                      <OutcomeChip outcome={crit.outcome} />
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
+          </div>
+
+          {!checklistData ? (
+            <div className="flex justify-center py-16"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
+          ) : !checklistData.principles || checklistData.principles.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-16">No checklist data available</p>
+          ) : (
+            <div className="space-y-8">
+              {checklistData.principles.map((principle) => {
+                const principleGuidelines = (principle.guidelines ?? []).filter(g =>
+                  !checklistSearch || g.title.toLowerCase().includes(checklistSearch.toLowerCase()) ||
+                  (g.items ?? []).some(c => c.description.toLowerCase().includes(checklistSearch.toLowerCase()) || c.criterion.toLowerCase().includes(checklistSearch.toLowerCase()))
+                )
+                if (principleGuidelines.length === 0) return null
+                return (
+                  <div key={principle.number}>
+                    {/* Principle heading — standalone, no card wrapper */}
+                    <h3 className="text-[16px] font-bold text-[#141414] tracking-[-0.32px] mb-3">
+                      Principle {principle.number}: {principle.title}
+                    </h3>
+                    {/* Guideline accordions — separate bordered cards */}
+                    <div className="space-y-2">
+                      {principleGuidelines.map((guideline) => (
+                        <ChecklistGuideline
+                          key={guideline.guideline}
+                          guideline={guideline}
+                          search={checklistSearch}
+                        />
                       ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 
       {selectedIssueId && (
-        <IssueDetailPanel issueId={selectedIssueId} onClose={() => setSelectedIssueId(null)} />
+        <IssueDetailPanel issueId={selectedIssueId} onClose={() => setSelectedIssueId(null)} variant="accessibility" />
       )}
     </div>
   )
 }
 
-function OutcomeChip({ outcome }: { outcome: string }) {
-  const lower = outcome.toLowerCase()
-  if (lower === 'pass' || lower === 'passed') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
-      <Check className="w-3 h-3" /> Pass
-    </span>
-  )
-  if (lower === 'fail' || lower === 'failed') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600">
-      <X className="w-3 h-3" /> Fail
-    </span>
-  )
-  if (lower === 'n/a' || lower === 'not applicable') return (
-    <span className="text-xs text-gray-400">N/A</span>
-  )
-  return <span className="text-xs text-gray-500">{outcome}</span>
+
+function outcomeStyle(outcome: string): { bg: string; color: string; label: string } {
+  const o = outcome?.toLowerCase().replace(/\s/g, '_')
+  if (o === 'passed') return { bg: '#ebfff2', color: '#1e894c', label: 'Passed' }
+  if (o === 'failed') return { bg: '#fff1f1', color: '#e72e2e', label: 'Failed' }
+  if (o === 'not_applicable') return { bg: '#f1f1f1', color: '#3b3b3b', label: 'Not applicable' }
+  return { bg: '#ffeddf', color: '#ff5e00', label: 'Manual check' }
 }
 
-function ManualCheckAccordion({
-  item,
-  scanJobId,
-}: {
-  item: {
-    audit_id: string
-    title: string
-    issue_count: number
-    wcag_level: string | null
-    description: string | null
-    how_to_test: string | null
-    is_resolved: boolean
-    pages: Array<{
-      outcome_id: string
-      screenshot: string | null
-      page_url: string
-      is_resolved: boolean
-    }>
-  }
-  scanJobId: string
+function ChecklistGuideline({ guideline, search }: {
+  guideline: import('../../types').ChecklistGuidelineItem
+  search: string
 }) {
   const [open, setOpen] = useState(false)
-  const queryClient = useQueryClient()
-
-  const resolveMutation = useMutation({
-    mutationFn: (outcomeId: string) => resolveAccessibilityOutcome(scanJobId, outcomeId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accessibility-manual', scanJobId] })
-    },
-  })
-
+  const filteredCriteria = (guideline.items ?? []).filter(c =>
+    !search ||
+    c.criterion.toLowerCase().includes(search.toLowerCase()) ||
+    c.description.toLowerCase().includes(search.toLowerCase())
+  )
+  if (filteredCriteria.length === 0) return null
   return (
-    <div className="border border-gray-100 rounded-xl overflow-hidden">
+    <div className="border border-[#ebebeb] rounded-[8px] overflow-hidden">
+      {/* Accordion header */}
       <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-0 h-[55px] text-left bg-white hover:bg-gray-50/40 transition-colors"
       >
-        <div className="flex items-center gap-3 min-w-0">
-          {item.is_resolved
-            ? <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-            : <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-          }
-          <div className="min-w-0">
-            <div className="text-xs font-semibold text-gray-800">{item.title}</div>
-            <div className="flex items-center gap-2 mt-0.5">
-              {item.wcag_level && (
-                <span className="text-xs text-blue-600 font-medium">{item.wcag_level}</span>
-              )}
-              <span className="text-xs text-gray-400">{item.issue_count} {item.issue_count === 1 ? 'issue' : 'issues'}</span>
-              {item.is_resolved && (
-                <span className="text-xs text-green-600 font-medium">Resolved</span>
-              )}
-            </div>
-          </div>
-        </div>
-        {open ? <ChevronUp className="w-4 h-4 text-gray-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />}
+        <span className="text-[14px] font-medium text-[#141414] tracking-[-0.28px]">
+          {guideline.guideline} {guideline.title}
+        </span>
+        {open
+          ? <ChevronUp className="w-[26px] h-[26px] text-[#2e3240] shrink-0" />
+          : <ChevronDown className="w-[26px] h-[26px] text-[#2e3240] shrink-0" />}
       </button>
-
       {open && (
-        <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
-          {item.description && (
-            <p className="text-xs text-gray-600 mt-3 mb-2">{item.description}</p>
-          )}
-          {item.how_to_test && (
-            <div className="mb-3 p-3 bg-blue-50 rounded-lg">
-              <span className="text-xs font-semibold text-blue-700">How to test: </span>
-              <span className="text-xs text-blue-700">{item.how_to_test}</span>
-            </div>
-          )}
-          {item.pages.length > 0 && (
-            <div className="space-y-2 mt-3">
-              {item.pages.map((page) => (
-                <div key={page.outcome_id} className="flex items-center justify-between gap-3 bg-white rounded-lg px-3 py-2 border border-gray-100">
-                  <span className="text-xs text-gray-700 truncate">{page.page_url}</span>
-                  <button
-                    onClick={() => resolveMutation.mutate(page.outcome_id)}
-                    disabled={page.is_resolved || resolveMutation.isPending}
-                    className={cn(
-                      'shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors',
-                      page.is_resolved
-                        ? 'bg-green-50 text-green-700 cursor-default'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    )}
-                  >
-                    {page.is_resolved ? <><Check className="w-3 h-3" /> Resolved</> : 'Mark resolved'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="overflow-x-auto border-t border-[#ebebeb]">
+          <table className="w-full min-w-[860px]">
+            <thead>
+              <tr className="bg-[#f2f3f8]">
+                <th className="text-left text-[12px] font-medium text-[#2b1c50] tracking-[-0.12px] px-5 py-3 w-28">Guidelines</th>
+                <th className="text-left text-[12px] font-medium text-[#2b1c50] tracking-[-0.12px] px-4 py-3 w-40">Guidelines description</th>
+                <th className="text-left text-[12px] font-medium text-[#2b1c50] tracking-[-0.12px] px-4 py-3 w-20">Level</th>
+                <th className="text-left text-[12px] font-medium text-[#2b1c50] tracking-[-0.12px] px-4 py-3">Instruction</th>
+                <th className="text-left text-[12px] font-medium text-[#2b1c50] tracking-[-0.12px] px-4 py-3 w-32">Page effected</th>
+                <th className="text-left text-[12px] font-medium text-[#2b1c50] tracking-[-0.12px] px-4 py-3 w-36">Outcome</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCriteria.map((criterion, idx) => {
+                const { bg, color, label } = outcomeStyle(criterion.outcome)
+                return (
+                  <tr key={idx} className="border-t border-[#eaebec]">
+                    <td className="px-5 py-3.5 text-[13px] text-[#242424] tracking-[-0.13px] whitespace-nowrap">{criterion.criterion}</td>
+                    <td className="px-4 py-3.5 text-[13px] text-[#242424] tracking-[-0.13px] leading-snug">{criterion.description}</td>
+                    <td className="px-4 py-3.5 text-[13px] text-[#242424] tracking-[-0.13px]">{criterion.level}</td>
+                    <td className="px-4 py-3.5 text-[13px] text-[#242424] tracking-[-0.13px] leading-[1.4]">
+                      {criterion.instruction ?? <span className="text-[#9ca3af]">—</span>}
+                    </td>
+                    <td className="px-4 py-3.5 text-[13px] text-[#242424] tracking-[-0.13px]">
+                      {criterion.pages_affected}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span className="inline-flex items-center px-3 py-1.5 rounded-[4px] text-[12px] font-medium whitespace-nowrap"
+                        style={{ backgroundColor: bg, color }}>
+                        {label}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

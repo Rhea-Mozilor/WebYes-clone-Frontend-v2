@@ -91,7 +91,7 @@ function ScanResultsPage() {
       </Link>
 
       {isRunning && (
-        <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-5 py-4 mb-6">
+        <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-sm px-5 py-4 mb-6">
           <Loader2 className="w-5 h-5 text-blue-500 animate-spin shrink-0" />
           <div>
             <div className="text-sm font-semibold text-blue-800">Scan in progress…</div>
@@ -101,14 +101,14 @@ function ScanResultsPage() {
       )}
 
       {job?.status === 'failed' && (
-        <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl px-5 py-4 mb-6">
+        <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-sm px-5 py-4 mb-6">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
           <div className="text-sm text-red-800 font-medium">Scan failed. Please try again.</div>
         </div>
       )}
 
       {job?.status === 'completed' && (
-        <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-xl px-5 py-4 mb-6">
+        <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-sm px-5 py-4 mb-6">
           <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
           <div className="text-sm font-semibold text-green-800">Scanning Completed.</div>
           <span className="text-xs text-green-600">Results are ready below.</span>
@@ -126,7 +126,7 @@ function ScanResultsPage() {
           <Link
             to="/scans/$scanId/issues"
             params={{ scanId }}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-sm transition-colors"
           >
             View All Issues
           </Link>
@@ -134,35 +134,25 @@ function ScanResultsPage() {
       </div>
 
       {/* Live progress while running */}
-      {isRunning && job?.progress && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-5">
+      {isRunning && (
+        <div className="bg-white rounded-sm border border-gray-100 shadow-sm p-5 mb-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Progress</h2>
           <div className="flex gap-6">
-            {[
-              { label: 'Total', value: job.progress.total },
-              { label: 'Done', value: job.progress.done, color: 'text-green-600' },
-              { label: 'Running', value: job.progress.running, color: 'text-blue-600' },
-              { label: 'Failed', value: job.progress.failed, color: 'text-red-600' },
-            ].map((s) => (
-              <div key={s.label} className="text-center">
-                <div className={`text-2xl font-bold ${s.color ?? 'text-gray-900'}`}>{s.value}</div>
-                <div className="text-xs text-gray-500">{s.label}</div>
-              </div>
-            ))}
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{job?.pages_scanned ?? 0}</div>
+              <div className="text-xs text-gray-500">Done</div>
+            </div>
           </div>
-          <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-blue-500 rounded-full transition-all"
-              style={{ width: job.progress.total ? `${(job.progress.done / job.progress.total) * 100}%` : '0%' }}
-            />
-          </div>
+          {job?.current_url && (
+            <p className="mt-3 text-xs text-gray-500 truncate">Scanning: {job.current_url}</p>
+          )}
         </div>
       )}
 
       {summary && (
         <>
           {/* Score rings */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-5">
+          <div className="bg-white rounded-sm border border-gray-100 shadow-sm p-6 mb-5">
             <h2 className="text-sm font-semibold text-gray-700 mb-5">Category Scores (avg across pages)</h2>
             <div className="flex justify-around flex-wrap gap-6">
               <ScoreRing score={scores.performance?.avg ?? 0} label="Performance" icon={Zap} />
@@ -174,7 +164,7 @@ function ScanResultsPage() {
 
           {/* Radar + page summary */}
           <div className="grid grid-cols-3 gap-5 mb-5">
-            <div className="col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div className="col-span-2 bg-white rounded-sm border border-gray-100 shadow-sm p-5">
               <h2 className="text-sm font-semibold text-gray-700 mb-4">Score Overview</h2>
               <ResponsiveContainer width="100%" height={240}>
                 <RadarChart data={radarData}>
@@ -185,7 +175,7 @@ function ScanResultsPage() {
               </ResponsiveContainer>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div className="bg-white rounded-sm border border-gray-100 shadow-sm p-5">
               <h2 className="text-sm font-semibold text-gray-700 mb-4">Pages Summary</h2>
               <div className="space-y-3">
                 {[
@@ -221,7 +211,7 @@ function ScanResultsPage() {
 
           {/* Worst pages */}
           {summary.worst_pages.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-5">
+            <div className="bg-white rounded-sm border border-gray-100 shadow-sm p-5 mb-5">
               <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
                 <TrendingDown className="w-4 h-4 text-red-400" />
                 Worst Pages
@@ -245,7 +235,7 @@ function ScanResultsPage() {
 
           {/* Common critical audits */}
           {summary.common_critical_audits.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div className="bg-white rounded-sm border border-gray-100 shadow-sm p-5">
               <h2 className="text-sm font-semibold text-gray-700 mb-3">Common Critical Audits</h2>
               <div className="space-y-2">
                 {summary.common_critical_audits.map((audit) => (

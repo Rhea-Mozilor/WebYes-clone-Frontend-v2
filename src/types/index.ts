@@ -17,20 +17,9 @@ export interface Website {
 export type ScanStatus = 'pending' | 'running' | 'completed' | 'failed';
 export type ScanStrategy = 'mobile' | 'desktop';
 
-export interface PageProgress {
+export interface ScannedPage {
   url: string;
-  status: string;
-  started_at: string | null;
-  completed_at: string | null;
-  error: string | null;
-}
-
-export interface ScanJobProgress {
-  total: number;
-  done: number;
-  failed: number;
-  running: number;
-  pending: number;
+  scanned_at: string;
 }
 
 // Matches backend ScanJobStatusResponse
@@ -40,8 +29,9 @@ export interface ScanJob {
   strategy: ScanStrategy;
   created_at: string;
   completed_at: string | null;
-  progress: ScanJobProgress;
-  pages: PageProgress[];
+  pages_scanned: number;
+  current_url: string | null;
+  pages: ScannedPage[];
 }
 
 // Matches backend TriggerScanResponse (new: dual-job; legacy: single scan_job_id)
@@ -53,16 +43,6 @@ export interface TriggerScanResponse {
   message: string;
 }
 
-// Matches backend ScanHistoryV2Item
-export interface ScanHistoryItem {
-  scan_job_id: string;
-  scanned_at: string;
-  mode: string;
-  status: ScanStatus;
-  pages_scanned: number;
-  issues_detected: number;
-  can_download: boolean;
-}
 
 export interface ScoreDataPoint {
   scanned_at: string;
@@ -103,7 +83,7 @@ export interface ScanSummaryResponse {
   common_critical_audits: CommonCriticalAudit[];
 }
 
-export type IssueCategory = 'performance' | 'accessibility' | 'best_practices' | 'seo';
+export type IssueCategory = 'performance' | 'accessibility' | 'best_practices' | 'quality' | 'seo';
 export type IssueSeverity = 'critical' | 'non_critical';
 export type IssuePriority = 'low' | 'medium' | 'high';
 export type DetailsType = 'opportunity' | 'table' | 'list' | 'numeric' | 'criticalrequestchain' | 'n/a';
@@ -119,7 +99,46 @@ export interface IssueElement {
 export interface IssueAffectedPage {
   page_title: string;
   page_url: string;
+  screenshot?: string | null;
+  screenshot_full_page?: string | null;
+  details?: { items: unknown[] } | null;
   elements: IssueElement[];
+}
+
+export interface IssueOccurrence {
+  selector: string;
+  snippet: string;
+  page_url: string;
+  fix_suggestion: string;
+  issue_node: IssueNodeData;
+}
+
+export interface BoundingRect {
+  top: number;
+  left: number;
+  right: number;
+  width: number;
+  bottom: number;
+  height: number;
+}
+
+export interface IssueNodeData {
+  lhId?: string;
+  path?: string;
+  type?: string;
+  snippet?: string;
+  selector?: string;
+  nodeLabel?: string;
+  explanation?: string;
+  boundingRect?: BoundingRect;
+}
+
+export interface IssueNode {
+  selector: string | null;
+  snippet: string | null;
+  thumbnail?: string | null;
+  page_url: string;
+  issue_node?: IssueNodeData | null;
 }
 
 export interface IssueRichDetail {
@@ -131,11 +150,21 @@ export interface IssueRichDetail {
   category: string;
   description: string | null;
   display_value: string | null;
+  wcag_version?: string | null;
+  wcag_criterion?: string | null;
+  conformance_level?: string | null;
   impact?: string | null;
+  recommendation?: string | null;
+  learn_more_url?: string | null;
+  audit_title?: string | null;
+  responsibility?: string | null;
   tags?: string[];
   details_type?: string | null;
   wasted_ms?: number | null;
   wasted_bytes?: number | null;
+  details?: Record<string, unknown> | null;
+  nodes?: IssueNode[];
+  occurrences?: IssueOccurrence[];
   affected_pages: IssueAffectedPage[];
 }
 
@@ -225,6 +254,45 @@ export interface DashboardResponse {
   scanned_pages: string[];
 }
 
+export interface ScanIssueItem {
+  id: string;
+  rule_id: string;
+  title: string;
+  priority: IssuePriority;
+  severity: IssueSeverity;
+  category: IssueCategory;
+  description: string | null;
+  page_url?: string | null;
+}
+
+export interface ScanIssuesResponse {
+  items: ScanIssueItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface ScanPageItem {
+  scan_result_id: string;
+  name: string;
+  url: string;
+  total_issues: number;
+  critical_issues: number;
+  accessibility_score: number;
+  performance_score: number;
+  quality_score: number;
+  seo_score: number;
+}
+
+export interface ScanPagesResponse {
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  items: ScanPageItem[];
+}
+
 export interface CancelScanResponse {
   scan_job_id: string;
   status: string;
@@ -237,11 +305,14 @@ export interface CancelScanResponse {
 
 export interface PerformanceScoreResponse {
   score: number | null;
-  score_change_percent: number | null;
+  score_change: number | null;
+  score_change_percent?: number | null;
   total_issues: number;
   total_issues_change_percent: number | null;
+  previous_total_issues?: number | null;
   critical_issues: number;
   critical_issues_change_percent: number | null;
+  previous_critical_issues?: number | null;
   avg_response_time_ms: number | null;
   avg_response_time_change_percent: number | null;
 }
@@ -288,6 +359,8 @@ export interface AffectedPageItem {
   total_issues: number;
   critical_issues: number;
   page_score: number | null;
+  priority: string | null;
+  scan_result_id: string | null;
 }
 
 export interface AffectedPagesResponse {
@@ -306,6 +379,7 @@ export interface PerformanceIssueListItem {
   learn_more_url: string | null;
   pages_affected: number;
   priority: string;
+  page_url?: string | null;
 }
 
 export interface PerformanceIssueListResponse {
@@ -316,6 +390,19 @@ export interface PerformanceIssueListResponse {
   items: PerformanceIssueListItem[];
 }
 
+export interface PerformanceIssuesLogItem {
+  issue_id: string;
+  title: string;
+  page_url: string | null;
+  priority: string;
+  description?: string | null;
+}
+
+export interface PerformanceIssuesLogResponse {
+  total: number;
+  items: PerformanceIssuesLogItem[];
+}
+
 // ---------------------------------------------------------------------------
 // Quality / SEO (shared shapes)
 // ---------------------------------------------------------------------------
@@ -323,8 +410,11 @@ export interface PerformanceIssueListResponse {
 export interface CategoryScoreResponse {
   score: number | null;
   label: string;
+  score_change?: number | null;
   total_issues: number;
+  previous_total_issues?: number | null;
   critical_issues: number;
+  previous_critical_issues?: number | null;
 }
 
 export interface CategoryCriticalIssueItem {
@@ -352,11 +442,13 @@ export interface CategoryTopAffectedPagesResponse {
 }
 
 export interface CategoryAffectedPageItem {
+  scan_result_id: string | null;
   page_url: string;
   screenshot: string | null;
   total_issues: number;
   critical_issues: number;
   page_score: number | null;
+  priority: string | null;
 }
 
 export interface CategoryAffectedPagesResponse {
@@ -375,6 +467,7 @@ export interface CategoryIssueListItem {
   learn_more_url: string | null;
   pages_affected: number;
   priority: string;
+  page_url?: string | null;
 }
 
 export interface CategoryIssueListResponse {
@@ -385,13 +478,27 @@ export interface CategoryIssueListResponse {
   items: CategoryIssueListItem[];
 }
 
+export interface CategoryIssuesLogItem {
+  issue_id: string;
+  title: string;
+  page_url: string | null;
+  priority: string;
+  description?: string | null;
+}
+
+export interface CategoryIssuesLogResponse {
+  total: number;
+  items: CategoryIssuesLogItem[];
+}
+
 // ---------------------------------------------------------------------------
 // Accessibility
 // ---------------------------------------------------------------------------
 
 export interface AccessibilityScoreResponse {
   score: number | null;
-  score_change_percent: number | null;
+  score_change?: number | null;
+  score_change_percent?: number | null;
   wcag_level: string;
   level_a_score: number | null;
   level_aa_score: number | null;
@@ -405,7 +512,7 @@ export interface AccessibilityScoreResponse {
 export interface AccessibilityCommonIssueItem {
   rule_id: string;
   title: string;
-  pages_affected: number;
+  elements_affected: number;
 }
 
 export interface AccessibilityCommonIssuesResponse {
@@ -433,6 +540,29 @@ export interface AccessibilityIssuesLogResponse {
   items: AccessibilityIssuesLogItem[];
 }
 
+export interface AccessibilityIssueListItem {
+  id: string;
+  rule_id: string;
+  title: string;
+  description: string | null;
+  learn_more_url: string | null;
+  pages_affected: number;
+  priority: string;
+  responsibility: string | null;
+  wcag_version?: string | null;
+  wcag_criterion?: string | null;
+  wcag_level?: string | null;
+  conformance_level?: string | null;
+}
+
+export interface AccessibilityIssueListResponse {
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  items: AccessibilityIssueListItem[];
+}
+
 export interface AccessibilityPagesListItem {
   page_url: string;
   score: number | null;
@@ -443,6 +573,78 @@ export interface AccessibilityPagesListItem {
 
 export interface AccessibilityPagesListResponse {
   items: AccessibilityPagesListItem[];
+}
+
+export interface AccessibilityAffectedPageItem {
+  scan_result_id: string | null;
+  page_url: string;
+  screenshot: string | null;
+  total_issues: number;
+  critical_issues: number;
+  page_score: number | null;
+  priority: string | null;
+}
+
+export interface PageCategoryIssue {
+  issue_id: string;
+  rule_id: string;
+  title: string;
+  priority: string;
+  item_count: number;
+  display_value: string | null;
+}
+
+export interface PageCategoryIssuesResponse {
+  scan_result_id: string;
+  page_url: string;
+  page_title: string | null;
+  performance_score: number | null;
+  issues: PageCategoryIssue[];
+}
+
+export interface PerformancePageVitals {
+  fcp_ms: number | null;
+  lcp_ms: number | null;
+  tbt_ms: number | null;
+  cls: number | null;
+  speed_index_ms: number | null;
+}
+
+export interface PerformancePageIssuesResponse {
+  scan_result_id: string;
+  page_url: string;
+  page_title: string | null;
+  performance_score: number | null;
+  vitals: PerformancePageVitals | null;
+  issues: PageCategoryIssue[];
+}
+
+export interface AccessibilityPageIssue {
+  issue_id: string;
+  rule_id: string;
+  title: string;
+  wcag_version: string | null;
+  wcag_criterion: string | null;
+  wcag_level: string | null;
+  priority: string;
+  responsibility: string | null;
+  item_count: number;
+}
+
+export interface AccessibilityPageIssuesResponse {
+  scan_result_id: string;
+  page_url: string;
+  page_title: string | null;
+  accessibility_score: number | null;
+  issues: AccessibilityPageIssue[];
+}
+
+export interface AccessibilityAffectedPagesResponse {
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  items: AccessibilityAffectedPageItem[];
 }
 
 export interface AccessibilityManualCheckPage {
@@ -506,18 +708,18 @@ export interface ChecklistCriterionItem {
 export interface ChecklistGuidelineItem {
   guideline: string;
   title: string;
-  criteria: ChecklistCriterionItem[];
+  items: ChecklistCriterionItem[];
 }
 
 export interface ChecklistPrincipleItem {
-  principle: number;
+  number: number;
   title: string;
   guidelines: ChecklistGuidelineItem[];
 }
 
 export interface AccessibilityChecklistResponse {
-  wcag_version: string;
-  items: ChecklistPrincipleItem[];
+  wcag_version?: string;
+  principles: ChecklistPrincipleItem[];
 }
 
 // ---------------------------------------------------------------------------
@@ -604,4 +806,20 @@ export interface GuestScanStatusResponse {
   status: 'pending' | 'complete' | 'error';
   data: GuestScanData | null;
   message: string | null;
+}
+
+export interface ScanHistoryItem {
+  scan_job_id: string;
+  status: string;
+  strategy: string;
+  scanned_at: string;
+  created_at?: string;
+  completed_at: string | null;
+  avg_performance: number | null;
+  avg_accessibility: number | null;
+  avg_best_practices: number | null;
+  avg_seo: number | null;
+  pages_scanned?: number | null;
+  issues_detected?: number | null;
+  scan_url?: string | null;
 }

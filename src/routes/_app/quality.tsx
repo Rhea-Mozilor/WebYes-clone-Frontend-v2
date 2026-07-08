@@ -1,28 +1,35 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts'
-import { AlertTriangle, Info, Loader2, Search, ChevronLeft, ChevronRight, ChevronDown, SlidersHorizontal, Download } from 'lucide-react'
+import { AlertTriangle, AlertCircle, Loader2, Search, ChevronLeft, ChevronRight, SlidersHorizontal, Download } from 'lucide-react'
+import UrlSvg from '../../components/svgicons/url.svg'
 import { cn } from '../../lib/utils'
+import { PriorityBadge } from '../../components/ui/PriorityBadge'
 import { useSiteStore } from '../../store/siteStore'
 import { IssueDetailPanel } from '../../components/IssueDetailPanel'
+import { CategoryPageDetail } from '../../components/CategoryPageDetail'
 import {
-  getWebsiteScanHistory,
   getQualityScore,
   getQualityCriticalIssues,
   getQualityScoreOverTime,
   getQualityAffectedPages,
   getQualityIssueList,
+  getQualityIssuesLog,
 } from '../../api/scans'
 
 export const Route = createFileRoute('/_app/quality')({
+  validateSearch: (s: Record<string, unknown>) => ({
+    tab: (typeof s.tab === 'string' ? s.tab : 'Dashboard') as string,
+    issueId: typeof s.issueId === 'string' ? s.issueId : undefined,
+  }),
   component: QualityPage,
 })
 
-const TABS = ['Dashboard', 'Affected pages', 'Issue list']
+const TABS = ['Dashboard', 'Affected pages', 'Issues list']
 
 function scoreColor(s: number) {
   if (s >= 90) return '#22c55e'
@@ -30,11 +37,6 @@ function scoreColor(s: number) {
   return '#ef4444'
 }
 
-function priorityBadge(priority: string) {
-  if (priority === 'high') return 'bg-red-100 text-red-700'
-  if (priority === 'medium') return 'bg-amber-50 text-amber-700'
-  return 'bg-gray-100 text-gray-500'
-}
 
 function pageName(url: string): string {
   try {
@@ -56,63 +58,67 @@ function derivePriority(score: number | null, critical: number): string {
 }
 
 function QualityPage() {
-  const { websiteId } = useSiteStore()
-  const [activeTab, setActiveTab] = useState('Dashboard')
+  const { websiteId, strategy, scansByWebsite } = useSiteStore()
+  const scanId = websiteId ? scansByWebsite[websiteId]?.scanId ?? null : null
+  const [issueLogCategory, setIssueLogCategory] = useState<string>('all')
+  const { tab: activeTab, issueId: preselectedIssueId } = Route.useSearch()
+  const navigate = useNavigate({ from: '/quality' })
+  const setActiveTab = (tab: string) => navigate({ search: (s) => ({ ...s, tab }), replace: true })
   const [affectedPage, setAffectedPage] = useState(1)
   const [issueListPage, setIssueListPage] = useState(1)
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [issueSearch, setIssueSearch] = useState('')
+  const [issueSubTab, setIssueSubTab] = useState<'all' | 'critical'>('all')
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
+  const [pageDetailView, setPageDetailView] = useState<{ scanResultId: string; pageUrl: string } | null>(null)
 
-  const { data: history = [], isLoading } = useQuery({
-    queryKey: ['history', websiteId],
-    queryFn: () => getWebsiteScanHistory(websiteId!),
-    enabled: !!websiteId,
-  })
-
-  const completedScans = history.filter((h) => h.status === 'completed')
-  const latestScan = completedScans[0]
+  useEffect(() => {
+    if (preselectedIssueId) setSelectedIssueId(preselectedIssueId)
+  }, [preselectedIssueId])
 
   const { data: scoreData } = useQuery({
-    queryKey: ['quality-score', latestScan?.scan_job_id],
-    queryFn: () => getQualityScore(latestScan!.scan_job_id),
-    enabled: !!latestScan,
+    queryKey: ['quality-score', scanId, strategy],
+    queryFn: () => getQualityScore(scanId!, strategy),
+    enabled: !!scanId,
   })
 
   const { data: criticalData } = useQuery({
-    queryKey: ['quality-critical', latestScan?.scan_job_id],
-    queryFn: () => getQualityCriticalIssues(latestScan!.scan_job_id),
-    enabled: !!latestScan,
+    queryKey: ['quality-critical', scanId, strategy],
+    queryFn: () => getQualityCriticalIssues(scanId!, strategy),
+    enabled: !!scanId,
   })
 
   const { data: scoreOverTime } = useQuery({
-    queryKey: ['quality-score-over-time', latestScan?.scan_job_id],
-    queryFn: () => getQualityScoreOverTime(latestScan!.scan_job_id),
-    enabled: !!latestScan,
+    queryKey: ['quality-score-over-time', scanId, strategy],
+    queryFn: () => getQualityScoreOverTime(scanId!, strategy),
+    enabled: !!scanId,
   })
 
   const { data: affectedPages } = useQuery({
-    queryKey: ['quality-affected', latestScan?.scan_job_id, affectedPage, search],
-    queryFn: () => getQualityAffectedPages(latestScan!.scan_job_id, affectedPage, 10, search),
-    enabled: !!latestScan && activeTab === 'Affected pages',
+    queryKey: ['quality-affected', scanId, affectedPage, search, strategy],
+    queryFn: () => getQualityAffectedPages(scanId!, affectedPage, 10, search, strategy),
+    enabled: !!scanId && activeTab === 'Affected pages',
   })
 
   const { data: issueList } = useQuery({
-    queryKey: ['quality-issue-list', latestScan?.scan_job_id, issueListPage],
-    queryFn: () => getQualityIssueList(latestScan!.scan_job_id, issueListPage, 10),
-    enabled: !!latestScan && activeTab === 'Issue list',
+    queryKey: ['quality-issue-list', scanId, issueListPage, strategy],
+    queryFn: () => getQualityIssueList(scanId!, issueListPage, 10, strategy),
+    enabled: !!scanId && activeTab === 'Issues list',
   })
 
   const { data: dashIssues } = useQuery({
-    queryKey: ['quality-dash-issues', latestScan?.scan_job_id],
-    queryFn: () => getQualityIssueList(latestScan!.scan_job_id, 1, 5),
-    enabled: !!latestScan,
+    queryKey: ['quality-dash-issues-log', scanId, strategy],
+    queryFn: () => getQualityIssuesLog(scanId!, 5, strategy),
+    enabled: !!scanId,
   })
 
   const score = scoreData?.score ?? 0
   const totalIssues = scoreData?.total_issues ?? 0
   const criticalCount = scoreData?.critical_issues ?? 0
+  const prevTotalIssues = scoreData?.previous_total_issues ?? null
+  const prevCriticalIssues = scoreData?.previous_critical_issues ?? null
+  const trendPct = scoreData?.score_change ?? null
 
   const chartData = useMemo(() =>
     (scoreOverTime?.data_points ?? []).map((pt, i) => ({
@@ -122,18 +128,29 @@ function QualityPage() {
   [scoreOverTime])
 
   if (!websiteId) return <EmptyState msg="Select a website from the top bar." />
-  if (isLoading) return <Spinner />
-  if (!latestScan) return <EmptyState msg="No completed scans yet. Run a scan to see quality data." />
+  if (!scanId) return <EmptyState msg="No completed scans yet. Run a scan to see quality data." />
+
+  if (pageDetailView) {
+    return (
+      <CategoryPageDetail
+        scanJobId={scanId}
+        scanResultId={pageDetailView.scanResultId}
+        pageUrl={pageDetailView.pageUrl}
+        category="quality"
+        onBack={() => setPageDetailView(null)}
+      />
+    )
+  }
 
   return (
     <div className="flex flex-col min-h-full">
       {/* Tabs */}
-      <div className="bg-white border-b border-gray-100 px-4 sm:px-6">
+      <div className="bg-white border-b border-[#d8dde9] px-4 sm:px-6">
         <div className="flex overflow-x-auto">
           {TABS.map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
-              className={cn('px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors',
-                activeTab === tab ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700')}>
+              className={cn('px-4 py-3.5 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors',
+                activeTab === tab ? 'border-[#0b66e4] text-[#242424] font-semibold' : 'border-transparent text-[#73767f] font-normal hover:text-gray-700')}>
               {tab}
             </button>
           ))}
@@ -143,161 +160,142 @@ function QualityPage() {
       {/* Dashboard tab */}
       {activeTab === 'Dashboard' && (
         <div className="flex-1 p-3 sm:p-6 space-y-4 sm:space-y-5">
-          {/* Top row */}
-          <div className="flex flex-col lg:flex-row gap-4 sm:gap-5">
-            <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
-              <div className="flex flex-col sm:flex-row gap-6 items-start">
-                <div className="flex-1">
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 leading-snug mb-3">
-                    The quality of your website is a<br className="hidden sm:block" />
-                    reflection of your quality services.
+
+          {/* === HERO CARD === */}
+          <div className="bg-white rounded-[8px] border border-[#9db7f4] p-5 sm:p-6">
+            <div className="flex flex-col lg:flex-row items-stretch gap-6">
+              {/* Left: text + button */}
+              <div className="flex flex-col justify-between lg:w-[30%] min-w-0">
+                <div>
+                  <h2 className="text-[22px] font-semibold text-[#2e3240] tracking-[-0.48px] leading-[1.4] mb-4">
+                    Build Credibility Through Quality Excellence
                   </h2>
-                  <p className="text-sm text-gray-500 mb-1">Ensure quality and build credibility.</p>
-                  <p className="text-sm text-gray-400 mb-6">Presenting your website's Quality score.</p>
-                  <Link to="/scans/$scanId/issues" params={{ scanId: latestScan.scan_job_id }}
-                    className="inline-flex items-center px-5 py-2 border-2 border-blue-600 text-blue-600 text-sm font-semibold rounded-lg hover:bg-blue-50 transition-colors">
-                    View all issues
-                  </Link>
+                  <p className="text-[13px] text-[#505050] mb-2">Ensure quality and build credibility.</p>
+                  <p className="text-[13px] text-[#73767f] mb-6">Presenting your website's Quality score.</p>
                 </div>
-                <div className="flex flex-col items-center shrink-0">
-                  <div className="relative w-44 h-44">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={[{ value: score }, { value: 100 - score }]}
-                          cx="50%" cy="50%" startAngle={90} endAngle={-270}
-                          innerRadius={55} outerRadius={75} dataKey="value" strokeWidth={0}>
-                          <Cell fill="#3b82f6" />
-                          <Cell fill="#e5e7eb" />
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-bold text-gray-900">{score}%</span>
-                      <span className="text-xs text-gray-400 text-center leading-tight">Overall score</span>
+                <Link to="/quality" search={{ tab: 'Issues list' }}
+                  className="inline-flex items-center justify-center bg-[#0b66e4] text-white text-[14px] font-medium rounded-[4px] px-8 py-3.5 self-start">
+                  View all issues
+                </Link>
+              </div>
+
+              {/* Center: score gauge */}
+              <div className="flex-1 flex flex-col items-center justify-center py-2">
+                <div className="relative overflow-hidden" style={{ width: 220, height: 175 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={[{ value: score }, { value: Math.max(0, 100 - score) }]}
+                        cx="50%" cy="52%" startAngle={225} endAngle={-45}
+                        innerRadius={68} outerRadius={90} dataKey="value" strokeWidth={0}>
+                        <Cell fill={score < 50 ? '#d93025' : score < 80 ? '#f59e0b' : '#22c55e'} />
+                        <Cell fill="#eeeeee" />
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute left-0 right-0 flex flex-col items-center pointer-events-none" style={{ top: '56%', transform: 'translateY(-50%)' }}>
+                    <div className={`flex items-baseline font-semibold ${score < 50 ? 'text-[#d93025]' : score < 80 ? 'text-[#f59e0b]' : 'text-[#22c55e]'}`} style={{ letterSpacing: '-0.91px' }}>
+                      <span className="text-[48px] leading-none">{score}</span>
+                      <span className="text-[34px] leading-none">%</span>
+                    </div>
+                    <div className="text-[15px] font-medium text-[#2e3240] mt-1.5">Overall score</div>
+                  </div>
+                </div>
+                {trendPct != null && (
+                  <div className={cn('flex items-center gap-1 text-[14px] font-semibold mt-1',
+                    trendPct >= 0 ? 'text-[#0a843f]' : 'text-[#d93025]')}>
+                    {trendPct >= 0 ? '↑' : '↓'} {Math.abs(Math.round(trendPct))}%
+                  </div>
+                )}
+              </div>
+
+              {/* Right: stats card */}
+              <div className="shrink-0 lg:w-[30%] flex flex-col">
+                <div className="bg-white border border-[#ced6ed] rounded-[8px] p-4 flex items-start gap-2 flex-1">
+                  <div className="flex-1">
+                    <div>
+                      <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Total issues</div>
+                      <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
+                        {String(totalIssues).padStart(2, '0')}
+                      </div>
+                      {prevTotalIssues != null && (
+                        <div className="text-[12px] text-[#73767f] mt-1">Previous count : {String(prevTotalIssues).padStart(2, '0')}</div>
+                      )}
+                    </div>
+                    <div className="h-px bg-gray-100 my-3.5" />
+                    <div>
+                      <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Critical issues</div>
+                      <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
+                        {String(criticalCount).padStart(2, '0')}
+                      </div>
+                      {prevCriticalIssues != null && (
+                        <div className="text-[12px] text-[#73767f] mt-1">Previous count : {String(prevCriticalIssues).padStart(2, '0')}</div>
+                      )}
                     </div>
                   </div>
-                  {scoreData?.label && (
-                    <span className="text-xs font-semibold text-blue-600 mt-1">{scoreData.label}</span>
-                  )}
+                  <AlertTriangle className="w-7 h-7 text-amber-500 shrink-0 mt-0.5" />
                 </div>
-              </div>
-            </div>
-
-            <div className="w-full lg:w-72 shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-1 text-xs text-gray-500 mb-0.5">
-                    Total issues <Info className="w-3 h-3 text-gray-300" />
-                  </div>
-                  <div className="text-2xl font-bold text-gray-900">{String(totalIssues).padStart(2, '0')}</div>
-                </div>
-                <AlertTriangle className="w-5 h-5 text-amber-400" />
-              </div>
-              <div className="h-px bg-gray-50" />
-              <div>
-                <div className="flex items-center gap-1 text-xs text-gray-500 mb-0.5">
-                  Critical issues <Info className="w-3 h-3 text-gray-300" />
-                </div>
-                <div className="text-2xl font-bold text-red-500">{String(criticalCount).padStart(2, '0')}</div>
               </div>
             </div>
           </div>
 
-          {/* Issues log */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-gray-900">Issues log {dashIssues ? `(${dashIssues.total})` : ''}</h3>
-              <button onClick={() => setActiveTab('Issues list')}
-                className="text-xs text-blue-600 hover:underline font-medium">View all →</button>
-            </div>
-            {!dashIssues || dashIssues.items.length === 0 ? (
-              <p className="text-xs text-gray-400 py-4 text-center">No issues found</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="text-left text-xs font-semibold text-gray-500 pb-2 pr-4">Issue</th>
-                      <th className="text-left text-xs font-semibold text-gray-500 pb-2 pr-4 w-24">Priority</th>
-                      <th className="text-right text-xs font-semibold text-gray-500 pb-2 w-28">Pages affected</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {dashIssues.items.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50 cursor-pointer"
-                        onClick={() => window.location.href = `/issues/${item.id}`}>
-                        <td className="py-2.5 pr-4">
-                          <div className="text-xs text-blue-700 font-medium hover:underline">{item.title}</div>
-                          {item.description && <div className="text-xs text-gray-400 mt-0.5 line-clamp-1">{item.description}</div>}
-                        </td>
-                        <td className="py-2.5 pr-4">
-                          <span className={cn('inline-flex px-2 py-0.5 rounded-full text-xs font-medium', priorityBadge(item.priority))}>
-                            {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
-                          </span>
-                        </td>
-                        <td className="py-2.5 text-right">
-                          <span className="text-xs text-gray-600">{item.pages_affected}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* Bottom row */}
+          {/* === ROW 2: Chart + Critical issues === */}
           <div className="flex flex-col lg:flex-row gap-4 sm:gap-5">
-            <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                <h3 className="text-sm font-bold text-gray-900">Quality over time</h3>
-                <div className="flex items-center gap-1">
-                  {['Today', 'Yesterday', 'Last week'].map((d) => (
-                    <button key={d} className="px-2.5 py-1 text-xs rounded-lg text-gray-500 hover:bg-gray-50 transition-colors">{d}</button>
-                  ))}
+            {/* Quality over time */}
+            <div className="flex-1 bg-white rounded-[8px] border border-[#dfe4f3] p-5 min-w-0">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Quality over time</h3>
+                <div className="flex items-center gap-2">
+                  <button className="border border-[#e0e2e7] rounded-[24px] px-3 py-1.5 text-[10px] text-[#242424]">Today</button>
+                  <button className="border border-[#e0e2e7] rounded-[24px] px-3 py-1.5 text-[10px] text-[#242424]">Yesterday</button>
+                  <button className="border border-[#e0e2e7] rounded-[24px] px-3 py-1.5 text-[10px] text-[#242424]">Last week</button>
                 </div>
               </div>
               {chartData.length < 2 ? (
-                <div className="flex items-center justify-center h-36 text-xs text-gray-400">
-                  Need at least 2 scans to show trend
-                </div>
+                <div className="flex items-center justify-center h-48 text-xs text-gray-400">Need at least 2 scans to show trend</div>
               ) : (
-                <ResponsiveContainer width="100%" height={180}>
-                  <LineChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
+                <ResponsiveContainer width="100%" height={240}>
+                  <AreaChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
+                    <defs>
+                      <linearGradient id="qualityGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0b66e4" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#0b66e4" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                    <YAxis domain={[0, 120]} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                    <YAxis domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} tick={{ fontSize: 10, fill: '#9ca3af' }} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #f0f0f0' }}
                       formatter={(v) => [`${Number(v)}%`, 'Quality']} />
-                    <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={2}
-                      dot={{ fill: '#3b82f6', r: 3 }} activeDot={{ r: 5 }} />
-                  </LineChart>
+                    <Area type="monotone" dataKey="score" stroke="#0b66e4" strokeWidth={2}
+                      fill="url(#qualityGrad)" dot={{ fill: '#06387d', r: 3 }} activeDot={{ r: 5 }} />
+                  </AreaChart>
                 </ResponsiveContainer>
               )}
             </div>
 
-            <div className="w-full lg:w-80 shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-gray-900">Critical issues</h3>
-                <Link to="/scans/$scanId/issues" params={{ scanId: latestScan.scan_job_id }}
-                  className="text-xs text-blue-600 hover:underline font-medium flex items-center gap-1">
+            {/* Critical issues panel */}
+            <div className="w-full lg:w-[340px] shrink-0 bg-white rounded-[8px] border border-[#dfe4f3] p-5">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Critical issues</h3>
+                <Link to="/quality" search={{ tab: 'Issues list' }}
+                  className="text-[14px] font-medium text-[#0b66e4] whitespace-nowrap">
                   View all issues →
                 </Link>
               </div>
               {(criticalData?.items ?? []).length === 0 ? (
                 <p className="text-xs text-gray-400 py-6 text-center">No critical quality issues</p>
               ) : (
-                <div className="space-y-2">
-                  {(criticalData?.items ?? []).slice(0, 8).map((g) => (
-                    <div key={g.rule_id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                          <div className="w-3 h-3 rounded-full bg-blue-400" />
+                <div className="divide-y divide-[#f5f5f5]">
+                  {(criticalData?.items ?? []).slice(0, 7).map((g) => (
+                    <div key={g.rule_id} className="flex items-center justify-between gap-3 py-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-[6px] bg-[#f0f4ff] flex items-center justify-center shrink-0">
+                          <AlertCircle className="w-4 h-4 text-[#4a6890]" />
                         </div>
-                        <span className="text-xs text-gray-700 truncate">{g.title}</span>
+                        <span className="text-[13px] text-[#2e3240] leading-snug line-clamp-2">{g.title}</span>
                       </div>
-                      <span className="ml-3 text-xs font-semibold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md shrink-0">
-                        {g.pages_affected} {g.pages_affected === 1 ? 'page' : 'pages'}
+                      <span className="shrink-0 px-3 py-1 bg-[#e5eeff] text-[#0b66e4] text-[12px] font-medium rounded-[4px] whitespace-nowrap">
+                        {g.pages_affected} fixes
                       </span>
                     </div>
                   ))}
@@ -305,54 +303,120 @@ function QualityPage() {
               )}
             </div>
           </div>
+
+          {/* === ISSUES LOG === */}
+          <div className="bg-white rounded-[8px] border border-[#dfe4f3] p-6">
+            <div className="mb-5">
+              <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Issues log</h3>
+              <p className="text-[12px] text-[#73767f] mt-1 tracking-[-0.24px]">
+                Optimise your website for peak performance by resolving these issues
+              </p>
+            </div>
+            {!dashIssues || dashIssues.items.length === 0 ? (
+              <p className="text-sm text-gray-400 py-8 text-center">No issues found</p>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-[#f2f3f8]">
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 rounded-l-[8px]">Name</th>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-44">Page URL</th>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-28">Priority</th>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-24 rounded-r-[8px]">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dashIssues.items.slice(0, 8).map((item, idx) => {
+                        const priority = item.priority ?? 'low'
+                        return (
+                          <tr key={item.issue_id} className={cn('border-t border-[#eaebec] transition-colors', idx >= 5 ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60')}>
+                            <td className="px-4 py-[18px] text-[14px] text-[#252833] tracking-[-0.14px] leading-snug">{item.title}</td>
+                            <td className="px-4 py-[18px]">
+                              {item.page_url ? (
+                                <a href={item.page_url} target="_blank" rel="noopener noreferrer"
+                                  className="text-[13px] text-[#0a5dcf] underline truncate block max-w-[160px]">
+                                  {item.page_url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                                </a>
+                              ) : <span className="text-[13px] text-[#9fa1a7]">—</span>}
+                            </td>
+                            <td className="px-4 py-[18px]">
+                              <PriorityBadge priority={priority} />
+                            </td>
+                            <td className="px-4 py-[18px]">
+                              <Link to="/quality" search={{ tab: 'Issues list' }} className="text-[14px] font-medium text-[#0a5dcf] underline">View more</Link>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className={cn("text-center py-6 border-t border-gray-100 mt-2", dashIssues.items.length <= 5 && "hidden")}>
+                  <p className="text-[14px] text-[#2e3240] mb-4">Your free plan shows only 5 issues. Upgrade to unlock all issues and get the full picture of your website's health.</p>
+                  <button className="bg-[#2563eb] text-white text-[14px] font-medium px-8 py-2.5 rounded-[6px] hover:bg-blue-700 transition-colors">Unlock all issues</button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
 
       {/* Affected pages tab */}
       {activeTab === 'Affected pages' && (
         <div className="flex-1 p-3 sm:p-6 space-y-4">
-          {/* Top: most-affected page cards */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h3 className="text-base font-bold text-gray-900 mb-1">Quality issues per page</h3>
-            <p className="text-xs text-gray-400 mb-4">Pages with most issues</p>
+          {/* Top: page cards */}
+          <div className="bg-white rounded-[8px] border border-[#9db7f4] p-5">
+            <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px] mb-1">Quality issues per page</h3>
+            <p className="text-[12px] text-[#73767f] mb-5">Pages with most issues</p>
             {!affectedPages ? (
               <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
             ) : affectedPages.items.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-8">No page data</p>
             ) : (
-              <div className="flex gap-4 overflow-x-auto pb-2">
+              <div className="flex gap-5 overflow-x-auto pb-2">
                 {affectedPages.items.slice().sort((a, b) => b.total_issues - a.total_issues).slice(0, 8).map((item, i) => {
                   const s = item.page_score ?? 0
-                  const prio = derivePriority(s, item.critical_issues)
-                  const barColor = prio === 'high' ? '#ef4444' : prio === 'medium' ? '#f59e0b' : '#22c55e'
+                  const barColor = s < 50 ? '#d12929' : s < 80 ? '#e08632' : '#219653'
                   const name = pageName(item.page_url)
                   return (
-                    <div key={i} className="shrink-0 w-44 rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-                      <div className="h-28 bg-gray-100 overflow-hidden">
-                        {item.screenshot
-                          ? <img src={item.screenshot} alt="" className="w-full h-full object-cover" />
-                          : <div className="w-full h-full flex items-center justify-center px-2 text-center"><span className="text-xs text-gray-400 leading-snug">{name}</span></div>
-                        }
-                      </div>
-                      <div className="p-3 flex-1">
-                        <div className="flex items-start justify-between gap-1 mb-3">
-                          <span className="text-xs font-semibold text-gray-800 leading-tight line-clamp-2">{name}</span>
-                          <a href={item.page_url} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-blue-600 shrink-0 mt-0.5">
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" /></svg>
+                    <div key={i} className="shrink-0 relative" style={{ width: 224, height: 295 }}>
+                      <div className="absolute bg-[#eceefb] border border-[#dadada] rounded-[6.4px]"
+                        style={{ top: 3, left: 1, width: 224, height: 257 }} />
+                      <button
+                        onClick={() => item.scan_result_id && item.total_issues > 0 && setPageDetailView({ scanResultId: item.scan_result_id, pageUrl: item.page_url })}
+                        disabled={!item.scan_result_id || item.total_issues === 0}
+                        className="absolute inset-0 bg-white border border-[#dadada] rounded-[6.4px] overflow-hidden flex flex-col text-left hover:shadow-md transition-shadow cursor-pointer"
+                        style={{ height: 288 }}
+                      >
+                        <div className="relative h-[125px] bg-gray-100 rounded-t-[6.4px] overflow-hidden shrink-0">
+                          {item.screenshot
+                            ? <img src={item.screenshot} alt="" className="w-full h-full object-cover" />
+                            : <div className="w-full h-full flex items-center justify-center px-2 text-center"><span className="text-xs text-gray-400 leading-snug">{name}</span></div>
+                          }
+                          <div className="absolute inset-x-0 bottom-0 h-[14px]"
+                            style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.8))' }} />
+                        </div>
+                        <div className="h-px bg-[#ebebeb]" />
+                        <div className="flex items-start justify-between gap-2 px-3 pt-3 pb-1">
+                          <span className="text-[13px] font-semibold text-[#2e3240] leading-tight line-clamp-2 flex-1">{name}</span>
+                          <a href={item.page_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="shrink-0 mt-0.5">
+                            <img src={UrlSvg} alt="" className="w-[18px] h-[18px]" />
                           </a>
                         </div>
-                        <div className="flex gap-4">
+                        <div className="flex-1" />
+                        <div className="flex gap-5 px-3 pb-2">
                           <div>
-                            <div className="text-sm font-bold text-gray-900">{item.total_issues}</div>
-                            <div className="text-[10px] text-gray-400">Total issues</div>
+                            <div className="text-[22px] font-semibold text-[#2e3240] leading-none">{item.total_issues}</div>
+                            <div className="text-[10px] text-[#73767f] mt-0.5">Total issues</div>
                           </div>
                           <div>
-                            <div className="text-sm font-bold text-gray-900">{item.critical_issues}</div>
-                            <div className="text-[10px] text-gray-400">Critical issues</div>
+                            <div className="text-[22px] font-semibold text-[#2e3240] leading-none">{item.critical_issues}</div>
+                            <div className="text-[10px] text-[#73767f] mt-0.5">Critical issues</div>
                           </div>
                         </div>
-                      </div>
-                      <div className="h-1.5" style={{ backgroundColor: barColor }} />
+                        <div className="h-[7px] rounded-b-[6.4px]" style={{ backgroundColor: barColor }} />
+                      </button>
                     </div>
                   )
                 })}
@@ -361,26 +425,26 @@ function QualityPage() {
           </div>
 
           {/* Bottom: pages list table */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-              <h3 className="text-base font-bold text-gray-900">Pages list</h3>
+          <div className="bg-white rounded-[8px] border border-[#9db7f4] overflow-hidden">
+            <div className="flex items-center justify-between p-5 gap-3 flex-wrap">
+              <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Pages list</h3>
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
-                  <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                <div className="flex items-center gap-2 border border-[rgba(159,159,159,0.92)] rounded-[4px] px-3 h-[43px]" style={{ width: 313 }}>
+                  <Search className="w-4 h-4 text-[#9f9f9f] shrink-0" />
                   <input
                     type="text"
                     placeholder="Search by pages"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') { setSearch(searchInput); setAffectedPage(1) } }}
-                    className="text-xs text-gray-700 placeholder-gray-400 outline-none w-36"
+                    className="text-[13px] text-[#2e3240] placeholder-[#9f9f9f] outline-none flex-1 bg-transparent"
                   />
                 </div>
-                <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-400 transition-colors">
-                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                <button className="w-[43px] h-[43px] flex items-center justify-center rounded-[4px] border border-[#e0e2e7] hover:bg-gray-50 text-[#73767f]">
+                  <SlidersHorizontal className="w-4 h-4" />
                 </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-400 transition-colors">
-                  <Download className="w-3.5 h-3.5" />
+                <button className="w-[43px] h-[43px] flex items-center justify-center rounded-[4px] border border-[#e0e2e7] hover:bg-gray-50 text-[#73767f]">
+                  <Download className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -391,42 +455,40 @@ function QualityPage() {
             ) : (
               <>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full">
                     <thead>
-                      <tr className="border-b border-gray-100">
-                        <th className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4">Pages</th>
-                        <th className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4 w-20">Score</th>
-                        <th className="text-left text-xs font-semibold text-gray-500 pb-3 pr-4 w-28">
-                          <span className="flex items-center gap-1">Priority <ChevronDown className="w-3 h-3" /></span>
-                        </th>
-                        <th className="text-right text-xs font-semibold text-gray-500 pb-3 pr-4 w-32">Critical issues</th>
-                        <th className="text-right text-xs font-semibold text-gray-500 pb-3 w-24">Total issues</th>
+                      <tr className="bg-[#f2f3f8]">
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-5 py-3 rounded-l-[8px]">Pages</th>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-5 py-3 w-24">Score</th>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-5 py-3 w-36">Critical issues</th>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-5 py-3 w-28 rounded-r-[8px]">Total issues</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody>
                       {affectedPages.items.map((item, i) => {
                         const s = item.page_score ?? 0
-                        const prio = derivePriority(s, item.critical_issues)
-                        const shortUrl = item.page_url.replace(/^https?:\/\//, '')
+                        const prio = item.priority ?? derivePriority(s, item.critical_issues)
+                        const shortUrl = item.page_url.replace(/^https?:\/\//, '').replace(/\/$/, '')
                         return (
-                          <tr key={i} className="hover:bg-gray-50">
-                            <td className="py-3 pr-4">
-                              <div className="text-xs font-medium text-gray-800">{pageName(item.page_url)}</div>
-                              <div className="text-xs text-gray-400 mt-0.5">URL : <a href={item.page_url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600">{shortUrl}</a></div>
+                          <tr key={i}
+                            onClick={() => item.scan_result_id && item.total_issues > 0 && setPageDetailView({ scanResultId: item.scan_result_id, pageUrl: item.page_url })}
+                            className={cn('border-b border-[#ebebeb] hover:bg-gray-50/60 transition-colors', item.scan_result_id && item.total_issues > 0 && 'cursor-pointer')}>
+                            <td className="px-5 py-4">
+                              <div className="text-[14px] font-medium text-[#2e3240]">{pageName(item.page_url)}</div>
+                              <div className="text-[12px] text-[#73767f] mt-0.5">
+                                URL : <a href={item.page_url} target="_blank" rel="noopener noreferrer"
+                                  onClick={e => e.stopPropagation()}
+                                  className="underline text-[#73767f]">{shortUrl}</a>
+                              </div>
                             </td>
-                            <td className="py-3 pr-4">
-                              <span className="text-xs font-bold" style={{ color: scoreColor(s) }}>{s}%</span>
+                            <td className="px-5 py-4">
+                              <span className="text-[14px] font-semibold" style={{ color: scoreColor(s) }}>{s}%</span>
                             </td>
-                            <td className="py-3 pr-4">
-                              <span className={cn('inline-flex px-2 py-0.5 rounded-full text-xs font-medium', priorityBadge(prio))}>
-                                {prio.charAt(0).toUpperCase() + prio.slice(1)}
-                              </span>
+                            <td className="px-5 py-4">
+                              <span className="text-[14px] font-semibold text-[#d93025]">{item.critical_issues}</span>
                             </td>
-                            <td className="py-3 pr-4 text-right">
-                              <span className="text-xs font-semibold text-red-500">{item.critical_issues}</span>
-                            </td>
-                            <td className="py-3 text-right">
-                              <span className="text-xs text-gray-700">{item.total_issues}</span>
+                            <td className="px-5 py-4">
+                              <span className="text-[14px] text-[#2e3240]">{item.total_issues}</span>
                             </td>
                           </tr>
                         )
@@ -441,129 +503,63 @@ function QualityPage() {
         </div>
       )}
 
-      {/* Issue list tab */}
-      {activeTab === 'Issue list' && (
+      {/* Issues list tab */}
+      {activeTab === 'Issues list' && (
         <div className="flex-1 p-3 sm:p-6">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900">All issues</h2>
-            </div>
-            <div className="p-6">
-              {!issueList ? (
-                <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
-              ) : (
-                <>
-                  {/* Stat cards */}
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div className="border border-gray-200 rounded-xl p-4 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center shrink-0">
-                        <span className="text-xs font-bold text-green-700">&lt;/&gt;</span>
-                      </div>
-                      <div>
-                        <div className="text-xs text-green-700 font-medium">Critical</div>
-                        <div className="text-base font-bold text-gray-900">{issueList.items.filter(i => i.priority === 'high').length} issues</div>
-                      </div>
-                    </div>
-                    <div className="border border-gray-200 rounded-xl p-4 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0">
-                        <span className="text-xs text-purple-600">✏</span>
-                      </div>
-                      <div>
-                        <div className="text-xs text-purple-600 font-medium">Non-critical</div>
-                        <div className="text-base font-bold text-gray-900">{issueList.items.filter(i => i.priority !== 'high').length} issues</div>
-                      </div>
-                    </div>
-                    <div className="border border-gray-200 rounded-xl p-4 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                        <span className="text-xs text-blue-600 font-bold">{issueList.total}</span>
-                      </div>
-                      <div>
-                        <div className="text-xs text-blue-600 font-medium">Total issues</div>
-                        <div className="text-base font-bold text-gray-900">this scan</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Search + filters */}
-                  <div className="flex items-center gap-3 mb-4 flex-wrap">
-                    <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 min-w-48 max-w-xs">
-                      <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                      <input type="text" placeholder="Search issues" value={issueSearch}
-                        onChange={(e) => setIssueSearch(e.target.value)}
-                        className="text-xs text-gray-700 placeholder-gray-400 outline-none flex-1" />
-                    </div>
-                    <div className="flex items-center gap-2 ml-auto flex-wrap">
-                      <button className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 transition-colors">
-                        Filter by <ChevronDown className="w-3 h-3" />
-                      </button>
-                      <button className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 transition-colors">
-                        All categories <ChevronDown className="w-3 h-3" />
-                      </button>
-                      <button className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 transition-colors">
-                        <Download className="w-3.5 h-3.5" /> Export
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Table */}
-                  {issueList.items.length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center py-12">No issues found</p>
-                  ) : (
-                    <>
-                      <div className="overflow-x-auto rounded-xl border border-gray-100">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="bg-gray-50 border-b border-gray-100">
-                              <th className="text-left text-xs font-semibold text-gray-500 px-4 py-3">Issues</th>
-                              <th className="text-left text-xs font-semibold text-gray-500 px-4 py-3 w-28">Pages affected</th>
-                              <th className="text-left text-xs font-semibold text-gray-500 px-4 py-3 w-32">
-                                <span className="flex items-center gap-1">Priority <ChevronDown className="w-3 h-3" /></span>
-                              </th>
-                              <th className="text-left text-xs font-semibold text-gray-500 px-4 py-3 w-36">Category</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-50">
-                            {issueList.items
-                              .filter(i => !issueSearch || i.title.toLowerCase().includes(issueSearch.toLowerCase()))
-                              .map((item) => (
-                              <tr key={item.id} className="hover:bg-gray-50/60 cursor-pointer" onClick={() => setSelectedIssueId(item.id)}>
-                                <td className="px-4 py-4">
-                                  <div className="flex items-start flex-wrap gap-2">
-                                    <span className="text-sm text-blue-600 hover:underline leading-snug cursor-pointer">{item.title}</span>
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500 border border-gray-200 self-center">Best practice</span>
-                                  </div>
-                                  {item.description && <div className="text-xs text-gray-400 mt-1 line-clamp-1">{item.description}</div>}
-                                </td>
-                                <td className="px-4 py-4 text-sm text-gray-700">{item.pages_affected}</td>
-                                <td className="px-4 py-4">
-                                  <span className={cn('inline-flex px-3 py-1 rounded-full text-xs font-medium border',
-                                    item.priority === 'high' ? 'border-orange-300 bg-orange-50 text-orange-600'
-                                    : item.priority === 'medium' ? 'border-amber-200 bg-amber-50 text-amber-600'
-                                    : 'border-gray-300 bg-gray-50 text-gray-500')}>
-                                    {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-4">
-                                  <span className={cn('inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border',
-                                    item.priority === 'high'
-                                      ? 'border-green-200 bg-green-50 text-green-700'
-                                      : 'border-purple-200 bg-purple-50 text-purple-700')}>
-                                    {item.priority === 'high' ? <span className="font-mono">&lt;/&gt;</span> : <span>✏</span>}
-                                    {item.priority === 'high' ? 'Development' : 'Design'}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <Pagination page={issueListPage} totalPages={issueList.total_pages} onPage={setIssueListPage} />
-                    </>
-                  )}
-                </>
-              )}
+          <div className="flex items-center justify-between mb-4 gap-4">
+            <h2 className="text-[16px] font-semibold text-[#2e3240]">All issues</h2>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 border border-gray-300 rounded-[6px] px-3 h-9 w-52">
+                <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                <input type="text" placeholder="Search issues" value={issueSearch}
+                  onChange={(e) => setIssueSearch(e.target.value)}
+                  className="text-sm text-gray-700 placeholder-gray-400 outline-none flex-1 bg-transparent" />
+              </div>
             </div>
           </div>
+
+          {!issueList ? (
+            <div className="flex justify-center py-16"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
+          ) : (() => {
+            const filtered = issueList.items
+              .filter(i => !issueSearch || i.title.toLowerCase().includes(issueSearch.toLowerCase()))
+            if (filtered.length === 0) return (
+              <p className="text-sm text-gray-400 text-center py-16">No issues found</p>
+            )
+            return (
+              <>
+                <div className="bg-white border border-gray-200 rounded-[8px] overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-[#f2f3f8]">
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] px-5 py-3">Issues</th>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] px-5 py-3 w-44">Pages affected</th>
+                        <th className="text-left text-[13px] font-medium text-[#2e3240] px-5 py-3 w-40">
+                          Priority
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((item) => (
+                        <tr key={item.id}
+                          onClick={() => setSelectedIssueId(item.id)}
+                          className="border-t border-gray-100 hover:bg-gray-50/60 cursor-pointer">
+                          <td className="px-5 py-4">
+                            <span className="text-sm text-[#0a5dcf] leading-snug">{item.title}</span>
+                          </td>
+                          <td className="px-5 py-4 text-[14px] text-[#2e3240]">{item.pages_affected}</td>
+                          <td className="px-5 py-4">
+                            <PriorityBadge priority={item.priority} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <Pagination page={issueListPage} totalPages={issueList.total_pages} onPage={setIssueListPage} />
+              </>
+            )
+          })()}
         </div>
       )}
 

@@ -51,16 +51,9 @@ function pageName(url: string): string {
   }
 }
 
-function derivePriority(score: number | null, critical: number): string {
-  if (score !== null && score < 50) return 'high'
-  if (critical > 0) return 'medium'
-  return 'low'
-}
-
 function QualityPage() {
   const { websiteId, strategy, scansByWebsite } = useSiteStore()
   const scanId = websiteId ? scansByWebsite[websiteId]?.scanId ?? null : null
-  const [issueLogCategory, setIssueLogCategory] = useState<string>('all')
   const { tab: activeTab, issueId: preselectedIssueId } = Route.useSearch()
   const navigate = useNavigate({ from: '/quality' })
   const setActiveTab = (tab: string) => navigate({ search: (s) => ({ ...s, tab }), replace: true })
@@ -69,7 +62,6 @@ function QualityPage() {
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [issueSearch, setIssueSearch] = useState('')
-  const [issueSubTab, setIssueSubTab] = useState<'all' | 'critical'>('all')
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
   const [pageDetailView, setPageDetailView] = useState<{ scanResultId: string; pageUrl: string } | null>(null)
 

@@ -8,7 +8,7 @@ import {
 import {
   AlertTriangle, Loader2, CheckCircle2, ClipboardList, Flag,
   ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Search, Code2, Pen, AlignLeft, Download, Info,
+  Search, Code2, Pen, AlignLeft, Download,
 } from 'lucide-react'
 import AccessibilitySvg from '../../components/svgicons/Accessibility.svg'
 import UrlSvg from '../../components/svgicons/url.svg'
@@ -93,7 +93,6 @@ function AccessibilityPage() {
   const [issueListPage, setIssueListPage] = useState(1)
   const [affectedPagesPage, setAffectedPagesPage] = useState(1)
   const [pagesSearch, setPagesSearch] = useState('')
-  const [issueSubTab, setIssueSubTab] = useState<'all' | 'critical'>('all')
   const [issueSearch, setIssueSearch] = useState('')
   const [catFilter, setCatFilter] = useState<string | null>(null)
   const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null)

@@ -95,7 +95,7 @@ function ScanProgressModal({
     enabled: !!desktopJobId,
     refetchInterval: (query) => {
       const d = query.state.data as { status?: string; current_url?: string | null; pages_scanned?: number } | undefined
-      if (d?.status === 'completed' || d?.status === 'failed') return false
+      if (d?.status === 'completed' || d?.status === 'failed' || d?.status === 'cancelled') return false
       if (d?.current_url === null && (d?.pages_scanned ?? 0) > 0) return 1_000
       return 3_000
     },
@@ -107,13 +107,13 @@ function ScanProgressModal({
     enabled: !!mobileJobId,
     refetchInterval: (query) => {
       const d = query.state.data as { status?: string; current_url?: string | null; pages_scanned?: number } | undefined
-      if (d?.status === 'completed' || d?.status === 'failed') return false
+      if (d?.status === 'completed' || d?.status === 'failed' || d?.status === 'cancelled') return false
       if (d?.current_url === null && (d?.pages_scanned ?? 0) > 0) return 1_000
       return 3_000
     },
   })
 
-  const isDone = (j: typeof desktopJob) => j?.status === 'completed' || j?.status === 'failed'
+  const isDone = (j: typeof desktopJob) => j?.status === 'completed' || j?.status === 'failed' || j?.status === 'cancelled'
   const bothComplete =
     (!desktopJobId || isDone(desktopJob)) && (!mobileJobId || isDone(mobileJob))
 
@@ -443,7 +443,7 @@ function OnboardingScanModal({
     enabled: !!jobId,
     refetchInterval: (query) => {
       const s = query.state.data?.status
-      return s === 'completed' || s === 'failed' ? false : 3_000
+      return s === 'completed' || s === 'failed' || s === 'cancelled' ? false : 3_000
     },
   })
 
@@ -622,19 +622,21 @@ function AppLayout() {
     enabled: !!activeScanJob?.jobId,
     refetchInterval: (query) => {
       const s = query.state.data?.status
-      return s === 'completed' || s === 'failed' ? false : 3_000
+      return s === 'completed' || s === 'failed' || s === 'cancelled' ? false : 3_000
     },
   })
 
   useEffect(() => {
     if (!activeScanJob?.jobId) return
-    if (onboardingJob?.status !== 'completed' && onboardingJob?.status !== 'failed') return
+    if (onboardingJob?.status !== 'completed' && onboardingJob?.status !== 'failed' && onboardingJob?.status !== 'cancelled') return
     if (handledJobRef.current === activeScanJob.jobId) return
     handledJobRef.current = activeScanJob.jobId
     if (onboardingJob.status === 'completed' && websiteId) {
       setScanForWebsite(websiteId, activeScanJob.jobId)
     }
-    setOnboardingComplete({ failed: onboardingJob.status === 'failed' })
+    if (onboardingJob.status !== 'cancelled') {
+      setOnboardingComplete({ failed: onboardingJob.status === 'failed' })
+    }
     setActiveScanJob(null)
     setScanDetailOpen(false)
   }, [onboardingJob?.status, activeScanJob?.jobId, websiteId, setScanForWebsite, setActiveScanJob])
@@ -677,7 +679,7 @@ function AppLayout() {
   })
   useEffect(() => {
     if (!activeScanData?.scan_job_id) return
-    if (activeScanData.status === 'completed') return
+    if (activeScanData.status === 'completed' || activeScanData.status === 'cancelled') return
     if (activeScanJob || scanJobs) return
     // recoveredJobRef ensures we never re-set activeScanJob for a job we
     // already recovered (guards against the re-enable after completion/cancel)

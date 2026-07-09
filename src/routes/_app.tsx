@@ -613,6 +613,7 @@ function AppLayout() {
   const strategyRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
   const handledJobRef = useRef<string | null>(null)
+  const recoveredJobRef = useRef<string | null>(null)
 
   // Poll onboarding scan job running in background (user clicked "Back to Dashboard")
   const { data: onboardingJob } = useQuery({
@@ -664,17 +665,24 @@ function AppLayout() {
 
   const selectedWebsite = websites.find((w) => w.id === websiteId)
 
-  // On load: recover any scan that was running before a page refresh
+  // On load: recover any scan that was running before a page refresh.
+  // staleTime: Infinity prevents this from re-fetching when activeScanJob
+  // goes null (completion/cancel), which would otherwise restart the cycle.
   const { data: activeScanData } = useQuery({
     queryKey: ['active-scan', websiteId],
     queryFn: () => getActiveScan(websiteId!),
     enabled: !!websiteId && !activeScanJob && !scanJobs,
+    staleTime: Infinity,
     retry: false,
   })
   useEffect(() => {
     if (!activeScanData?.scan_job_id) return
     if (activeScanData.status === 'completed') return
     if (activeScanJob || scanJobs) return
+    // recoveredJobRef ensures we never re-set activeScanJob for a job we
+    // already recovered (guards against the re-enable after completion/cancel)
+    if (recoveredJobRef.current === activeScanData.scan_job_id) return
+    recoveredJobRef.current = activeScanData.scan_job_id
     setActiveScanJob({ jobId: activeScanData.scan_job_id, url: selectedWebsite?.url ?? '' })
   }, [activeScanData, activeScanJob, scanJobs, selectedWebsite, setActiveScanJob])
 

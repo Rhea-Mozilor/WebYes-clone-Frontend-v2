@@ -41,7 +41,7 @@ import { listWebsites } from '../api/websites'
 import { triggerScan, getScanJob, cancelScan } from '../api/scans'
 import { useAuthStore } from '../store/authStore'
 import { useSiteStore } from '../store/siteStore'
-import { useBgScan, setBgScan, getBgScan } from '../lib/bgScan'
+import { BgScanContext } from '../lib/BgScanContext'
 
 export const Route = createFileRoute('/_app')({
   beforeLoad: () => {
@@ -603,22 +603,18 @@ function AppLayout() {
   const [confirmScanOpen, setConfirmScanOpen] = useState(false)
   const [scanDetailOpen, setScanDetailOpen] = useState(false)
   const [onboardingComplete, setOnboardingComplete] = useState<{ failed: boolean } | null>(null)
-  // Module-level store with useSyncExternalStore — fires synchronously inside click handlers
-  const bgScan = useBgScan()
+  // React state — when scanning.tsx calls setBgScan via context, this updates
+  // inside the same React batch as navigate(), guaranteed no race condition.
+  const [bgScan, setBgScan] = useState<{ jobId: string; url: string } | null>(() => {
+    try {
+      const raw = localStorage.getItem('webyes-bg-scan')
+      return raw ? JSON.parse(raw) : null
+    } catch { return null }
+  })
   const websiteRef = useRef<HTMLDivElement>(null)
   const strategyRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
   const handledJobRef = useRef<string | null>(null)
-
-  // Fallback: after every navigation, sync bgScan from localStorage if the
-  // useSyncExternalStore notification raced with the route transition.
-  useEffect(() => {
-    if (getBgScan()) return
-    try {
-      const raw = localStorage.getItem('webyes-bg-scan')
-      if (raw) setBgScan(JSON.parse(raw))
-    } catch { /* ok */ }
-  }, [location])
 
   // Poll onboarding scan job running in background (user clicked "Back to Dashboard")
   const { data: onboardingJob } = useQuery({
@@ -641,6 +637,7 @@ function AppLayout() {
     }
     setOnboardingComplete({ failed: onboardingJob.status === 'failed' })
     setBgScan(null)
+    localStorage.removeItem('webyes-bg-scan')
     setActiveScanJob(null)
     setScanDetailOpen(false)
   }, [onboardingJob?.status, bgScan?.jobId, websiteId, setScanForWebsite, setActiveScanJob])
@@ -712,6 +709,7 @@ function AppLayout() {
   ]
 
   return (
+    <BgScanContext.Provider value={{ bgScan, setBgScan }}>
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
       {/* ── Rescan confirmation modal ──────────────────────────────── */}
       {confirmScanOpen && (
@@ -765,7 +763,7 @@ function AppLayout() {
           jobId={bgScan.jobId}
           url={bgScan.url}
           onClose={() => setScanDetailOpen(false)}
-          onCancel={() => { setBgScan(null); setActiveScanJob(null); setScanDetailOpen(false) }}
+          onCancel={() => { setBgScan(null); localStorage.removeItem('webyes-bg-scan'); setActiveScanJob(null); setScanDetailOpen(false) }}
         />
       )}
 
@@ -1162,5 +1160,6 @@ function AppLayout() {
         </button>
       </nav>
     </div>
+    </BgScanContext.Provider>
   )
 }

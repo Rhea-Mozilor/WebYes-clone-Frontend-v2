@@ -1,11 +1,11 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { getScanJob, cancelScan } from '../../api/scans'
 import ScanModalGif from '../../components/svgicons/scanmodal.gif'
 import { useSiteStore } from '../../store/siteStore'
-import { setBgScan } from '../../lib/bgScan'
+import { BgScanContext } from '../../lib/BgScanContext'
 
 export const Route = createFileRoute('/_app/scanning')({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -57,6 +57,7 @@ function ScanningPage() {
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
   const [showComplete, setShowComplete] = useState(false)
   const { websiteId, setScanForWebsite, setActiveScanJob } = useSiteStore()
+  const { setBgScan } = useContext(BgScanContext)
 
   const { data: job } = useQuery({
     queryKey: ['onboarding-scan', jobId],

@@ -188,7 +188,6 @@ function ScanningPage() {
               const isRunning = job?.status !== 'completed' && job?.status !== 'failed'
               if (jobId && isRunning) {
                 setActiveScanJob({ jobId, url })
-                window.dispatchEvent(new CustomEvent('webyes:scan-background', { detail: { jobId, url } }))
               }
               navigate({ to: '/dashboard' })
             }}
@@ -320,7 +319,6 @@ function ScanningPage() {
               const isRunning = job?.status !== 'completed' && job?.status !== 'failed'
               if (jobId && isRunning) {
                 setActiveScanJob({ jobId, url })
-                window.dispatchEvent(new CustomEvent('webyes:scan-background', { detail: { jobId, url } }))
               }
               navigate({ to: '/dashboard' })
             }}

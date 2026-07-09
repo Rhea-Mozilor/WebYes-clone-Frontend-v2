@@ -7,7 +7,7 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   LayoutGrid,
   Globe,
@@ -621,6 +621,16 @@ function AppLayout() {
     if (bgScan) localStorage.setItem('webyes-bg-scan', JSON.stringify(bgScan))
     else localStorage.removeItem('webyes-bg-scan')
   }, [bgScan])
+
+  // On every route change, check localStorage and hydrate bgScan if scanning.tsx wrote it
+  useLayoutEffect(() => {
+    const raw = localStorage.getItem('webyes-bg-scan')
+    if (!raw) return
+    try {
+      const stored: { jobId: string; url: string } = JSON.parse(raw)
+      setBgScan(prev => prev?.jobId === stored.jobId ? prev : stored)
+    } catch {}
+  }, [location])
 
   // Poll onboarding scan job running in background (user clicked "Back to Dashboard")
   const { data: onboardingJob } = useQuery({

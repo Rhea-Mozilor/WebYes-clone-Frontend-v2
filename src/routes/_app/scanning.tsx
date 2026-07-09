@@ -1,12 +1,10 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState, useEffect, useContext } from 'react'
-import { flushSync } from 'react-dom'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { getScanJob, cancelScan } from '../../api/scans'
 import ScanModalGif from '../../components/svgicons/scanmodal.gif'
 import { useSiteStore } from '../../store/siteStore'
-import { BgScanContext } from '../../lib/BgScanContext'
 
 export const Route = createFileRoute('/_app/scanning')({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -58,7 +56,6 @@ function ScanningPage() {
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
   const [showComplete, setShowComplete] = useState(false)
   const { websiteId, setScanForWebsite, setActiveScanJob } = useSiteStore()
-  const { setBgScan } = useContext(BgScanContext)
 
   const { data: job } = useQuery({
     queryKey: ['onboarding-scan', jobId],
@@ -190,10 +187,8 @@ function ScanningPage() {
             onClick={() => {
               const isRunning = job?.status !== 'completed' && job?.status !== 'failed'
               if (jobId && isRunning) {
-                flushSync(() => {
-                  setBgScan({ jobId, url })
-                  setActiveScanJob({ jobId, url })
-                })
+                localStorage.setItem('webyes-bg-scan', JSON.stringify({ jobId, url }))
+                setActiveScanJob({ jobId, url })
               }
               navigate({ to: '/dashboard' })
             }}
@@ -324,10 +319,8 @@ function ScanningPage() {
             onClick={() => {
               const isRunning = job?.status !== 'completed' && job?.status !== 'failed'
               if (jobId && isRunning) {
-                flushSync(() => {
-                  setBgScan({ jobId, url })
-                  setActiveScanJob({ jobId, url })
-                })
+                localStorage.setItem('webyes-bg-scan', JSON.stringify({ jobId, url }))
+                setActiveScanJob({ jobId, url })
               }
               navigate({ to: '/dashboard' })
             }}

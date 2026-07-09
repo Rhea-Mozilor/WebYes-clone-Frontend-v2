@@ -41,6 +41,7 @@ import { listWebsites } from '../api/websites'
 import { triggerScan, getScanJob, cancelScan } from '../api/scans'
 import { useAuthStore } from '../store/authStore'
 import { useSiteStore } from '../store/siteStore'
+import { useBgScan, setBgScan } from '../lib/bgScan'
 
 export const Route = createFileRoute('/_app')({
   beforeLoad: () => {
@@ -591,7 +592,7 @@ function AppLayout() {
   const { clearAuth } = useAuthStore()
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const { data: websites = [] } = useQuery({ queryKey: ['websites'], queryFn: listWebsites })
-  const { websiteId, setWebsiteId, strategy, setStrategy, setScanForWebsite, activeScanJob, setActiveScanJob } = useSiteStore()
+  const { websiteId, setWebsiteId, strategy, setStrategy, setScanForWebsite, setActiveScanJob } = useSiteStore()
   const location = useRouterState({ select: (s) => s.location.pathname })
 
   const [websiteDrop, setWebsiteDrop] = useState(false)
@@ -602,6 +603,8 @@ function AppLayout() {
   const [confirmScanOpen, setConfirmScanOpen] = useState(false)
   const [scanDetailOpen, setScanDetailOpen] = useState(false)
   const [onboardingComplete, setOnboardingComplete] = useState<{ failed: boolean } | null>(null)
+  // Module-level store with useSyncExternalStore — fires synchronously inside click handlers
+  const bgScan = useBgScan()
   const websiteRef = useRef<HTMLDivElement>(null)
   const strategyRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
@@ -609,9 +612,9 @@ function AppLayout() {
 
   // Poll onboarding scan job running in background (user clicked "Back to Dashboard")
   const { data: onboardingJob } = useQuery({
-    queryKey: ['onboarding-scan', activeScanJob?.jobId],
-    queryFn: () => getScanJob(activeScanJob!.jobId),
-    enabled: !!activeScanJob?.jobId,
+    queryKey: ['onboarding-scan', bgScan?.jobId],
+    queryFn: () => getScanJob(bgScan!.jobId),
+    enabled: !!bgScan?.jobId,
     refetchInterval: (query) => {
       const s = query.state.data?.status
       return s === 'completed' || s === 'failed' ? false : 3_000
@@ -619,17 +622,18 @@ function AppLayout() {
   })
 
   useEffect(() => {
-    if (!activeScanJob?.jobId) return
+    if (!bgScan?.jobId) return
     if (onboardingJob?.status !== 'completed' && onboardingJob?.status !== 'failed') return
-    if (handledJobRef.current === activeScanJob.jobId) return
-    handledJobRef.current = activeScanJob.jobId
+    if (handledJobRef.current === bgScan.jobId) return
+    handledJobRef.current = bgScan.jobId
     if (onboardingJob.status === 'completed' && websiteId) {
-      setScanForWebsite(websiteId, activeScanJob.jobId)
+      setScanForWebsite(websiteId, bgScan.jobId)
     }
     setOnboardingComplete({ failed: onboardingJob.status === 'failed' })
+    setBgScan(null)
     setActiveScanJob(null)
     setScanDetailOpen(false)
-  }, [onboardingJob?.status, activeScanJob?.jobId, websiteId, setScanForWebsite, setActiveScanJob])
+  }, [onboardingJob?.status, bgScan?.jobId, websiteId, setScanForWebsite, setActiveScanJob])
 
   // Website dropdown state
   const [siteSearch, setSiteSearch] = useState('')
@@ -658,7 +662,7 @@ function AppLayout() {
   const selectedWebsite = websites.find((w) => w.id === websiteId)
 
   // True while any scan is in progress (onboarding background scan OR rescan)
-  const isScanRunning = !!activeScanJob || !!scanJobs
+  const isScanRunning = !!bgScan || !!scanJobs
 
   const scanMutation = useMutation({
     mutationFn: () => triggerScan(websiteId!),
@@ -746,12 +750,12 @@ function AppLayout() {
       )}
 
       {/* ── Onboarding scan detail modal (opened via "Scan details" header button) ── */}
-      {scanDetailOpen && activeScanJob && (
+      {scanDetailOpen && bgScan && (
         <OnboardingScanModal
-          jobId={activeScanJob.jobId}
-          url={activeScanJob.url}
+          jobId={bgScan.jobId}
+          url={bgScan.url}
           onClose={() => setScanDetailOpen(false)}
-          onCancel={() => { setActiveScanJob(null); setScanDetailOpen(false) }}
+          onCancel={() => { setBgScan(null); setActiveScanJob(null); setScanDetailOpen(false) }}
         />
       )}
 
@@ -988,7 +992,7 @@ function AppLayout() {
           <div className="flex-1" />
 
           {/* Onboarding scan in-progress banner */}
-          {activeScanJob && (
+          {bgScan && (
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-[#bdd0f8] bg-[#eef4ff] rounded-full mr-3">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 animate-spin">
                 <circle cx="8" cy="8" r="7" stroke="#bfdbfe" strokeWidth="1.5" />

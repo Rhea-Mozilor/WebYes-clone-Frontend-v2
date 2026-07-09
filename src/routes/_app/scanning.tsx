@@ -5,6 +5,7 @@ import { X } from 'lucide-react'
 import { getScanJob, cancelScan } from '../../api/scans'
 import ScanModalGif from '../../components/svgicons/scanmodal.gif'
 import { useSiteStore } from '../../store/siteStore'
+import { setBgScan } from '../../lib/bgScan'
 
 export const Route = createFileRoute('/_app/scanning')({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -187,6 +188,7 @@ function ScanningPage() {
             onClick={() => {
               const isRunning = job?.status !== 'completed' && job?.status !== 'failed'
               if (jobId && isRunning) {
+                setBgScan({ jobId, url })
                 setActiveScanJob({ jobId, url })
               }
               navigate({ to: '/dashboard' })
@@ -318,6 +320,7 @@ function ScanningPage() {
             onClick={() => {
               const isRunning = job?.status !== 'completed' && job?.status !== 'failed'
               if (jobId && isRunning) {
+                setBgScan({ jobId, url })
                 setActiveScanJob({ jobId, url })
               }
               navigate({ to: '/dashboard' })

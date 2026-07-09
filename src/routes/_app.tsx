@@ -602,16 +602,37 @@ function AppLayout() {
   const [confirmScanOpen, setConfirmScanOpen] = useState(false)
   const [scanDetailOpen, setScanDetailOpen] = useState(false)
   const [onboardingComplete, setOnboardingComplete] = useState<{ failed: boolean } | null>(null)
+  // Local React state for background scan — set via CustomEvent from scanning.tsx
+  // (more reliable than Zustand across HMR / route transitions)
+  const [bgScan, setBgScan] = useState<{ jobId: string; url: string } | null>(
+    () => activeScanJob ?? null
+  )
   const websiteRef = useRef<HTMLDivElement>(null)
   const strategyRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
   const handledJobRef = useRef<string | null>(null)
 
+  // Listen for "scan sent to background" events from scanning.tsx
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { jobId, url } = (e as CustomEvent<{ jobId: string; url: string }>).detail
+      setBgScan({ jobId, url })
+    }
+    window.addEventListener('webyes:scan-background', handler)
+    return () => window.removeEventListener('webyes:scan-background', handler)
+  }, [])
+
+  // Sync bgScan from Zustand activeScanJob on mount (handles page-refresh case)
+  useEffect(() => {
+    if (activeScanJob && !bgScan) setBgScan(activeScanJob)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Poll onboarding scan job running in background (user clicked "Back to Dashboard")
   const { data: onboardingJob } = useQuery({
-    queryKey: ['onboarding-scan', activeScanJob?.jobId],
-    queryFn: () => getScanJob(activeScanJob!.jobId),
-    enabled: !!activeScanJob?.jobId,
+    queryKey: ['onboarding-scan', bgScan?.jobId],
+    queryFn: () => getScanJob(bgScan!.jobId),
+    enabled: !!bgScan?.jobId,
     refetchInterval: (query) => {
       const s = query.state.data?.status
       return s === 'completed' || s === 'failed' ? false : 3_000
@@ -619,17 +640,18 @@ function AppLayout() {
   })
 
   useEffect(() => {
-    if (!activeScanJob?.jobId) return
+    if (!bgScan?.jobId) return
     if (onboardingJob?.status !== 'completed' && onboardingJob?.status !== 'failed') return
-    if (handledJobRef.current === activeScanJob.jobId) return
-    handledJobRef.current = activeScanJob.jobId
+    if (handledJobRef.current === bgScan.jobId) return
+    handledJobRef.current = bgScan.jobId
     if (onboardingJob.status === 'completed' && websiteId) {
-      setScanForWebsite(websiteId, activeScanJob.jobId)
+      setScanForWebsite(websiteId, bgScan.jobId)
     }
     setOnboardingComplete({ failed: onboardingJob.status === 'failed' })
     setActiveScanJob(null)
+    setBgScan(null)
     setScanDetailOpen(false)
-  }, [onboardingJob?.status, activeScanJob?.jobId, websiteId, setScanForWebsite, setActiveScanJob])
+  }, [onboardingJob?.status, bgScan?.jobId, websiteId, setScanForWebsite, setActiveScanJob])
 
   // Website dropdown state
   const [siteSearch, setSiteSearch] = useState('')
@@ -658,7 +680,7 @@ function AppLayout() {
   const selectedWebsite = websites.find((w) => w.id === websiteId)
 
   // True while any scan is in progress (onboarding background scan OR rescan)
-  const isScanRunning = !!activeScanJob || !!scanJobs
+  const isScanRunning = !!bgScan || !!scanJobs
 
   const scanMutation = useMutation({
     mutationFn: () => triggerScan(websiteId!),
@@ -746,12 +768,12 @@ function AppLayout() {
       )}
 
       {/* ── Onboarding scan detail modal (opened via "Scan details" header button) ── */}
-      {scanDetailOpen && activeScanJob && (
+      {scanDetailOpen && bgScan && (
         <OnboardingScanModal
-          jobId={activeScanJob.jobId}
-          url={activeScanJob.url}
+          jobId={bgScan.jobId}
+          url={bgScan.url}
           onClose={() => setScanDetailOpen(false)}
-          onCancel={() => { setActiveScanJob(null); setScanDetailOpen(false) }}
+          onCancel={() => { setActiveScanJob(null); setBgScan(null); setScanDetailOpen(false) }}
         />
       )}
 
@@ -988,7 +1010,7 @@ function AppLayout() {
           <div className="flex-1" />
 
           {/* Onboarding scan in-progress banner */}
-          {activeScanJob && (
+          {bgScan && (
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-[#bdd0f8] bg-[#eef4ff] rounded-full mr-3">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 animate-spin">
                 <circle cx="8" cy="8" r="7" stroke="#bfdbfe" strokeWidth="1.5" />

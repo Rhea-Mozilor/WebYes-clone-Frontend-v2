@@ -186,7 +186,10 @@ function ScanningPage() {
           <button
             onClick={() => {
               const isRunning = job?.status !== 'completed' && job?.status !== 'failed'
-              if (jobId && isRunning) setActiveScanJob({ jobId, url })
+              if (jobId && isRunning) {
+                setActiveScanJob({ jobId, url })
+                window.dispatchEvent(new CustomEvent('webyes:scan-background', { detail: { jobId, url } }))
+              }
               navigate({ to: '/dashboard' })
             }}
             className="absolute top-5 right-5 text-[#585b66] hover:text-[#141414] transition-colors"
@@ -315,7 +318,10 @@ function ScanningPage() {
           <button
             onClick={() => {
               const isRunning = job?.status !== 'completed' && job?.status !== 'failed'
-              if (jobId && isRunning) setActiveScanJob({ jobId, url })
+              if (jobId && isRunning) {
+                setActiveScanJob({ jobId, url })
+                window.dispatchEvent(new CustomEvent('webyes:scan-background', { detail: { jobId, url } }))
+              }
               navigate({ to: '/dashboard' })
             }}
             className="px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[14px] font-medium rounded-[4px] transition-colors"

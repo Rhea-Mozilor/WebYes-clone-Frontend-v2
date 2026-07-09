@@ -616,6 +616,12 @@ function AppLayout() {
   const userRef = useRef<HTMLDivElement>(null)
   const handledJobRef = useRef<string | null>(null)
 
+  // Sync bgScan to localStorage so a page reload re-picks it up
+  useEffect(() => {
+    if (bgScan) localStorage.setItem('webyes-bg-scan', JSON.stringify(bgScan))
+    else localStorage.removeItem('webyes-bg-scan')
+  }, [bgScan])
+
   // Poll onboarding scan job running in background (user clicked "Back to Dashboard")
   const { data: onboardingJob } = useQuery({
     queryKey: ['onboarding-scan', bgScan?.jobId],

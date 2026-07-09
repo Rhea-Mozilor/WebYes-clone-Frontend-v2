@@ -831,6 +831,11 @@ function AppLayout() {
         </div>
       )}
 
+      {/* TEMP DEBUG — remove after confirming */}
+      <div style={{ position: 'fixed', bottom: 8, right: 8, background: bgScan ? '#16a34a' : '#dc2626', color: 'white', fontSize: 11, padding: '4px 10px', borderRadius: 6, zIndex: 99999 }}>
+        bgScan: {bgScan ? bgScan.jobId.slice(0, 10) : 'null'}
+      </div>
+
       {/* ── Full-width header ─────────────────────────────────────── */}
       <header className="h-16 bg-white border-b border-zinc-200 flex items-center pl-6 pr-5 z-20 shrink-0 w-full gap-0">
           <span className="font-bold text-3xl text-gray-900 hidden sm:block mr-[34px]">

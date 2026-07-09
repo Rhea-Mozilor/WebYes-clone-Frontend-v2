@@ -38,7 +38,7 @@ import toast from 'react-hot-toast'
 import { cn } from '../lib/utils'
 import { getMe, logout } from '../api/auth'
 import { listWebsites } from '../api/websites'
-import { triggerScan, getScanJob, cancelScan } from '../api/scans'
+import { triggerScan, getScanJob, cancelScan, getActiveScan } from '../api/scans'
 import { useAuthStore } from '../store/authStore'
 import { useSiteStore } from '../store/siteStore'
 import { BgScanContext } from '../lib/BgScanContext'
@@ -61,7 +61,7 @@ function ScanProgressModal({
   websiteName,
   visible,
   onHide,
-  onClose,
+  onCancel,
   onComplete,
 }: {
   desktopJobId: string | null
@@ -71,7 +71,7 @@ function ScanProgressModal({
   websiteId: string
   visible: boolean
   onHide: () => void
-  onClose: () => void
+  onCancel: () => void
   onComplete: (scanId: string) => void
 }) {
   const navigate = useNavigate()
@@ -85,7 +85,7 @@ function ScanProgressModal({
       await Promise.allSettled(jobs.map(id => cancelScan(id)))
     } finally {
       setCancelling(false)
-      onClose()
+      onCancel()
     }
   }
 
@@ -127,7 +127,12 @@ function ScanProgressModal({
   }, [bothComplete, desktopJobId, mobileJobId, onComplete])
 
   function handleExploreDashboard() {
-    onClose()
+    onHide()
+    navigate({ to: '/dashboard' })
+  }
+
+  function handleViewResults() {
+    onCancel()
     navigate({ to: '/dashboard' })
   }
 
@@ -141,7 +146,7 @@ function ScanProgressModal({
         <div className="bg-white rounded-sm shadow-2xl w-full max-w-sm overflow-hidden">
           {/* X button */}
           <div className="flex justify-end px-4 pt-4">
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+            <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
               <X className="w-4 h-4 text-gray-500" />
             </button>
           </div>
@@ -174,7 +179,7 @@ function ScanProgressModal({
                   The scan for <span className="font-bold text-gray-900">{websiteUrl}</span> could not be completed. Please try running the scan again.
                 </p>
                 <button
-                  onClick={onClose}
+                  onClick={onCancel}
                   className="w-full py-2.5 bg-gray-800 hover:bg-gray-900 text-white text-sm font-semibold rounded-sm transition-colors"
                 >
                   Close
@@ -216,7 +221,7 @@ function ScanProgressModal({
                   The audit for <span className="font-bold text-gray-900">{websiteUrl}</span> is ready - review your results and fix the issues.
                 </p>
                 <button
-                  onClick={handleExploreDashboard}
+                  onClick={handleViewResults}
                   className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-sm transition-colors"
                 >
                   View results
@@ -600,6 +605,7 @@ function AppLayout() {
   const [userMenu, setUserMenu] = useState(false)
   const [scanJobs, setScanJobs] = useState<{ desktopJobId: string | null; mobileJobId: string | null; url: string; websiteName: string; websiteId: string } | null>(null)
   const [scanModalVisible, setScanModalVisible] = useState(false)
+  const [scanJobsDone, setScanJobsDone] = useState(false)
   const [confirmScanOpen, setConfirmScanOpen] = useState(false)
   const [scanDetailOpen, setScanDetailOpen] = useState(false)
   const [onboardingComplete, setOnboardingComplete] = useState<{ failed: boolean } | null>(null)
@@ -658,8 +664,22 @@ function AppLayout() {
 
   const selectedWebsite = websites.find((w) => w.id === websiteId)
 
+  // On load: recover any scan that was running before a page refresh
+  const { data: activeScanData } = useQuery({
+    queryKey: ['active-scan', websiteId],
+    queryFn: () => getActiveScan(websiteId!),
+    enabled: !!websiteId && !activeScanJob && !scanJobs,
+    retry: false,
+  })
+  useEffect(() => {
+    if (!activeScanData?.scan_job_id) return
+    if (activeScanData.status === 'completed') return
+    if (activeScanJob || scanJobs) return
+    setActiveScanJob({ jobId: activeScanData.scan_job_id, url: selectedWebsite?.url ?? '' })
+  }, [activeScanData, activeScanJob, scanJobs, selectedWebsite, setActiveScanJob])
+
   // True while any scan is in progress (onboarding background scan OR rescan)
-  const isScanRunning = !!activeScanJob || !!scanJobs
+  const isScanRunning = !!activeScanJob || (!!scanJobs && !scanJobsDone)
 
   const scanMutation = useMutation({
     mutationFn: () => triggerScan(websiteId!),
@@ -674,6 +694,7 @@ function AppLayout() {
         websiteName: selectedWebsite?.name ?? '',
         websiteId: websiteId!,
       })
+      setScanJobsDone(false)
       setScanModalVisible(true)
     },
     onError: () => toast.error('Could not start scan'),
@@ -742,8 +763,8 @@ function AppLayout() {
           websiteId={scanJobs.websiteId}
           visible={scanModalVisible}
           onHide={() => setScanModalVisible(false)}
-          onClose={() => { setScanJobs(null); setScanModalVisible(false) }}
-          onComplete={(scanId) => setScanForWebsite(scanJobs.websiteId, scanId)}
+          onCancel={() => { setScanJobs(null); setScanModalVisible(false); setScanJobsDone(false) }}
+          onComplete={(scanId) => { setScanForWebsite(scanJobs.websiteId, scanId); setScanJobsDone(true) }}
         />
       )}
 
@@ -814,11 +835,6 @@ function AppLayout() {
           </div>
         </div>
       )}
-
-      {/* TEMP DEBUG — remove after confirming */}
-      <div style={{ position: 'fixed', bottom: 8, right: 8, background: activeScanJob ? '#16a34a' : '#dc2626', color: 'white', fontSize: 11, padding: '4px 10px', borderRadius: 6, zIndex: 99999 }}>
-        activeScanJob: {activeScanJob ? activeScanJob.jobId.slice(0, 10) : 'null'}
-      </div>
 
       {/* ── Full-width header ─────────────────────────────────────── */}
       <header className="h-16 bg-white border-b border-zinc-200 flex items-center pl-6 pr-5 z-20 shrink-0 w-full gap-0">
@@ -1004,6 +1020,23 @@ function AppLayout() {
               <span className="text-[13px] font-medium text-[#374151]">Scanning...</span>
               <button
                 onClick={() => setScanDetailOpen(true)}
+                className="text-[13px] font-medium text-[#2563eb] hover:underline"
+              >
+                Scan details
+              </button>
+            </div>
+          )}
+
+          {/* Run-scan in-progress banner */}
+          {scanJobs && !scanJobsDone && (
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-[#bdd0f8] bg-[#eef4ff] rounded-full mr-3">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 animate-spin">
+                <circle cx="8" cy="8" r="7" stroke="#bfdbfe" strokeWidth="1.5" />
+                <path d="M8 1a7 7 0 0 1 7 7" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <span className="text-[13px] font-medium text-[#374151]">Scanning...</span>
+              <button
+                onClick={() => setScanModalVisible(true)}
                 className="text-[13px] font-medium text-[#2563eb] hover:underline"
               >
                 Scan details

@@ -274,6 +274,11 @@ export const getAccessibilityPageIssues = (
 export const getScanHistory = (websiteId: string) =>
   client.get<import('../types').ScanHistoryItem[]>(`/scans/website/${websiteId}/history`);
 
+export const getActiveScan = (websiteId: string) =>
+  client.get<{ scan_job_id: string; status: string; created_at: string } | null>(
+    `/scans/website/${websiteId}/active`,
+  );
+
 export const getPageCategoryIssues = (
   scanJobId: string,
   category: 'accessibility' | 'performance' | 'quality' | 'seo',

@@ -667,26 +667,23 @@ function AppLayout() {
 
   const selectedWebsite = websites.find((w) => w.id === websiteId)
 
-  // On load: recover any scan that was running before a page refresh.
-  // staleTime: Infinity prevents this from re-fetching when activeScanJob
-  // goes null (completion/cancel), which would otherwise restart the cycle.
+  // On login/load: always check backend for an in-progress scan.
+  // staleTime: Infinity ensures this runs once per session (not on re-render).
   const { data: activeScanData } = useQuery({
     queryKey: ['active-scan', websiteId],
     queryFn: () => getActiveScan(websiteId!),
-    enabled: !!websiteId && !activeScanJob && !scanJobs,
+    enabled: !!websiteId,
     staleTime: Infinity,
     retry: false,
   })
   useEffect(() => {
     if (!activeScanData?.scan_job_id) return
-    if (activeScanData.status === 'completed' || activeScanData.status === 'cancelled') return
-    if (activeScanJob || scanJobs) return
-    // recoveredJobRef ensures we never re-set activeScanJob for a job we
-    // already recovered (guards against the re-enable after completion/cancel)
+    if (activeScanData.status === 'completed' || activeScanData.status === 'cancelled' || activeScanData.status === 'failed') return
+    // recoveredJobRef ensures we only set activeScanJob once per job per session
     if (recoveredJobRef.current === activeScanData.scan_job_id) return
     recoveredJobRef.current = activeScanData.scan_job_id
     setActiveScanJob({ jobId: activeScanData.scan_job_id, url: selectedWebsite?.url ?? '' })
-  }, [activeScanData, activeScanJob, scanJobs, selectedWebsite, setActiveScanJob])
+  }, [activeScanData, selectedWebsite, setActiveScanJob])
 
   // True while any scan is in progress (onboarding background scan OR rescan)
   const isScanRunning = !!activeScanJob || (!!scanJobs && !scanJobsDone)
@@ -859,9 +856,8 @@ function AppLayout() {
           {/* Website selector */}
           <div ref={websiteRef} className="relative ml-1.5">
             <button
-              onClick={() => { if (!isScanRunning) { setWebsiteDrop(!websiteDrop); setStrategyDrop(false) } }}
-              disabled={isScanRunning}
-              className="flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => { setWebsiteDrop(!websiteDrop); setStrategyDrop(false) }}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-gray-50 transition-colors"
             >
               <Globe className="w-6 h-6 text-gray-500 shrink-0" />
               <div className="text-left leading-tight min-w-0">

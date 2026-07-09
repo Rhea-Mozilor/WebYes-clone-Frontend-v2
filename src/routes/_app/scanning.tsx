@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState, useEffect, useContext } from 'react'
+import { flushSync } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { getScanJob, cancelScan } from '../../api/scans'
@@ -189,8 +190,10 @@ function ScanningPage() {
             onClick={() => {
               const isRunning = job?.status !== 'completed' && job?.status !== 'failed'
               if (jobId && isRunning) {
-                setBgScan({ jobId, url })
-                setActiveScanJob({ jobId, url })
+                flushSync(() => {
+                  setBgScan({ jobId, url })
+                  setActiveScanJob({ jobId, url })
+                })
               }
               navigate({ to: '/dashboard' })
             }}
@@ -321,8 +324,10 @@ function ScanningPage() {
             onClick={() => {
               const isRunning = job?.status !== 'completed' && job?.status !== 'failed'
               if (jobId && isRunning) {
-                setBgScan({ jobId, url })
-                setActiveScanJob({ jobId, url })
+                flushSync(() => {
+                  setBgScan({ jobId, url })
+                  setActiveScanJob({ jobId, url })
+                })
               }
               navigate({ to: '/dashboard' })
             }}

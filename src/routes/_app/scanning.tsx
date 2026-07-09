@@ -187,7 +187,6 @@ function ScanningPage() {
             onClick={() => {
               const isRunning = job?.status !== 'completed' && job?.status !== 'failed'
               if (jobId && isRunning) {
-                localStorage.setItem('webyes-bg-scan', JSON.stringify({ jobId, url }))
                 setActiveScanJob({ jobId, url })
               }
               navigate({ to: '/dashboard' })
@@ -319,7 +318,6 @@ function ScanningPage() {
             onClick={() => {
               const isRunning = job?.status !== 'completed' && job?.status !== 'failed'
               if (jobId && isRunning) {
-                localStorage.setItem('webyes-bg-scan', JSON.stringify({ jobId, url }))
                 setActiveScanJob({ jobId, url })
               }
               navigate({ to: '/dashboard' })

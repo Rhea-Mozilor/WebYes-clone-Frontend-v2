@@ -7,7 +7,7 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   LayoutGrid,
   Globe,
@@ -592,7 +592,7 @@ function AppLayout() {
   const { clearAuth } = useAuthStore()
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const { data: websites = [] } = useQuery({ queryKey: ['websites'], queryFn: listWebsites })
-  const { websiteId, setWebsiteId, strategy, setStrategy, setScanForWebsite, setActiveScanJob } = useSiteStore()
+  const { websiteId, setWebsiteId, strategy, setStrategy, setScanForWebsite, activeScanJob, setActiveScanJob } = useSiteStore()
   const location = useRouterState({ select: (s) => s.location.pathname })
 
   const [websiteDrop, setWebsiteDrop] = useState(false)
@@ -603,40 +603,16 @@ function AppLayout() {
   const [confirmScanOpen, setConfirmScanOpen] = useState(false)
   const [scanDetailOpen, setScanDetailOpen] = useState(false)
   const [onboardingComplete, setOnboardingComplete] = useState<{ failed: boolean } | null>(null)
-  // React state — when scanning.tsx calls setBgScan via context, this updates
-  // inside the same React batch as navigate(), guaranteed no race condition.
-  const [bgScan, setBgScan] = useState<{ jobId: string; url: string } | null>(() => {
-    try {
-      const raw = localStorage.getItem('webyes-bg-scan')
-      return raw ? JSON.parse(raw) : null
-    } catch { return null }
-  })
   const websiteRef = useRef<HTMLDivElement>(null)
   const strategyRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
   const handledJobRef = useRef<string | null>(null)
 
-  // Sync bgScan to localStorage so a page reload re-picks it up
-  useEffect(() => {
-    if (bgScan) localStorage.setItem('webyes-bg-scan', JSON.stringify(bgScan))
-    else localStorage.removeItem('webyes-bg-scan')
-  }, [bgScan])
-
-  // On every route change, check localStorage and hydrate bgScan if scanning.tsx wrote it
-  useLayoutEffect(() => {
-    const raw = localStorage.getItem('webyes-bg-scan')
-    if (!raw) return
-    try {
-      const stored: { jobId: string; url: string } = JSON.parse(raw)
-      setBgScan(prev => prev?.jobId === stored.jobId ? prev : stored)
-    } catch {}
-  }, [location])
-
   // Poll onboarding scan job running in background (user clicked "Back to Dashboard")
   const { data: onboardingJob } = useQuery({
-    queryKey: ['onboarding-scan', bgScan?.jobId],
-    queryFn: () => getScanJob(bgScan!.jobId),
-    enabled: !!bgScan?.jobId,
+    queryKey: ['onboarding-scan', activeScanJob?.jobId],
+    queryFn: () => getScanJob(activeScanJob!.jobId),
+    enabled: !!activeScanJob?.jobId,
     refetchInterval: (query) => {
       const s = query.state.data?.status
       return s === 'completed' || s === 'failed' ? false : 3_000
@@ -644,19 +620,17 @@ function AppLayout() {
   })
 
   useEffect(() => {
-    if (!bgScan?.jobId) return
+    if (!activeScanJob?.jobId) return
     if (onboardingJob?.status !== 'completed' && onboardingJob?.status !== 'failed') return
-    if (handledJobRef.current === bgScan.jobId) return
-    handledJobRef.current = bgScan.jobId
+    if (handledJobRef.current === activeScanJob.jobId) return
+    handledJobRef.current = activeScanJob.jobId
     if (onboardingJob.status === 'completed' && websiteId) {
-      setScanForWebsite(websiteId, bgScan.jobId)
+      setScanForWebsite(websiteId, activeScanJob.jobId)
     }
     setOnboardingComplete({ failed: onboardingJob.status === 'failed' })
-    setBgScan(null)
-    localStorage.removeItem('webyes-bg-scan')
     setActiveScanJob(null)
     setScanDetailOpen(false)
-  }, [onboardingJob?.status, bgScan?.jobId, websiteId, setScanForWebsite, setActiveScanJob])
+  }, [onboardingJob?.status, activeScanJob?.jobId, websiteId, setScanForWebsite, setActiveScanJob])
 
   // Website dropdown state
   const [siteSearch, setSiteSearch] = useState('')
@@ -685,7 +659,7 @@ function AppLayout() {
   const selectedWebsite = websites.find((w) => w.id === websiteId)
 
   // True while any scan is in progress (onboarding background scan OR rescan)
-  const isScanRunning = !!bgScan || !!scanJobs
+  const isScanRunning = !!activeScanJob || !!scanJobs
 
   const scanMutation = useMutation({
     mutationFn: () => triggerScan(websiteId!),
@@ -725,7 +699,7 @@ function AppLayout() {
   ]
 
   return (
-    <BgScanContext.Provider value={{ bgScan, setBgScan }}>
+    <BgScanContext.Provider value={{ bgScan: activeScanJob, setBgScan: setActiveScanJob }}>
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
       {/* ── Rescan confirmation modal ──────────────────────────────── */}
       {confirmScanOpen && (
@@ -774,12 +748,12 @@ function AppLayout() {
       )}
 
       {/* ── Onboarding scan detail modal (opened via "Scan details" header button) ── */}
-      {scanDetailOpen && bgScan && (
+      {scanDetailOpen && activeScanJob && (
         <OnboardingScanModal
-          jobId={bgScan.jobId}
-          url={bgScan.url}
+          jobId={activeScanJob.jobId}
+          url={activeScanJob.url}
           onClose={() => setScanDetailOpen(false)}
-          onCancel={() => { setBgScan(null); localStorage.removeItem('webyes-bg-scan'); setActiveScanJob(null); setScanDetailOpen(false) }}
+          onCancel={() => { setActiveScanJob(null); setScanDetailOpen(false) }}
         />
       )}
 
@@ -842,8 +816,8 @@ function AppLayout() {
       )}
 
       {/* TEMP DEBUG — remove after confirming */}
-      <div style={{ position: 'fixed', bottom: 8, right: 8, background: bgScan ? '#16a34a' : '#dc2626', color: 'white', fontSize: 11, padding: '4px 10px', borderRadius: 6, zIndex: 99999 }}>
-        bgScan: {bgScan ? bgScan.jobId.slice(0, 10) : 'null'}
+      <div style={{ position: 'fixed', bottom: 8, right: 8, background: activeScanJob ? '#16a34a' : '#dc2626', color: 'white', fontSize: 11, padding: '4px 10px', borderRadius: 6, zIndex: 99999 }}>
+        activeScanJob: {activeScanJob ? activeScanJob.jobId.slice(0, 10) : 'null'}
       </div>
 
       {/* ── Full-width header ─────────────────────────────────────── */}
@@ -1021,7 +995,7 @@ function AppLayout() {
           <div className="flex-1" />
 
           {/* Onboarding scan in-progress banner */}
-          {bgScan && (
+          {activeScanJob && (
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-[#bdd0f8] bg-[#eef4ff] rounded-full mr-3">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 animate-spin">
                 <circle cx="8" cy="8" r="7" stroke="#bfdbfe" strokeWidth="1.5" />

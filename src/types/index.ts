@@ -14,7 +14,7 @@ export interface Website {
   last_scanned_at: string | null;
 }
 
-export type ScanStatus = 'pending' | 'running' | 'completed' | 'failed';
+export type ScanStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 export type ScanStrategy = 'mobile' | 'desktop';
 
 export interface ScannedPage {

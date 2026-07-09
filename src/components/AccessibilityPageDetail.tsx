@@ -128,7 +128,7 @@ export function AccessibilityPageDetail({ scanJobId, scanResultId, pageUrl, onBa
                   </thead>
                   <tbody>
                     {filtered.map(issue => {
-                      const wcagBadge = [issue.wcag_version, issue.wcag_criterion].filter(Boolean).join(' | ')
+                      const wcagBadge = issue.wcag_version ? `WCAG ${issue.wcag_version}` : ''
                       const resp = issue.responsibility?.toLowerCase() ?? ''
                       const catMeta = CATEGORY_META.find(c => c.key === resp)
                       return (

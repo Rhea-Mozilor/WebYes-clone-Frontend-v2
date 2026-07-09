@@ -53,8 +53,9 @@ function ScanningPage() {
   const { jobId, url } = Route.useSearch()
   const navigate = useNavigate()
   const [cancelling, setCancelling] = useState(false)
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
   const [showComplete, setShowComplete] = useState(false)
-  const { websiteId, setScanForWebsite } = useSiteStore()
+  const { websiteId, setScanForWebsite, setActiveScanJob } = useSiteStore()
 
   const { data: job } = useQuery({
     queryKey: ['onboarding-scan', jobId],
@@ -183,7 +184,11 @@ function ScanningPage() {
 
           {/* Close button */}
           <button
-            onClick={() => navigate({ to: '/dashboard' })}
+            onClick={() => {
+              const isRunning = job?.status !== 'completed' && job?.status !== 'failed'
+              if (jobId && isRunning) setActiveScanJob({ jobId, url })
+              navigate({ to: '/dashboard' })
+            }}
             className="absolute top-5 right-5 text-[#585b66] hover:text-[#141414] transition-colors"
           >
             <X size={18} />
@@ -270,10 +275,37 @@ function ScanningPage() {
           </div>
         </div>
 
+        {/* Cancel confirmation modal */}
+        {confirmCancelOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8">
+              <h2 className="text-[20px] font-bold text-gray-900 mb-4">Cancel scanning</h2>
+              <p className="text-[15px] text-gray-400 leading-relaxed mb-10">
+                Are you sure you want to stop scanning? Any URLs scanned so far will still use up your credits
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setConfirmCancelOpen(false); handleCancel() }}
+                  disabled={cancelling}
+                  className="flex-1 py-3 border border-gray-300 rounded-lg text-[15px] font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  {cancelling ? 'Cancelling...' : 'Cancel scan'}
+                </button>
+                <button
+                  onClick={() => setConfirmCancelOpen(false)}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-[15px] font-medium text-white transition-colors"
+                >
+                  Continue scan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="flex items-center justify-end gap-4 px-8 pb-7">
           <button
-            onClick={handleCancel}
+            onClick={() => setConfirmCancelOpen(true)}
             disabled={cancelling}
             className="text-[14px] font-medium text-[#585b66] hover:text-[#141414] disabled:opacity-50 transition-colors"
             style={{ fontFamily: 'DM Sans, sans-serif', letterSpacing: '-0.28px' }}
@@ -281,7 +313,11 @@ function ScanningPage() {
             {cancelling ? 'Cancelling...' : 'Cancel scan'}
           </button>
           <button
-            onClick={() => navigate({ to: '/dashboard' })}
+            onClick={() => {
+              const isRunning = job?.status !== 'completed' && job?.status !== 'failed'
+              if (jobId && isRunning) setActiveScanJob({ jobId, url })
+              navigate({ to: '/dashboard' })
+            }}
             className="px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[14px] font-medium rounded-[4px] transition-colors"
             style={{ letterSpacing: '-0.28px' }}
           >

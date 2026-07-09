@@ -1089,7 +1089,7 @@ function AccessibilityMeta({ detail }: { detail: IssueRichDetail }) {
       {wcag && (
         <>
           <span className="px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
-            WCAG {wcag.version}{wcag.criterion ? ` ${wcag.criterion}` : ''}
+            WCAG {wcag.version}
           </span>
           <span className="text-gray-300 text-sm">|</span>
         </>

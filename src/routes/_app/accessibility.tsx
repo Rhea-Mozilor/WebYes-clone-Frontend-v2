@@ -818,9 +818,9 @@ function AccessibilityPage() {
                           <td className="px-5 py-4">
                             <div className="flex flex-wrap items-baseline gap-x-2">
                               <span className="text-sm text-[#0b66e4] font-medium leading-snug">{item.title}</span>
-                              {item.wcag_version && item.wcag_criterion && (
+                              {item.wcag_version && (
                                 <span className="text-xs text-[#9ca3af] whitespace-nowrap">
-                                  WCAG {item.wcag_version} | {item.wcag_criterion}
+                                  WCAG {item.wcag_version}
                                 </span>
                               )}
                             </div>

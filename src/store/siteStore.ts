@@ -8,10 +8,13 @@ interface SiteStore {
   maxPages: number;
   // latest & previous scan IDs keyed by websiteId
   scansByWebsite: Record<string, { scanId: string; prevScanId?: string }>;
+  // onboarding scan running in background (set when user clicks "Back to Dashboard")
+  activeScanJob: { jobId: string; url: string } | null;
   setWebsiteId: (id: string | null) => void;
   setStrategy: (s: ScanStrategy) => void;
   setMaxPages: (n: number) => void;
   setScanForWebsite: (websiteId: string, newScanId: string) => void;
+  setActiveScanJob: (job: { jobId: string; url: string } | null) => void;
 }
 
 export const useSiteStore = create<SiteStore>()(
@@ -21,6 +24,7 @@ export const useSiteStore = create<SiteStore>()(
       strategy: 'mobile',
       maxPages: 5,
       scansByWebsite: {},
+      activeScanJob: null,
       setWebsiteId: (id) => set({ websiteId: id }),
       setStrategy: (s) => set({ strategy: s }),
       setMaxPages: (n) => set({ maxPages: n }),
@@ -33,6 +37,7 @@ export const useSiteStore = create<SiteStore>()(
           },
         }))
       },
+      setActiveScanJob: (job) => set({ activeScanJob: job }),
     }),
     { name: 'webyes-site' }
   )

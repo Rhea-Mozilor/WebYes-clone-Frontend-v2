@@ -455,7 +455,7 @@ function DashboardPage() {
       <div className="flex flex-col lg:flex-row gap-4 sm:gap-5 items-start">
 
         {/* Left column */}
-        <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4 sm:gap-5">
+        <div className="w-full lg:w-[325px] shrink-0 flex flex-col gap-4 sm:gap-5">
 
           {/* Card 1: Overall issues */}
           <div className="bg-white rounded-lg border border-[#dfe4f3] shadow-sm p-4 sm:p-5">

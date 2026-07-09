@@ -41,7 +41,7 @@ import { listWebsites } from '../api/websites'
 import { triggerScan, getScanJob, cancelScan } from '../api/scans'
 import { useAuthStore } from '../store/authStore'
 import { useSiteStore } from '../store/siteStore'
-import { useBgScan, setBgScan } from '../lib/bgScan'
+import { useBgScan, setBgScan, getBgScan } from '../lib/bgScan'
 
 export const Route = createFileRoute('/_app')({
   beforeLoad: () => {
@@ -609,6 +609,16 @@ function AppLayout() {
   const strategyRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
   const handledJobRef = useRef<string | null>(null)
+
+  // Fallback: after every navigation, sync bgScan from localStorage if the
+  // useSyncExternalStore notification raced with the route transition.
+  useEffect(() => {
+    if (getBgScan()) return
+    try {
+      const raw = localStorage.getItem('webyes-bg-scan')
+      if (raw) setBgScan(JSON.parse(raw))
+    } catch { /* ok */ }
+  }, [location])
 
   // Poll onboarding scan job running in background (user clicked "Back to Dashboard")
   const { data: onboardingJob } = useQuery({

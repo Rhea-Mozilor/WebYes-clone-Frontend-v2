@@ -199,9 +199,9 @@ function ScanProgressModal({
                   <rect x="44" y="80" width="130" height="10" rx="3" fill="#DDD6FE" />
                   <rect x="44" y="96" width="95" height="10" rx="3" fill="#DDD6FE" />
                 </svg>
-                {/* Green checkmark circle */}
-                <div className="absolute bottom-6 left-12 w-14 h-14 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
-                  <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                {/* Green checkmark */}
+                <div className="absolute bottom-6 left-12">
+                  <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="#22c55e" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
@@ -828,8 +828,8 @@ function AppLayout() {
                     <rect x="44" y="80" width="130" height="10" rx="3" fill="#DDD6FE" />
                     <rect x="44" y="96" width="95" height="10" rx="3" fill="#DDD6FE" />
                   </svg>
-                  <div className="absolute bottom-5 left-10 w-14 h-14 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
-                    <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  <div className="absolute bottom-5 left-10">
+                    <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="#22c55e" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                   </div>
                 </div>
                 <div className="px-6 pb-7">

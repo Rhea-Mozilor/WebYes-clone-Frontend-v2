@@ -6,7 +6,7 @@ import {
   useNavigate,
   useRouterState,
 } from '@tanstack/react-router'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import {
   LayoutGrid,
@@ -37,7 +37,7 @@ const SeoIcon = ({ className }: { className?: string }) => <img src={SeoSvg} cla
 import toast from 'react-hot-toast'
 import { cn } from '../lib/utils'
 import { getMe, logout } from '../api/auth'
-import { listWebsites, createWebsite, transferWebsite } from '../api/websites'
+import { listWebsites } from '../api/websites'
 import { listOrganisations } from '../api/organisations'
 import { AddNewWebsiteModal } from '../components/AddNewWebsiteModal'
 import { triggerScan, getScanJob, cancelScan, getActiveScan } from '../api/scans'

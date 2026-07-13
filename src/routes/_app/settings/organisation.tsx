@@ -28,7 +28,7 @@ import {
   type OrgMember,
   type OrgRole,
 } from '../../../api/organisations'
-import { listWebsites, transferWebsite, createWebsite, renameWebsite, deleteWebsite } from '../../../api/websites'
+import { transferWebsite, createWebsite, renameWebsite, deleteWebsite } from '../../../api/websites'
 import { AddNewWebsiteModal } from '../../../components/AddNewWebsiteModal'
 import { useSiteStore } from '../../../store/siteStore'
 

@@ -1101,6 +1101,16 @@ function AppLayout() {
                   Upgrade
                 </Link>
 
+                {/* Organisation settings */}
+                <Link
+                  to="/settings/organisation"
+                  onClick={() => setUserMenu(false)}
+                  className="w-full flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 transition-colors"
+                >
+                  <Settings className="w-4 h-4 text-gray-500" />
+                  Organisation settings
+                </Link>
+
                 {/* Log out */}
                 <button
                   onClick={handleLogout}
@@ -1145,7 +1155,6 @@ function AppLayout() {
 
           <Link
             to="/settings"
-            search={{ tab: '' }}
             className="flex flex-col items-center gap-1 py-[5px] w-full group">
             <div className={cn(
               'w-[50px] h-[50px] rounded-[8px] flex items-center justify-center transition-colors',

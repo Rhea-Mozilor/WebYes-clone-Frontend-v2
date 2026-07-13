@@ -25,7 +25,10 @@ import { Route as AppOnboardingRouteImport } from './routes/_app/onboarding'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppAccessibilityRouteImport } from './routes/_app/accessibility'
 import { Route as AppWebsitesIndexRouteImport } from './routes/_app/websites/index'
+import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/index'
 import { Route as AppWebsitesWebsiteIdRouteImport } from './routes/_app/websites/$websiteId'
+import { Route as AppSettingsTeamRouteImport } from './routes/_app/settings/team'
+import { Route as AppSettingsOrganisationRouteImport } from './routes/_app/settings/organisation'
 import { Route as AppIssuesIssueIdRouteImport } from './routes/_app/issues/$issueId'
 import { Route as AppScansScanIdIndexRouteImport } from './routes/_app/scans/$scanId/index'
 import { Route as AppScansScanIdIssuesRouteImport } from './routes/_app/scans/$scanId/issues'
@@ -109,10 +112,25 @@ const AppWebsitesIndexRoute = AppWebsitesIndexRouteImport.update({
   path: '/websites/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
 const AppWebsitesWebsiteIdRoute = AppWebsitesWebsiteIdRouteImport.update({
   id: '/websites/$websiteId',
   path: '/websites/$websiteId',
   getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsTeamRoute = AppSettingsTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsOrganisationRoute = AppSettingsOrganisationRouteImport.update({
+  id: '/organisation',
+  path: '/organisation',
+  getParentRoute: () => AppSettingsRoute,
 } as any)
 const AppIssuesIssueIdRoute = AppIssuesIssueIdRouteImport.update({
   id: '/issues/$issueId',
@@ -143,10 +161,13 @@ export interface FileRoutesByFullPath {
   '/scan-history': typeof AppScanHistoryRoute
   '/scanning': typeof AppScanningRoute
   '/seo': typeof AppSeoRoute
-  '/settings': typeof AppSettingsRoute
+  '/settings': typeof AppSettingsRouteWithChildren
   '/upgrade': typeof AppUpgradeRoute
   '/issues/$issueId': typeof AppIssuesIssueIdRoute
+  '/settings/organisation': typeof AppSettingsOrganisationRoute
+  '/settings/team': typeof AppSettingsTeamRoute
   '/websites/$websiteId': typeof AppWebsitesWebsiteIdRoute
+  '/settings/': typeof AppSettingsIndexRoute
   '/websites/': typeof AppWebsitesIndexRoute
   '/scans/$scanId/issues': typeof AppScansScanIdIssuesRoute
   '/scans/$scanId/': typeof AppScansScanIdIndexRoute
@@ -164,10 +185,12 @@ export interface FileRoutesByTo {
   '/scan-history': typeof AppScanHistoryRoute
   '/scanning': typeof AppScanningRoute
   '/seo': typeof AppSeoRoute
-  '/settings': typeof AppSettingsRoute
   '/upgrade': typeof AppUpgradeRoute
   '/issues/$issueId': typeof AppIssuesIssueIdRoute
+  '/settings/organisation': typeof AppSettingsOrganisationRoute
+  '/settings/team': typeof AppSettingsTeamRoute
   '/websites/$websiteId': typeof AppWebsitesWebsiteIdRoute
+  '/settings': typeof AppSettingsIndexRoute
   '/websites': typeof AppWebsitesIndexRoute
   '/scans/$scanId/issues': typeof AppScansScanIdIssuesRoute
   '/scans/$scanId': typeof AppScansScanIdIndexRoute
@@ -187,10 +210,13 @@ export interface FileRoutesById {
   '/_app/scan-history': typeof AppScanHistoryRoute
   '/_app/scanning': typeof AppScanningRoute
   '/_app/seo': typeof AppSeoRoute
-  '/_app/settings': typeof AppSettingsRoute
+  '/_app/settings': typeof AppSettingsRouteWithChildren
   '/_app/upgrade': typeof AppUpgradeRoute
   '/_app/issues/$issueId': typeof AppIssuesIssueIdRoute
+  '/_app/settings/organisation': typeof AppSettingsOrganisationRoute
+  '/_app/settings/team': typeof AppSettingsTeamRoute
   '/_app/websites/$websiteId': typeof AppWebsitesWebsiteIdRoute
+  '/_app/settings/': typeof AppSettingsIndexRoute
   '/_app/websites/': typeof AppWebsitesIndexRoute
   '/_app/scans/$scanId/issues': typeof AppScansScanIdIssuesRoute
   '/_app/scans/$scanId/': typeof AppScansScanIdIndexRoute
@@ -213,7 +239,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/upgrade'
     | '/issues/$issueId'
+    | '/settings/organisation'
+    | '/settings/team'
     | '/websites/$websiteId'
+    | '/settings/'
     | '/websites/'
     | '/scans/$scanId/issues'
     | '/scans/$scanId/'
@@ -231,10 +260,12 @@ export interface FileRouteTypes {
     | '/scan-history'
     | '/scanning'
     | '/seo'
-    | '/settings'
     | '/upgrade'
     | '/issues/$issueId'
+    | '/settings/organisation'
+    | '/settings/team'
     | '/websites/$websiteId'
+    | '/settings'
     | '/websites'
     | '/scans/$scanId/issues'
     | '/scans/$scanId'
@@ -256,7 +287,10 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/upgrade'
     | '/_app/issues/$issueId'
+    | '/_app/settings/organisation'
+    | '/_app/settings/team'
     | '/_app/websites/$websiteId'
+    | '/_app/settings/'
     | '/_app/websites/'
     | '/_app/scans/$scanId/issues'
     | '/_app/scans/$scanId/'
@@ -384,12 +418,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWebsitesIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/': {
+      id: '/_app/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AppSettingsIndexRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
     '/_app/websites/$websiteId': {
       id: '/_app/websites/$websiteId'
       path: '/websites/$websiteId'
       fullPath: '/websites/$websiteId'
       preLoaderRoute: typeof AppWebsitesWebsiteIdRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_app/settings/team': {
+      id: '/_app/settings/team'
+      path: '/team'
+      fullPath: '/settings/team'
+      preLoaderRoute: typeof AppSettingsTeamRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/_app/settings/organisation': {
+      id: '/_app/settings/organisation'
+      path: '/organisation'
+      fullPath: '/settings/organisation'
+      preLoaderRoute: typeof AppSettingsOrganisationRouteImport
+      parentRoute: typeof AppSettingsRoute
     }
     '/_app/issues/$issueId': {
       id: '/_app/issues/$issueId'
@@ -415,6 +470,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppSettingsRouteChildren {
+  AppSettingsOrganisationRoute: typeof AppSettingsOrganisationRoute
+  AppSettingsTeamRoute: typeof AppSettingsTeamRoute
+  AppSettingsIndexRoute: typeof AppSettingsIndexRoute
+}
+
+const AppSettingsRouteChildren: AppSettingsRouteChildren = {
+  AppSettingsOrganisationRoute: AppSettingsOrganisationRoute,
+  AppSettingsTeamRoute: AppSettingsTeamRoute,
+  AppSettingsIndexRoute: AppSettingsIndexRoute,
+}
+
+const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
+  AppSettingsRouteChildren,
+)
+
 interface AppRouteChildren {
   AppAccessibilityRoute: typeof AppAccessibilityRoute
   AppDashboardRoute: typeof AppDashboardRoute
@@ -424,7 +495,7 @@ interface AppRouteChildren {
   AppScanHistoryRoute: typeof AppScanHistoryRoute
   AppScanningRoute: typeof AppScanningRoute
   AppSeoRoute: typeof AppSeoRoute
-  AppSettingsRoute: typeof AppSettingsRoute
+  AppSettingsRoute: typeof AppSettingsRouteWithChildren
   AppUpgradeRoute: typeof AppUpgradeRoute
   AppIssuesIssueIdRoute: typeof AppIssuesIssueIdRoute
   AppWebsitesWebsiteIdRoute: typeof AppWebsitesWebsiteIdRoute
@@ -442,7 +513,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppScanHistoryRoute: AppScanHistoryRoute,
   AppScanningRoute: AppScanningRoute,
   AppSeoRoute: AppSeoRoute,
-  AppSettingsRoute: AppSettingsRoute,
+  AppSettingsRoute: AppSettingsRouteWithChildren,
   AppUpgradeRoute: AppUpgradeRoute,
   AppIssuesIssueIdRoute: AppIssuesIssueIdRoute,
   AppWebsitesWebsiteIdRoute: AppWebsitesWebsiteIdRoute,

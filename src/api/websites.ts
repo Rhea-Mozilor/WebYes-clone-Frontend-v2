@@ -12,3 +12,9 @@ export const createWebsite = (name: string, url: string) =>
 
 export const deleteWebsite = (id: string) =>
   client.delete(`/websites/${id}`);
+
+export const renameWebsite = (id: string, name: string) =>
+  client.patch<Website>(`/websites/${id}`, { name });
+
+export const transferWebsite = (id: string, organisationId: string | null) =>
+  client.post<{ id: string; organisation_id: string | null }>(`/websites/${id}/transfer`, { organisation_id: organisationId });

@@ -29,6 +29,7 @@ import {
   type OrgRole,
 } from '../../../api/organisations'
 import { listWebsites, transferWebsite, createWebsite, renameWebsite, deleteWebsite } from '../../../api/websites'
+import { AddNewWebsiteModal } from '../../../components/AddNewWebsiteModal'
 import { useSiteStore } from '../../../store/siteStore'
 
 export const Route = createFileRoute('/_app/settings/organisation')({
@@ -532,22 +533,149 @@ function WebsiteMenu({
 }
 
 // ---------------------------------------------------------------------------
+// Add website to org modal
+// ---------------------------------------------------------------------------
+
+function AddWebsiteToOrgModal({ orgId, onClose }: { orgId: string; onClose: () => void }) {
+  const qc = useQueryClient()
+  const navigate = useNavigate()
+  const setWebsiteId = useSiteStore((s) => s.setWebsiteId)
+  const [name, setName] = useState('')
+  const [url, setUrl] = useState('')
+  const [createdId, setCreatedId] = useState<string | null>(null)
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const created = await createWebsite(name.trim() || url.trim(), url.trim())
+      await transferWebsite(created.id, orgId)
+      return created
+    },
+    onSuccess: (created) => {
+      qc.invalidateQueries({ queryKey: ['org-detail', orgId] })
+      qc.invalidateQueries({ queryKey: ['organisations'] })
+      qc.invalidateQueries({ queryKey: ['websites'] })
+      setCreatedId(created.id)
+    },
+  })
+
+  if (createdId) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+        <div className="bg-white rounded-[20px] shadow-xl w-[520px] px-10 py-10">
+          <div className="flex items-start gap-5 mb-6">
+            <div className="w-14 h-14 rounded-[14px] bg-[#dcfce7] flex items-center justify-center shrink-0">
+              <svg className="w-7 h-7 text-[#16a34a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-[20px] font-bold text-[#2e3240] leading-snug">Website added successfully</h3>
+              <p className="text-[14px] text-[#73767f] mt-1.5 leading-relaxed">
+                Your website has been added. You can start a scan now or initiate it later from the dashboard.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3 justify-end mt-8">
+            <button
+              onClick={onClose}
+              className="px-6 py-2.5 border border-[#d1d5db] rounded-[10px] text-[14px] font-medium text-[#2e3240] hover:bg-[#f5f7fa] transition-colors"
+            >
+              Scan later
+            </button>
+            <button
+              onClick={() => {
+                setWebsiteId(createdId)
+                void navigate({ to: '/dashboard' })
+                onClose()
+              }}
+              className="px-6 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[14px] font-semibold rounded-[10px] transition-colors"
+            >
+              Scan now
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="bg-white rounded-[16px] shadow-xl w-[560px]">
+        <div className="flex items-start justify-between px-8 pt-8 pb-5">
+          <div>
+            <h3 className="text-[20px] font-bold text-[#2e3240]">Add new website in WebYes</h3>
+            <p className="text-[14px] text-[#9fa1a7] mt-1">Add a new website to monitor and scan.</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors mt-0.5 shrink-0"
+          >
+            <X className="w-4 h-4 text-[#73767f]" />
+          </button>
+        </div>
+
+        <div className="px-8 pb-6 space-y-5">
+          <div>
+            <label className="block text-[15px] font-semibold text-[#2e3240] mb-2">
+              Website name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter website name"
+              className="w-full px-4 py-3.5 border border-[#d1d5db] rounded-[10px] text-[14px] text-[#2e3240] placeholder-[#9fa1a7] focus:outline-none focus:border-[#0b66e4] focus:ring-1 focus:ring-[#0b66e4]"
+            />
+          </div>
+          <div>
+            <label className="block text-[15px] font-semibold text-[#2e3240] mb-2">
+              Website URL <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://example.com"
+              autoFocus
+              className="w-full px-4 py-3.5 border border-[#d1d5db] rounded-[10px] text-[14px] text-[#2e3240] placeholder-[#9fa1a7] focus:outline-none focus:border-[#0b66e4] focus:ring-1 focus:ring-[#0b66e4]"
+            />
+          </div>
+        </div>
+
+        <div className="px-8 pb-8 flex gap-3 justify-end">
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 border border-[#d1d5db] rounded-[10px] text-[14px] font-medium text-[#73767f] hover:bg-[#f5f7fa] transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => createMutation.mutate()}
+            disabled={!url.trim() || createMutation.isPending}
+            className="px-6 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] disabled:opacity-50 text-white text-[14px] font-semibold rounded-[10px] transition-colors"
+          >
+            {createMutation.isPending ? 'Adding…' : 'Add website'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Org card (expandable)
 // ---------------------------------------------------------------------------
 
 function OrgCard({ org }: { org: Organisation }) {
   const navigate = useNavigate()
   const setWebsiteId = useSiteStore((s) => s.setWebsiteId)
+  const isViewer = (org.user_role as string).toLowerCase() === 'viewer'
 
   const [expanded, setExpanded] = useState(false)
   const [memberPanelOpen, setMemberPanelOpen] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState(org.name)
   const [addWebsiteOpen, setAddWebsiteOpen] = useState(false)
-  const [addWebsiteMode, setAddWebsiteMode] = useState<'existing' | 'new'>('existing')
-  const [selectedWebsiteId, setSelectedWebsiteId] = useState('')
-  const [newWebsiteName, setNewWebsiteName] = useState('')
-  const [newWebsiteUrl, setNewWebsiteUrl] = useState('')
   const qc = useQueryClient()
 
   const { data: orgDetail, isLoading: loadingDetail } = useQuery({
@@ -556,44 +684,13 @@ function OrgCard({ org }: { org: Organisation }) {
     enabled: expanded,
   })
 
-  const { data: allWebsites = [] } = useQuery({
-    queryKey: ['websites'],
-    queryFn: listWebsites,
-    enabled: addWebsiteOpen && addWebsiteMode === 'existing',
-  })
-
   const orgWebsites = orgDetail?.websites ?? []
-  const unassignedWebsites = allWebsites.filter((w) => !orgWebsites.find((ow) => ow.id === w.id))
 
   const renameMutation = useMutation({
     mutationFn: () => updateOrganisation(org.id, nameInput.trim()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['organisations'] })
       setEditingName(false)
-    },
-  })
-
-  const transferMutation = useMutation({
-    mutationFn: () => transferWebsite(selectedWebsiteId, org.id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['org-detail', org.id] })
-      qc.invalidateQueries({ queryKey: ['organisations'] })
-      qc.invalidateQueries({ queryKey: ['websites'] })
-      setAddWebsiteOpen(false)
-      setSelectedWebsiteId('')
-    },
-  })
-
-  const createMutation = useMutation({
-    mutationFn: () => createWebsite(newWebsiteName.trim(), newWebsiteUrl.trim()),
-    onSuccess: async (created) => {
-      await transferWebsite(created.id, org.id)
-      qc.invalidateQueries({ queryKey: ['org-detail', org.id] })
-      qc.invalidateQueries({ queryKey: ['organisations'] })
-      qc.invalidateQueries({ queryKey: ['websites'] })
-      setAddWebsiteOpen(false)
-      setNewWebsiteName('')
-      setNewWebsiteUrl('')
     },
   })
 
@@ -654,11 +751,18 @@ function OrgCard({ org }: { org: Organisation }) {
             </button>
             <button
               onClick={() => {
+                if (isViewer) return
                 setEditingName(true)
                 setNameInput(org.name)
               }}
-              className="w-9 h-9 flex items-center justify-center rounded-[6px] hover:bg-[#f0f2f5] text-[#9fa1a7] hover:text-[#73767f] transition-colors"
-              title="Rename"
+              disabled={isViewer}
+              className={cn(
+                'w-9 h-9 flex items-center justify-center rounded-[6px] transition-colors',
+                isViewer
+                  ? 'text-[#c8cbd2] cursor-not-allowed opacity-40'
+                  : 'hover:bg-[#f0f2f5] text-[#9fa1a7] hover:text-[#73767f]',
+              )}
+              title={isViewer ? 'Viewers cannot rename organisations' : 'Rename'}
             >
               <Pencil className="w-4.5 h-4.5" />
             </button>
@@ -729,96 +833,20 @@ function OrgCard({ org }: { org: Organisation }) {
                     Go to dashboard
                   </button>
 
-                  <WebsiteMenu
-                    websiteId={w.id}
-                    websiteName={w.name}
-                    currentOrgId={org.id}
-                  />
+                  {!isViewer && (
+                    <WebsiteMenu
+                      websiteId={w.id}
+                      websiteName={w.name}
+                      currentOrgId={org.id}
+                    />
+                  )}
                 </div>
               ))
             )}
 
             {/* Add website inside card */}
-            <div className="px-6 py-4 border-t border-[#e5e7eb] bg-[#fafbfc]">
-              {addWebsiteOpen ? (
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    {(['existing', 'new'] as const).map((m) => (
-                      <button
-                        key={m}
-                        onClick={() => setAddWebsiteMode(m)}
-                        className={cn(
-                          'px-3 py-1.5 rounded-[6px] text-[12px] font-medium transition-colors',
-                          addWebsiteMode === m
-                            ? 'bg-[#0b66e4] text-white'
-                            : 'border border-[#d1d5db] text-[#73767f] hover:bg-[#f5f7fa]',
-                        )}
-                      >
-                        {m === 'existing' ? 'Existing website' : 'New website'}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => {
-                        setAddWebsiteOpen(false)
-                        setSelectedWebsiteId('')
-                        setNewWebsiteName('')
-                        setNewWebsiteUrl('')
-                      }}
-                      className="ml-auto w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 text-[#9fa1a7]"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  {addWebsiteMode === 'existing' ? (
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={selectedWebsiteId}
-                        onChange={(e) => setSelectedWebsiteId(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-[#d1d5db] rounded-[6px] text-[13px] text-[#2e3240] focus:outline-none focus:border-[#0b66e4] bg-white"
-                      >
-                        <option value="">Select a website…</option>
-                        {unassignedWebsites.map((w) => (
-                          <option key={w.id} value={w.id}>
-                            {w.name} — {w.url}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => transferMutation.mutate()}
-                        disabled={!selectedWebsiteId || transferMutation.isPending}
-                        className="px-3 py-2 bg-[#0b66e4] hover:bg-[#0952c6] disabled:opacity-50 text-white text-[13px] font-medium rounded-[6px] transition-colors"
-                      >
-                        {transferMutation.isPending ? 'Adding…' : 'Add'}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        value={newWebsiteName}
-                        onChange={(e) => setNewWebsiteName(e.target.value)}
-                        placeholder="Website name"
-                        className="w-full px-3 py-2 border border-[#d1d5db] rounded-[6px] text-[13px] focus:outline-none focus:border-[#0b66e4]"
-                      />
-                      <input
-                        type="url"
-                        value={newWebsiteUrl}
-                        onChange={(e) => setNewWebsiteUrl(e.target.value)}
-                        placeholder="https://example.com"
-                        className="w-full px-3 py-2 border border-[#d1d5db] rounded-[6px] text-[13px] focus:outline-none focus:border-[#0b66e4]"
-                      />
-                      <button
-                        onClick={() => createMutation.mutate()}
-                        disabled={!newWebsiteName.trim() || !newWebsiteUrl.trim() || createMutation.isPending}
-                        className="px-3 py-2 bg-[#0b66e4] hover:bg-[#0952c6] disabled:opacity-50 text-white text-[13px] font-medium rounded-[6px] transition-colors"
-                      >
-                        {createMutation.isPending ? 'Creating…' : 'Create & add'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
+            {!isViewer && (
+              <div className="px-6 py-4 border-t border-[#e5e7eb] bg-[#fafbfc]">
                 <button
                   onClick={() => setAddWebsiteOpen(true)}
                   className="flex items-center gap-2 px-4 py-2 rounded-[8px] border border-[#0b66e4] text-[14px] font-medium text-[#0b66e4] hover:bg-[#eef4ff] transition-colors"
@@ -826,13 +854,14 @@ function OrgCard({ org }: { org: Organisation }) {
                   <Plus className="w-4 h-4" />
                   Add website +
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {memberPanelOpen && <MemberPanel org={org} onClose={() => setMemberPanelOpen(false)} />}
+      {addWebsiteOpen && <AddWebsiteToOrgModal orgId={org.id} onClose={() => setAddWebsiteOpen(false)} />}
     </>
   )
 }
@@ -902,82 +931,6 @@ function AddOrgModal({ onClose }: { onClose: () => void }) {
 }
 
 // ---------------------------------------------------------------------------
-// Add website modal (global, top-level button)
-// ---------------------------------------------------------------------------
-
-function AddWebsiteModal({ onClose }: { onClose: () => void }) {
-  const qc = useQueryClient()
-  const [name, setName] = useState('')
-  const [url, setUrl] = useState('')
-
-  const createMutation = useMutation({
-    mutationFn: () => createWebsite(name.trim(), url.trim()),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['websites'] })
-      qc.invalidateQueries({ queryKey: ['organisations'] })
-      onClose()
-    },
-  })
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="bg-white rounded-[12px] shadow-xl w-[440px]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e5e7eb]">
-          <h3 className="text-[15px] font-semibold text-[#2e3240]">Add website</h3>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <X className="w-4 h-4 text-[#73767f]" />
-          </button>
-        </div>
-        <div className="px-6 py-5 space-y-4">
-          <div>
-            <label className="block text-[12px] font-semibold text-[#9fa1a7] uppercase tracking-wide mb-1.5">
-              Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="My website"
-              autoFocus
-              className="w-full px-3 py-2.5 border border-[#d1d5db] rounded-[6px] text-[13px] focus:outline-none focus:border-[#0b66e4] focus:ring-1 focus:ring-[#0b66e4]"
-            />
-          </div>
-          <div>
-            <label className="block text-[12px] font-semibold text-[#9fa1a7] uppercase tracking-wide mb-1.5">
-              URL
-            </label>
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://example.com"
-              className="w-full px-3 py-2.5 border border-[#d1d5db] rounded-[6px] text-[13px] focus:outline-none focus:border-[#0b66e4] focus:ring-1 focus:ring-[#0b66e4]"
-            />
-          </div>
-        </div>
-        <div className="px-6 py-4 border-t border-[#e5e7eb] flex gap-3 justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border border-[#d1d5db] rounded-[6px] text-[13px] font-medium text-[#73767f] hover:bg-[#f5f7fa] transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => createMutation.mutate()}
-            disabled={!name.trim() || !url.trim() || createMutation.isPending}
-            className="px-4 py-2 bg-[#0b66e4] hover:bg-[#0952c6] disabled:opacity-50 text-white text-[13px] font-medium rounded-[6px] transition-colors"
-          >
-            {createMutation.isPending ? 'Creating…' : 'Create website'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
@@ -1013,6 +966,7 @@ function OrganisationPage() {
           >
             Add website +
           </button>
+
         </div>
       </div>
 
@@ -1053,7 +1007,7 @@ function OrganisationPage() {
       )}
 
       {addOrgOpen && <AddOrgModal onClose={() => setAddOrgOpen(false)} />}
-      {addWebsiteOpen && <AddWebsiteModal onClose={() => setAddWebsiteOpen(false)} />}
+      {addWebsiteOpen && <AddNewWebsiteModal orgs={orgs} onClose={() => setAddWebsiteOpen(false)} />}
     </div>
   )
 }

@@ -9,6 +9,7 @@ import {
   listTeamMembers,
   getMemberAccess,
   listOrganisations,
+  getOrganisation,
   addOrgMember,
   removeOrgMember,
   updateOrgMemberRole,
@@ -210,12 +211,14 @@ function RoleDropdown({
   orgId,
   userId,
   disabled,
+  variant = 'text',
   onChanged,
 }: {
   role: Exclude<OrgRole, 'owner'>
   orgId: string
   userId: string
   disabled?: boolean
+  variant?: 'text' | 'pill'
   onChanged: () => void
 }) {
   const [open, setOpen] = useState(false)
@@ -237,7 +240,9 @@ function RoleDropdown({
   }
 
   if (disabled) {
-    return (
+    return variant === 'pill' ? (
+      <span className="px-2.5 py-0.5 rounded-full bg-[#f0f2f5] text-[12px] font-medium text-[#9fa1a7] capitalize">{role}</span>
+    ) : (
       <span className="text-[14px] font-medium text-[#9fa1a7] capitalize">{role}</span>
     )
   }
@@ -247,10 +252,13 @@ function RoleDropdown({
       <button
         ref={btnRef}
         onClick={handleOpen}
-        className="flex items-center gap-1.5 text-[14px] font-medium text-[#2e3240] hover:text-[#0b66e4] capitalize transition-colors"
+        className={variant === 'pill'
+          ? 'flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#f0f2f5] text-[12px] font-medium text-[#73767f] hover:bg-[#e5e9f0] capitalize transition-colors'
+          : 'flex items-center gap-1.5 text-[14px] font-medium text-[#2e3240] hover:text-[#0b66e4] capitalize transition-colors'
+        }
       >
         {role}
-        <ChevronDown className="w-3.5 h-3.5 text-[#73767f]" />
+        <ChevronDown className={variant === 'pill' ? 'w-3 h-3' : 'w-3.5 h-3.5 text-[#73767f]'} />
       </button>
 
       {open && (
@@ -285,6 +293,74 @@ function RoleDropdown({
         </>
       )}
     </>
+  )
+}
+
+function OrgAccessEntry({
+  a,
+  member,
+  isSelf,
+  onRemoveClick,
+  onRoleChanged,
+}: {
+  a: MemberAccess
+  member: TeamMember
+  isSelf: boolean
+  onRemoveClick: (orgId: string) => void
+  onRoleChanged: () => void
+}) {
+  const { data: orgDetail } = useQuery({
+    queryKey: ['org-detail', a.org_id],
+    queryFn: () => getOrganisation(a.org_id),
+    staleTime: 30_000,
+  })
+
+  return (
+    <div className="border-b border-[#f0f2f5] last:border-0">
+      <div className="flex items-center justify-between px-8 py-5 hover:bg-[#fafbfc] group transition-colors">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-[8px] bg-[#f0f2f5] flex items-center justify-center shrink-0">
+            <Building2 className="w-4 h-4 text-[#73767f]" />
+          </div>
+          <div className="min-w-0 flex items-center gap-2.5 flex-wrap">
+            <span className="text-[14px] font-bold text-[#2e3240] uppercase tracking-wide truncate">
+              {a.org_name}
+            </span>
+            {a.role === 'owner' ? (
+              <span className="px-2.5 py-0.5 rounded-full bg-[#f0f2f5] text-[12px] font-medium text-[#73767f]">
+                Owner
+              </span>
+            ) : (
+              <RoleDropdown
+                role={a.role}
+                orgId={a.org_id}
+                userId={member.user_id}
+                disabled={isSelf && a.role === 'viewer'}
+                variant="pill"
+                onChanged={onRoleChanged}
+              />
+            )}
+          </div>
+        </div>
+        {a.role !== 'owner' && (
+          <button
+            onClick={() => onRemoveClick(a.org_id)}
+            className="opacity-0 group-hover:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-red-50 text-[#9fa1a7] hover:text-red-500 transition-all shrink-0"
+            title="Remove"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {orgDetail?.websites && orgDetail.websites.length > 0 && (
+        <div className="px-8 pb-4 space-y-1.5" style={{ paddingLeft: '72px' }}>
+          {orgDetail.websites.map((site) => (
+            <p key={site.id} className="text-[13px] text-[#73767f] truncate">{site.url}</p>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -374,16 +450,6 @@ function AccessPanel({ member, onClose }: { member: TeamMember; onClose: () => v
           </div>
         </div>
 
-        {/* Table header */}
-        <div className="grid grid-cols-[1fr_120px_120px_44px] gap-3 px-8 py-3.5 bg-[#f9fafb] border-b border-[#e5e7eb]">
-          <span className="text-[13px] font-semibold text-[#9fa1a7] uppercase tracking-wide">
-            Organisation
-          </span>
-          <span className="text-[13px] font-semibold text-[#9fa1a7] uppercase tracking-wide">Role</span>
-          <span className="text-[13px] font-semibold text-[#9fa1a7] uppercase tracking-wide">Status</span>
-          <span />
-        </div>
-
         {/* Access list */}
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
@@ -397,57 +463,19 @@ function AccessPanel({ member, onClose }: { member: TeamMember; onClose: () => v
             </div>
           ) : (
             access.map((a: MemberAccess) => (
-              <div
+              <OrgAccessEntry
                 key={a.org_id}
-                className="grid grid-cols-[1fr_120px_120px_44px] gap-3 items-center px-8 py-5 border-b border-[#f0f2f5] last:border-0 hover:bg-[#fafbfc] group"
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-[8px] bg-[#f0f2f5] flex items-center justify-center shrink-0">
-                    <Building2 className="w-5 h-5 text-[#73767f]" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[15px] font-medium text-[#2e3240] truncate">{a.org_name}</p>
-                    <p className="text-[13px] text-[#9fa1a7]">
-                      {a.website_count} website{a.website_count !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-
-                {a.role === 'owner' ? (
-                  <span className="text-[14px] font-medium text-[#2e3240] capitalize">
-                    Owner
-                  </span>
-                ) : (
-                  <RoleDropdown
-                    role={a.role}
-                    orgId={a.org_id}
-                    userId={member.user_id}
-                    disabled={isSelf && a.role === 'viewer'}
-                    onChanged={() => {
-                      qc.invalidateQueries({ queryKey: ['member-access', member.user_id] })
-                      qc.invalidateQueries({ queryKey: ['team-members'] })
-                    }}
-                  />
-                )}
-
-                <span className="text-[14px] text-[#22c55e] flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#22c55e] inline-block" />
-                  Assigned
-                </span>
-
-                {a.role !== 'owner' && (
-                  <button
-                    onClick={() => setConfirmRemoveOrgId(a.org_id)}
-                    className="opacity-0 group-hover:opacity-100 w-9 h-9 flex items-center justify-center rounded hover:bg-red-50 text-[#9fa1a7] hover:text-red-500 transition-all"
-                    title="Remove"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
+                a={a}
+                member={member}
+                isSelf={isSelf}
+                onRemoveClick={setConfirmRemoveOrgId}
+                onRoleChanged={() => {
+                  qc.invalidateQueries({ queryKey: ['member-access', member.user_id] })
+                  qc.invalidateQueries({ queryKey: ['team-members'] })
+                }}
+              />
             ))
           )}
-
         </div>
 
         {/* Add organisation sub-panel */}

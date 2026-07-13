@@ -6,7 +6,7 @@ import {
   useNavigate,
   useRouterState,
 } from '@tanstack/react-router'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import {
   LayoutGrid,
@@ -37,7 +37,9 @@ const SeoIcon = ({ className }: { className?: string }) => <img src={SeoSvg} cla
 import toast from 'react-hot-toast'
 import { cn } from '../lib/utils'
 import { getMe, logout } from '../api/auth'
-import { listWebsites } from '../api/websites'
+import { listWebsites, createWebsite, transferWebsite } from '../api/websites'
+import { listOrganisations } from '../api/organisations'
+import { AddNewWebsiteModal } from '../components/AddNewWebsiteModal'
 import { triggerScan, getScanJob, cancelScan, getActiveScan } from '../api/scans'
 import { useAuthStore } from '../store/authStore'
 import { useSiteStore } from '../store/siteStore'
@@ -597,10 +599,12 @@ function AppLayout() {
   const { clearAuth } = useAuthStore()
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const { data: websites = [] } = useQuery({ queryKey: ['websites'], queryFn: listWebsites })
+  const { data: orgs = [] } = useQuery({ queryKey: ['organisations'], queryFn: listOrganisations })
   const { websiteId, setWebsiteId, strategy, setStrategy, setScanForWebsite, activeScanJob, setActiveScanJob } = useSiteStore()
   const location = useRouterState({ select: (s) => s.location.pathname })
 
   const [websiteDrop, setWebsiteDrop] = useState(false)
+  const [addWebsiteModalOpen, setAddWebsiteModalOpen] = useState(false)
   const [strategyDrop, setStrategyDrop] = useState(false)
   const [userMenu, setUserMenu] = useState(false)
   const [scanJobs, setScanJobs] = useState<{ desktopJobId: string | null; mobileJobId: string | null; url: string; websiteName: string; websiteId: string } | null>(null)
@@ -894,46 +898,71 @@ function AppLayout() {
                       <Search className="w-4 h-4 text-gray-400 shrink-0" />
                     </div>
                     {/* Add new website */}
-                    <Link
-                      to="/onboarding"
-                      onClick={() => setWebsiteDrop(false)}
+                    <button
+                      onClick={() => { setWebsiteDrop(false); setAddWebsiteModalOpen(true) }}
                       className="flex items-center gap-1.5 px-3 py-2 text-blue-600 text-sm font-semibold hover:bg-blue-50 rounded-sm transition-colors whitespace-nowrap shrink-0"
                     >
                       <Plus className="w-4 h-4" />
                       Add new website
-                    </Link>
+                    </button>
                   </div>
                 </div>
 
-                {/* Website list */}
+                {/* Website list — grouped by org */}
                 <div className="max-h-72 overflow-y-auto">
                   {filteredWebsites.length === 0 ? (
                     <p className="px-4 py-6 text-sm text-gray-400 text-center">No websites found</p>
                   ) : (
                     <>
-                      <p className="px-4 pt-3 pb-1 text-xs text-gray-400">Recently viewed</p>
-                      {filteredWebsites.map((w) => {
-                        const isSelected = w.id === websiteId
-                        const displayUrl = w.url.replace(/^https?:\/\//, '')
+                      {orgs.map((org) => {
+                        const orgSites = filteredWebsites.filter((w) => w.organisation_id === org.id)
+                        if (orgSites.length === 0) return null
                         return (
-                          <div key={w.id}>
+                          <div key={org.id}>
                             <div className="flex items-center gap-2 px-4 pt-3 pb-1">
-                              <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">{w.name}</span>
-                              <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Admin</span>
-                            </div>
-                            <button
-                              onClick={() => { setWebsiteId(w.id); setWebsiteDrop(false); setSiteSearch('') }}
-                              className={cn(
-                                'w-full text-left flex items-center justify-between px-4 py-2.5 transition-colors',
-                                isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
-                              )}
-                            >
-                              <span className={cn('text-sm truncate', isSelected ? 'text-blue-700' : 'text-gray-700')}>
-                                {displayUrl}
+                              <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">{org.name}</span>
+                              <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full capitalize">
+                                {(org.user_role as string).toLowerCase()}
                               </span>
-                              <ChevronRight className={cn('w-4 h-4 shrink-0 ml-2', isSelected ? 'text-blue-400' : 'text-gray-300')} />
-                            </button>
+                            </div>
+                            {orgSites.map((w) => {
+                              const isSelected = w.id === websiteId
+                              return (
+                                <button
+                                  key={w.id}
+                                  onClick={() => { setWebsiteId(w.id); setWebsiteDrop(false); setSiteSearch('') }}
+                                  className={cn(
+                                    'w-full text-left flex items-center justify-between px-4 py-2.5 transition-colors',
+                                    isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
+                                  )}
+                                >
+                                  <span className={cn('text-sm truncate', isSelected ? 'text-blue-700' : 'text-gray-700')}>
+                                    {w.url}
+                                  </span>
+                                  <ChevronRight className={cn('w-4 h-4 shrink-0 ml-2', isSelected ? 'text-blue-400' : 'text-gray-300')} />
+                                </button>
+                              )
+                            })}
                           </div>
+                        )
+                      })}
+                      {/* Unassigned websites (not in any org) */}
+                      {filteredWebsites.filter((w) => !w.organisation_id).map((w) => {
+                        const isSelected = w.id === websiteId
+                        return (
+                          <button
+                            key={w.id}
+                            onClick={() => { setWebsiteId(w.id); setWebsiteDrop(false); setSiteSearch('') }}
+                            className={cn(
+                              'w-full text-left flex items-center justify-between px-4 py-2.5 transition-colors',
+                              isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
+                            )}
+                          >
+                            <span className={cn('text-sm truncate', isSelected ? 'text-blue-700' : 'text-gray-700')}>
+                              {w.url}
+                            </span>
+                            <ChevronRight className={cn('w-4 h-4 shrink-0 ml-2', isSelected ? 'text-blue-400' : 'text-gray-300')} />
+                          </button>
                         )
                       })}
                     </>
@@ -947,7 +976,7 @@ function AppLayout() {
                     onClick={() => setWebsiteDrop(false)}
                     className="text-sm font-semibold text-blue-600 hover:underline"
                   >
-                    Go to all websites
+                    Go to all sites
                   </Link>
                 </div>
               </div>
@@ -1203,6 +1232,13 @@ function AppLayout() {
         </button>
       </nav>
     </div>
+
+    {addWebsiteModalOpen && (
+      <AddNewWebsiteModal
+        orgs={orgs}
+        onClose={() => setAddWebsiteModalOpen(false)}
+      />
+    )}
     </BgScanContext.Provider>
   )
 }

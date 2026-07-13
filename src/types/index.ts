@@ -12,6 +12,7 @@ export interface Website {
   url: string;
   created_at: string;
   last_scanned_at: string | null;
+  organisation_id: string | null;
 }
 
 export type ScanStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';

@@ -1,14 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Plus, Users, Building2, Search, Trash2 } from 'lucide-react'
+import { X, Plus, Users, Building2, Search, Trash2, ChevronDown, Check, ChevronLeft } from 'lucide-react'
 import { cn } from '../../../lib/utils'
+import { useAuthStore } from '../../../store/authStore'
 import {
   listTeamMembers,
   getMemberAccess,
   listOrganisations,
   addOrgMember,
   removeOrgMember,
+  updateOrgMemberRole,
   type TeamMember,
   type MemberAccess,
   type OrgRole,
@@ -197,11 +200,101 @@ function RemoveConfirmModal({
   )
 }
 
+const ROLE_OPTIONS = [
+  { value: 'admin' as const, label: 'Admin', desc: 'Can manage sites and users within the organisation' },
+  { value: 'viewer' as const, label: 'Viewer', desc: 'Can only view the dashboard and download scan reports.' },
+]
+
+function RoleDropdown({
+  role,
+  orgId,
+  userId,
+  disabled,
+  onChanged,
+}: {
+  role: Exclude<OrgRole, 'owner'>
+  orgId: string
+  userId: string
+  disabled?: boolean
+  onChanged: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
+
+  const updateMutation = useMutation({
+    mutationFn: (newRole: Exclude<OrgRole, 'owner'>) => updateOrgMemberRole(orgId, userId, newRole),
+    onSuccess: () => { setOpen(false); onChanged() },
+  })
+
+  const handleOpen = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setMenuPos({ top: r.bottom + 4, left: r.left })
+    }
+    setOpen(true)
+  }
+
+  if (disabled) {
+    return (
+      <span className="text-[14px] font-medium text-[#9fa1a7] capitalize">{role}</span>
+    )
+  }
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={handleOpen}
+        className="flex items-center gap-1.5 text-[14px] font-medium text-[#2e3240] hover:text-[#0b66e4] capitalize transition-colors"
+      >
+        {role}
+        <ChevronDown className="w-3.5 h-3.5 text-[#73767f]" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[100]" onClick={() => setOpen(false)} />
+          <div
+            className="fixed z-[101] bg-white rounded-[12px] shadow-xl border border-[#e5e7eb] w-[300px] overflow-hidden"
+            style={{ top: menuPos.top, left: menuPos.left }}
+          >
+            {ROLE_OPTIONS.map((r) => (
+              <button
+                key={r.value}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (r.value !== role) updateMutation.mutate(r.value)
+                  else setOpen(false)
+                }}
+                disabled={updateMutation.isPending}
+                className={cn(
+                  'w-full text-left px-4 py-3.5 flex items-start justify-between gap-3 hover:bg-[#f5f7fa] transition-colors',
+                  r.value === role && 'bg-[#eef4ff]',
+                )}
+              >
+                <div>
+                  <p className="text-[14px] font-semibold text-[#2e3240]">{r.label}</p>
+                  <p className="text-[13px] text-[#9fa1a7] mt-0.5 leading-snug">{r.desc}</p>
+                </div>
+                {r.value === role && <Check className="w-4 h-4 text-[#0b66e4] shrink-0 mt-0.5" />}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  )
+}
+
 function AccessPanel({ member, onClose }: { member: TeamMember; onClose: () => void }) {
   const qc = useQueryClient()
+  const currentUser = useAuthStore((s) => s.user)
+  const isSelf = currentUser?.id === member.user_id
   const [addOrgOpen, setAddOrgOpen] = useState(false)
   const [selectedOrgId, setSelectedOrgId] = useState('')
-  const [selectedRole, setSelectedRole] = useState<Exclude<OrgRole, 'owner'>>('viewer')
+  const [selectedRole, setSelectedRole] = useState<Exclude<OrgRole, 'owner'>>('admin')
   const [confirmRemoveOrgId, setConfirmRemoveOrgId] = useState<string | null>(null)
 
   const { data: access = [], isLoading } = useQuery({
@@ -238,7 +331,7 @@ function AccessPanel({ member, onClose }: { member: TeamMember; onClose: () => v
   const existingOrgIds = new Set(access.map((a: MemberAccess) => a.org_id))
   const availableOrgs = orgs.filter((o) => !existingOrgIds.has(o.id))
 
-  return (
+  return createPortal(
     <>
       {confirmRemoveOrgId && (
         <RemoveConfirmModal
@@ -266,7 +359,7 @@ function AccessPanel({ member, onClose }: { member: TeamMember; onClose: () => v
             <div className="flex items-center gap-3 shrink-0">
               <button
                 onClick={() => setAddOrgOpen(true)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-[8px] border border-[#0b66e4] text-[14px] font-medium text-[#0b66e4] hover:bg-[#eef4ff] transition-colors whitespace-nowrap"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-[8px] text-[14px] font-medium text-white bg-[#0b66e4] hover:bg-[#0952c6] transition-colors whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
                 Add organisation +
@@ -320,18 +413,22 @@ function AccessPanel({ member, onClose }: { member: TeamMember; onClose: () => v
                   </div>
                 </div>
 
-                <span
-                  className={cn(
-                    'inline-flex items-center px-3 py-1 rounded-full text-[13px] font-medium capitalize w-fit',
-                    a.role === 'owner'
-                      ? 'bg-[#fdf2ff] text-[#9333ea]'
-                      : a.role === 'admin'
-                        ? 'bg-[#eef4ff] text-[#0b66e4]'
-                        : 'bg-[#f3f4f6] text-[#73767f]',
-                  )}
-                >
-                  {a.role}
-                </span>
+                {a.role === 'owner' ? (
+                  <span className="text-[14px] font-medium text-[#2e3240] capitalize">
+                    Owner
+                  </span>
+                ) : (
+                  <RoleDropdown
+                    role={a.role}
+                    orgId={a.org_id}
+                    userId={member.user_id}
+                    disabled={isSelf && a.role === 'viewer'}
+                    onChanged={() => {
+                      qc.invalidateQueries({ queryKey: ['member-access', member.user_id] })
+                      qc.invalidateQueries({ queryKey: ['team-members'] })
+                    }}
+                  />
+                )}
 
                 <span className="text-[14px] text-[#22c55e] flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-[#22c55e] inline-block" />
@@ -351,60 +448,107 @@ function AccessPanel({ member, onClose }: { member: TeamMember; onClose: () => v
             ))
           )}
 
-          {/* Add org inline form */}
-          {addOrgOpen && (
-            <div className="mx-6 mt-4 mb-4 p-4 bg-[#f5f7fa] border border-[#d1d5db] rounded-[8px] space-y-3">
-              <select
-                value={selectedOrgId}
-                onChange={(e) => setSelectedOrgId(e.target.value)}
-                className="w-full px-3 py-2 border border-[#d1d5db] rounded-[6px] text-[13px] text-[#2e3240] focus:outline-none focus:border-[#0b66e4] bg-white"
-              >
-                <option value="">Select organisation…</option>
-                {availableOrgs.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
-              <div className="flex gap-4">
-                {(['viewer', 'admin'] as const).map((r) => (
-                  <label key={r} className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="access-role"
-                      value={r}
-                      checked={selectedRole === r}
-                      onChange={() => setSelectedRole(r)}
-                      className="accent-[#0b66e4]"
-                    />
-                    <span className="text-[13px] text-[#2e3240] capitalize">{r}</span>
-                  </label>
-                ))}
+        </div>
+
+        {/* Add organisation sub-panel */}
+        {addOrgOpen && (
+          <div className="absolute inset-0 z-10 bg-[#f5f7fa] flex flex-col">
+            {/* Sub-panel header */}
+            <div className="bg-white px-6 py-5 border-b border-[#e5e7eb] flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <button
+                    onClick={() => { setAddOrgOpen(false); setSelectedOrgId(''); setSelectedRole('admin') }}
+                    className="text-[#73767f] hover:text-[#2e3240] transition-colors"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <h3 className="text-[18px] font-bold text-[#2e3240]">Add organisation</h3>
+                </div>
+                <p className="text-[14px] text-[#73767f] pl-7">
+                  Give <span className="font-semibold text-[#2e3240]">{member.email}</span> access to another organisation
+                </p>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => addMutation.mutate()}
-                  disabled={!selectedOrgId || addMutation.isPending}
-                  className="flex-1 py-2 bg-[#0b66e4] hover:bg-[#0952c6] disabled:opacity-50 text-white text-[13px] font-medium rounded-[6px] transition-colors"
+              <button
+                onClick={onClose}
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors shrink-0"
+              >
+                <X className="w-5 h-5 text-[#73767f]" />
+              </button>
+            </div>
+
+            {/* Sub-panel body */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+              <div>
+                <label className="block text-[14px] font-semibold text-[#2e3240] mb-2">
+                  Organisation name
+                </label>
+                <select
+                  value={selectedOrgId}
+                  onChange={(e) => setSelectedOrgId(e.target.value)}
+                  className="w-full px-4 py-3 border border-[#d1d5db] rounded-[10px] text-[14px] text-[#2e3240] bg-white focus:outline-none focus:border-[#0b66e4] appearance-none"
                 >
-                  {addMutation.isPending ? 'Adding…' : 'Add'}
-                </button>
-                <button
-                  onClick={() => {
-                    setAddOrgOpen(false)
-                    setSelectedOrgId('')
-                    setSelectedRole('viewer')
-                  }}
-                  className="px-3 py-2 border border-[#d1d5db] rounded-[6px] text-[13px] text-[#73767f] hover:bg-[#f5f7fa] transition-colors"
-                >
-                  Cancel
-                </button>
+                  <option value="">Select organisation…</option>
+                  {availableOrgs.map((o) => (
+                    <option key={o.id} value={o.id}>{o.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[14px] font-semibold text-[#2e3240] mb-2">Email</label>
+                <input
+                  type="email"
+                  value={member.email}
+                  disabled
+                  className="w-full px-4 py-3 border border-[#e5e7eb] rounded-[10px] text-[14px] text-[#9fa1a7] bg-white cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[14px] font-semibold text-[#2e3240] mb-3">Role</label>
+                <div className="space-y-3">
+                  {ROLE_OPTIONS.map((r) => (
+                    <label key={r.value} className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="add-org-role"
+                        value={r.value}
+                        checked={selectedRole === r.value}
+                        onChange={() => setSelectedRole(r.value)}
+                        className="mt-0.5 accent-[#0b66e4]"
+                      />
+                      <div>
+                        <p className="text-[14px] font-medium text-[#2e3240]">{r.label}</p>
+                        <p className="text-[13px] text-[#9fa1a7]">{r.desc}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
-          )}
-        </div>
+
+            {/* Sub-panel footer */}
+            <div className="bg-white border-t border-[#e5e7eb] px-6 py-4 flex gap-3 justify-end">
+              <button
+                onClick={() => { setAddOrgOpen(false); setSelectedOrgId(''); setSelectedRole('admin') }}
+                className="px-5 py-2.5 border border-[#d1d5db] rounded-[8px] text-[14px] font-medium text-[#73767f] hover:bg-[#f5f7fa] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => addMutation.mutate()}
+                disabled={!selectedOrgId || addMutation.isPending}
+                className="px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] disabled:opacity-50 text-white text-[14px] font-medium rounded-[8px] transition-colors"
+              >
+                {addMutation.isPending ? 'Adding…' : 'Add member'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-    </>
+    </>,
+    document.body
   )
 }
 

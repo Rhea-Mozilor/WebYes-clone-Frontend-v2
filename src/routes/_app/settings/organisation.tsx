@@ -1,17 +1,18 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   X,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
   Plus,
   Users,
   Globe,
   ExternalLink,
   MoreVertical,
   Pencil,
-  ArrowLeft,
   FileText,
 } from 'lucide-react'
 import { cn } from '../../../lib/utils'
@@ -49,6 +50,16 @@ function Spinner() {
 
 type AddMemberType = 'existing' | 'invite'
 
+const MEMBER_TYPE_OPTIONS = [
+  { key: 'existing' as AddMemberType, label: 'Add team member', desc: 'Add an existing team member' },
+  { key: 'invite' as AddMemberType, label: 'Invite new user', desc: 'Invite someone new to join your organisation' },
+] as const
+
+const MEMBER_ROLE_OPTIONS = [
+  { value: 'admin' as const, label: 'Admin', desc: 'Can manage sites and users within the organisation' },
+  { value: 'viewer' as const, label: 'Viewer', desc: 'Can only view the dashboard and download scan reports.' },
+]
+
 function AddMemberModal({
   orgId,
   orgName,
@@ -63,7 +74,7 @@ function AddMemberModal({
   const qc = useQueryClient()
   const [type, setType] = useState<AddMemberType>('existing')
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<Exclude<OrgRole, 'owner'>>('viewer')
+  const [role, setRole] = useState<Exclude<OrgRole, 'owner'>>('admin')
 
   const addMutation = useMutation({
     mutationFn: () => addOrgMember(orgId, email.trim(), role),
@@ -76,121 +87,119 @@ function AddMemberModal({
   })
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30">
-      <div className="bg-white rounded-[12px] shadow-xl w-[480px] max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-[#e5e7eb]">
-          <button
-            onClick={onBack}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 text-[#73767f]" />
-          </button>
-          <h3 className="flex-1 text-[15px] font-semibold text-[#2e3240]">Add new member</h3>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <X className="w-4 h-4 text-[#73767f]" />
-          </button>
-        </div>
-
-        <div className="px-6 pt-4 pb-2">
-          <p className="text-[13px] text-[#73767f]">
-            Add a new member to <span className="font-medium text-[#2e3240]">{orgName}</span>
+    <div className="absolute inset-0 z-10 bg-[#f5f7fa] flex flex-col">
+      {/* Header */}
+      <div className="bg-white px-6 py-5 border-b border-[#e5e7eb] flex items-start justify-between gap-4 shrink-0">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <button
+              onClick={onBack}
+              className="text-[#73767f] hover:text-[#2e3240] transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h3 className="text-[18px] font-bold text-[#2e3240]">Add new member</h3>
+          </div>
+          <p className="text-[14px] text-[#73767f] pl-7">
+            Add a new member to <span className="font-bold text-[#2e3240]">{orgName}</span>
           </p>
         </div>
+        <button
+          onClick={onClose}
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors shrink-0"
+        >
+          <X className="w-5 h-5 text-[#73767f]" />
+        </button>
+      </div>
 
-        <div className="px-6 pt-3 pb-4 flex gap-3">
-          {(
-            [
-              { key: 'existing' as AddMemberType, label: 'Add team member', desc: 'Add an existing member' },
-              { key: 'invite' as AddMemberType, label: 'Invite new user', desc: 'Send an email invitation' },
-            ] as const
-          ).map(({ key, label, desc }) => (
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+        {/* Type toggle */}
+        <div className="flex gap-3">
+          {MEMBER_TYPE_OPTIONS.map(({ key, label, desc }) => (
             <button
               key={key}
               onClick={() => setType(key)}
               className={cn(
-                'flex-1 px-4 py-3 rounded-[8px] border-2 text-left transition-all',
-                type === key ? 'border-[#0b66e4] bg-[#eef4ff]' : 'border-[#e5e7eb] hover:border-[#c1c4cc]',
+                'flex-1 px-4 py-3.5 rounded-[10px] border-2 text-left transition-all flex items-start gap-3 bg-white',
+                type === key ? 'border-[#0b66e4]' : 'border-[#e5e7eb] hover:border-[#c1c4cc]',
               )}
             >
-              <p className={cn('text-[13px] font-semibold', type === key ? 'text-[#0b66e4]' : 'text-[#2e3240]')}>
-                {label}
-              </p>
-              <p className="text-[11px] text-[#9fa1a7] mt-0.5">{desc}</p>
+              <span className={cn(
+                'mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0',
+                type === key ? 'border-[#0b66e4]' : 'border-[#d1d5db]',
+              )}>
+                {type === key && <span className="w-2 h-2 rounded-full bg-[#0b66e4]" />}
+              </span>
+              <div>
+                <p className="text-[13px] font-semibold text-[#2e3240]">{label}</p>
+                <p className="text-[12px] text-[#9fa1a7] mt-0.5">{desc}</p>
+              </div>
             </button>
           ))}
         </div>
 
-        <div className="px-6 space-y-4 pb-4">
-          <div>
-            <label className="block text-[12px] font-semibold text-[#9fa1a7] uppercase tracking-wide mb-1.5">
-              Organisation
-            </label>
-            <div className="w-full px-3 py-2.5 border border-[#d1d5db] rounded-[6px] text-[13px] text-[#2e3240] bg-[#f9fafb]">
-              {orgName}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[12px] font-semibold text-[#9fa1a7] uppercase tracking-wide mb-1.5">
-              Email address
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={type === 'existing' ? 'team@example.com' : 'user@example.com'}
-              autoFocus
-              className="w-full px-3 py-2.5 border border-[#d1d5db] rounded-[6px] text-[13px] text-[#2e3240] placeholder-[#9fa1a7] focus:outline-none focus:border-[#0b66e4] focus:ring-1 focus:ring-[#0b66e4]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[12px] font-semibold text-[#9fa1a7] uppercase tracking-wide mb-2">
-              Role
-            </label>
-            <div className="flex flex-col gap-3">
-              {(['admin', 'viewer'] as const).map((r) => (
-                <label key={r} className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="add-member-role"
-                    value={r}
-                    checked={role === r}
-                    onChange={() => setRole(r)}
-                    className="mt-0.5 accent-[#0b66e4]"
-                  />
-                  <div>
-                    <p className="text-[13px] font-medium text-[#2e3240] capitalize">{r}</p>
-                    <p className="text-[11px] text-[#9fa1a7]">
-                      {r === 'admin'
-                        ? 'Full access — can manage members and websites'
-                        : 'Read-only access to scan results'}
-                    </p>
-                  </div>
-                </label>
-              ))}
-            </div>
+        {/* Organisation name */}
+        <div>
+          <label className="block text-[14px] font-semibold text-[#2e3240] mb-2">Organisation name</label>
+          <div className="w-full px-4 py-3 border border-[#d1d5db] rounded-[10px] text-[14px] text-[#2e3240] bg-white flex items-center justify-between">
+            <span>{orgName}</span>
+            <ChevronDown className="w-4 h-4 text-[#9fa1a7]" />
           </div>
         </div>
 
-        <div className="border-t border-[#e5e7eb] px-6 py-4 flex gap-3 justify-end">
-          <button
-            onClick={onBack}
-            className="px-4 py-2 border border-[#d1d5db] rounded-[6px] text-[13px] font-medium text-[#73767f] hover:bg-[#f5f7fa] transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => addMutation.mutate()}
-            disabled={!email.trim() || addMutation.isPending}
-            className="px-4 py-2 bg-[#0b66e4] hover:bg-[#0952c6] disabled:opacity-50 text-white text-[13px] font-medium rounded-[6px] transition-colors"
-          >
-            {addMutation.isPending ? 'Adding…' : type === 'invite' ? 'Send invite' : 'Add member'}
-          </button>
+        {/* Email */}
+        <div>
+          <label className="block text-[14px] font-semibold text-[#2e3240] mb-2">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter email"
+            autoFocus
+            className="w-full px-4 py-3 border border-[#d1d5db] rounded-[10px] text-[14px] text-[#2e3240] placeholder-[#9fa1a7] bg-white focus:outline-none focus:border-[#0b66e4]"
+          />
         </div>
+
+        {/* Role */}
+        <div>
+          <label className="block text-[14px] font-semibold text-[#2e3240] mb-3">Role</label>
+          <div className="space-y-3">
+            {MEMBER_ROLE_OPTIONS.map((r) => (
+              <label key={r.value} className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="add-member-role"
+                  value={r.value}
+                  checked={role === r.value}
+                  onChange={() => setRole(r.value)}
+                  className="mt-0.5 accent-[#0b66e4]"
+                />
+                <div>
+                  <p className="text-[14px] font-medium text-[#2e3240]">{r.label}</p>
+                  <p className="text-[13px] text-[#9fa1a7]">{r.desc}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="bg-white border-t border-[#e5e7eb] px-6 py-4 flex gap-3 justify-end shrink-0">
+        <button
+          onClick={onBack}
+          className="px-5 py-2.5 border border-[#d1d5db] rounded-[8px] text-[14px] font-medium text-[#73767f] hover:bg-[#f5f7fa] transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => addMutation.mutate()}
+          disabled={!email.trim() || addMutation.isPending}
+          className="px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] disabled:opacity-50 text-white text-[14px] font-medium rounded-[8px] transition-colors"
+        >
+          {addMutation.isPending ? 'Adding…' : 'Add member'}
+        </button>
       </div>
     </div>
   )
@@ -217,53 +226,65 @@ function MemberPanel({ org, onClose }: { org: Organisation; onClose: () => void 
     },
   })
 
-  return (
+  return createPortal(
     <>
       <div className="fixed inset-0 z-40 bg-black/20" onClick={onClose} />
 
-      <div className="fixed inset-y-0 right-0 z-50 w-[480px] bg-white shadow-2xl border-l border-[#e5e7eb] flex flex-col overflow-hidden">
+      <div className="fixed inset-y-0 right-0 z-50 w-[700px] bg-white shadow-2xl border-l border-[#e5e7eb] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-[#e5e7eb] flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <h3 className="text-[16px] font-semibold text-[#2e3240]">Manage team members</h3>
-            <p className="text-[12px] text-[#73767f] mt-0.5">Add or remove team members</p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setAddModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[12px] font-medium rounded-[6px] transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add member +
-            </button>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <X className="w-4 h-4 text-[#73767f]" />
-            </button>
+        <div className="px-8 py-6 border-b border-[#e5e7eb]">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-[20px] font-semibold text-[#2e3240]">Manage team members</h3>
+              <p className="text-[14px] text-[#9fa1a7] mt-1">Add or remove team members</p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                onClick={() => setAddModalOpen(true)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[14px] font-medium rounded-[8px] transition-colors whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                Add member +
+              </button>
+              <button
+                onClick={onClose}
+                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5 text-[#73767f]" />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Org context row */}
-        <div className="flex items-center gap-3 px-6 py-3 border-b border-[#e5e7eb] bg-[#f9fafb]">
-          <div className="w-8 h-8 rounded-[6px] bg-[#e5e7eb] flex items-center justify-center">
-            <FileText className="w-4 h-4 text-[#73767f]" />
+        <div className="flex items-center gap-4 px-8 py-4 border-b border-[#e5e7eb] bg-[#f9fafb]">
+          <div className="w-10 h-10 rounded-[8px] bg-[#e5e7eb] flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5 text-[#73767f]" />
           </div>
           <div>
-            <p className="text-[13px] font-medium text-[#2e3240]">{org.name}</p>
-            <p className="text-[11px] text-[#9fa1a7]">
+            <p className="text-[15px] font-medium text-[#2e3240]">{org.name}</p>
+            <p className="text-[13px] text-[#9fa1a7]">
               {org.member_count} team member{org.member_count !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
 
         {/* Table header */}
-        <div className="grid grid-cols-[1fr_90px_100px] gap-2 px-6 py-2.5 bg-[#f9fafb] border-b border-[#e5e7eb]">
-          <span className="text-[11px] font-semibold text-[#9fa1a7] uppercase tracking-wide">Email address</span>
-          <span className="text-[11px] font-semibold text-[#9fa1a7] uppercase tracking-wide">Role</span>
-          <span className="text-[11px] font-semibold text-[#9fa1a7] uppercase tracking-wide">Status</span>
+        <div className="grid grid-cols-[1fr_120px_130px] gap-3 px-8 py-3.5 bg-[#f9fafb] border-b border-[#e5e7eb]">
+          <span className="text-[13px] font-semibold text-[#9fa1a7] uppercase tracking-wide">Email address</span>
+          <span className="text-[13px] font-semibold text-[#9fa1a7] uppercase tracking-wide">Role</span>
+          <span className="text-[13px] font-semibold text-[#9fa1a7] uppercase tracking-wide">Status</span>
         </div>
+
+        {/* Add member sub-panel */}
+        {addModalOpen && (
+          <AddMemberModal
+            orgId={org.id}
+            orgName={org.name}
+            onBack={() => setAddModalOpen(false)}
+            onClose={() => { setAddModalOpen(false); onClose() }}
+          />
+        )}
 
         {/* Members list */}
         <div className="flex-1 overflow-y-auto">
@@ -273,41 +294,32 @@ function MemberPanel({ org, onClose }: { org: Organisation; onClose: () => void 
             </div>
           ) : members.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2">
-              <Users className="w-8 h-8 text-[#d1d5db]" />
-              <p className="text-[13px] text-[#9fa1a7]">No members yet</p>
+              <Users className="w-10 h-10 text-[#d1d5db]" />
+              <p className="text-[15px] text-[#9fa1a7]">No members yet</p>
             </div>
           ) : (
             members.map((m: OrgMember) => (
               <div
                 key={m.user_id}
-                className="grid grid-cols-[1fr_90px_100px] gap-2 items-center px-6 py-3.5 border-b border-[#f0f2f5] last:border-0 hover:bg-[#fafbfc] group"
+                className="grid grid-cols-[1fr_120px_130px] gap-3 items-center px-8 py-5 border-b border-[#f0f2f5] last:border-0 hover:bg-[#fafbfc] group"
               >
-                <span className="text-[13px] text-[#2e3240] truncate">{m.email}</span>
-                <span
-                  className={cn(
-                    'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium capitalize w-fit',
-                    m.role === 'owner'
-                      ? 'bg-[#fdf2ff] text-[#9333ea]'
-                      : m.role === 'admin'
-                        ? 'bg-[#eef4ff] text-[#0b66e4]'
-                        : 'bg-[#f3f4f6] text-[#73767f]',
-                  )}
-                >
+                <span className="text-[15px] font-medium text-[#2e3240] truncate">{m.email}</span>
+                <span className="text-[14px] font-medium text-[#2e3240] capitalize">
                   {m.role}
                 </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-[12px] text-[#22c55e] flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] inline-block" />
+                <div className="flex items-center gap-3">
+                  <span className="text-[14px] text-[#22c55e] flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#22c55e] inline-block" />
                     Assigned
                   </span>
                   {m.role !== 'owner' && (
                     <button
                       onClick={() => removeMutation.mutate(m.user_id)}
                       disabled={removeMutation.isPending}
-                      className="opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center rounded hover:bg-red-50 text-[#9fa1a7] hover:text-red-500 transition-all"
+                      className="opacity-0 group-hover:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-red-50 text-[#9fa1a7] hover:text-red-500 transition-all"
                       title="Remove"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -316,19 +328,8 @@ function MemberPanel({ org, onClose }: { org: Organisation; onClose: () => void 
           )}
         </div>
       </div>
-
-      {addModalOpen && (
-        <AddMemberModal
-          orgId={org.id}
-          orgName={org.name}
-          onBack={() => setAddModalOpen(false)}
-          onClose={() => {
-            setAddModalOpen(false)
-            onClose()
-          }}
-        />
-      )}
-    </>
+    </>,
+    document.body
   )
 }
 

@@ -631,7 +631,7 @@ function AppLayout() {
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const { data: websites = [] } = useQuery({ queryKey: ['websites'], queryFn: listWebsites })
   const { data: orgs = [] } = useQuery({ queryKey: ['organisations'], queryFn: listOrganisations })
-  const { websiteId, setWebsiteId, strategy, setStrategy, setScanForWebsite, activeScanJob, setActiveScanJob } = useSiteStore()
+  const { websiteId, setWebsiteId, strategy, setStrategy, setScanForWebsite, activeScanJob, setActiveScanJob, pendingScan, setPendingScan } = useSiteStore()
   const location = useRouterState({ select: (s) => s.location.pathname })
 
   const [websiteDrop, setWebsiteDrop] = useState(false)
@@ -719,6 +719,19 @@ function AppLayout() {
     recoveredJobRef.current = activeScanData.scan_job_id
     setActiveScanJob({ jobId: activeScanData.scan_job_id, url: selectedWebsite?.url ?? '' })
   }, [activeScanData, selectedWebsite, setActiveScanJob])
+
+  // Open scan modal when AddNewWebsiteModal triggers a scan via store
+  useEffect(() => {
+    if (pendingScan) {
+      const { desktopJobId, mobileJobId } = pendingScan
+      if (desktopJobId || mobileJobId) {
+        setScanJobs(pendingScan)
+        setScanJobsDone(false)
+        setScanModalVisible(true)
+      }
+      setPendingScan(null)
+    }
+  }, [pendingScan, setPendingScan])
 
   // True while any scan is in progress (onboarding background scan OR rescan)
   const isScanRunning = !!activeScanJob || (!!scanJobs && !scanJobsDone)

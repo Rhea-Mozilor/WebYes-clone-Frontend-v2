@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, ChevronDown } from 'lucide-react'
 import { createWebsite, transferWebsite } from '../api/websites'
+import { triggerScan } from '../api/scans'
 import { type Organisation } from '../api/organisations'
 import { useSiteStore } from '../store/siteStore'
 
@@ -16,10 +17,14 @@ export function AddNewWebsiteModal({
   const qc = useQueryClient()
   const navigate = useNavigate()
   const setWebsiteId = useSiteStore((s) => s.setWebsiteId)
+  const setPendingScan = useSiteStore((s) => s.setPendingScan)
+  const strategy = useSiteStore((s) => s.strategy)
   const [orgId, setOrgId] = useState('')
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
   const [createdId, setCreatedId] = useState<string | null>(null)
+  const [createdUrl, setCreatedUrl] = useState('')
+  const [scanning, setScanning] = useState(false)
 
   const adminOrgs = orgs.filter((o) => (o.user_role as string).toLowerCase() !== 'viewer')
 
@@ -34,6 +39,7 @@ export function AddNewWebsiteModal({
       qc.invalidateQueries({ queryKey: ['organisations'] })
       qc.invalidateQueries({ queryKey: ['org-detail'] })
       setCreatedId(created.id)
+      setCreatedUrl(created.url ?? url.trim())
     },
   })
 
@@ -62,14 +68,29 @@ export function AddNewWebsiteModal({
               Scan later
             </button>
             <button
-              onClick={() => {
-                setWebsiteId(createdId)
-                void navigate({ to: '/dashboard' })
+              disabled={scanning}
+              onClick={async () => {
+                if (!createdId) return
+                setScanning(true)
+                try {
+                  const job = await triggerScan(createdId)
+                  const desktopId = job.desktop_scan_job_id ?? (strategy === 'desktop' ? job.scan_job_id : null) ?? null
+                  const mobileId = job.mobile_scan_job_id ?? (strategy === 'mobile' ? job.scan_job_id : null) ?? null
+                  setPendingScan({
+                    desktopJobId: desktopId ? String(desktopId) : null,
+                    mobileJobId: mobileId ? String(mobileId) : null,
+                    url: createdUrl,
+                    websiteName: name.trim() || createdUrl,
+                    websiteId: createdId,
+                  })
+                  setWebsiteId(createdId)
+                } catch { /* AppLayout will show an error if job IDs are missing */ }
                 onClose()
+                void navigate({ to: '/dashboard' })
               }}
-              className="px-6 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[14px] font-semibold rounded-[10px] transition-colors"
+              className="px-6 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] disabled:opacity-50 text-white text-[14px] font-semibold rounded-[10px] transition-colors"
             >
-              Scan now
+              {scanning ? 'Starting…' : 'Scan now'}
             </button>
           </div>
         </div>

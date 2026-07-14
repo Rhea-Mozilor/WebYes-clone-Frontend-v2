@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Plus, Users, Building2, Search, Trash2, ChevronDown, Check, ChevronLeft } from 'lucide-react'
+import { X, Users, Building2, Search, Trash2, ChevronDown, Check, ChevronLeft } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { useAuthStore } from '../../../store/authStore'
 import {
@@ -436,7 +436,6 @@ function AccessPanel({ member, onClose }: { member: TeamMember; onClose: () => v
                 onClick={() => setAddOrgOpen(true)}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-[8px] text-[14px] font-medium text-white bg-[#0b66e4] hover:bg-[#0952c6] transition-colors whitespace-nowrap"
               >
-                <Plus className="w-4 h-4" />
                 Add organisation +
               </button>
               <button
@@ -613,7 +612,6 @@ function TeamPage() {
           onClick={() => setInviteOpen(true)}
           className="flex items-center gap-2 px-5 py-2.5 rounded-[8px] bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[14px] font-medium transition-colors"
         >
-          <Plus className="w-4 h-4" />
           Invite team member +
         </button>
       </div>

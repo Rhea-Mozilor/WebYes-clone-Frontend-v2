@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ChevronUp,
   ChevronLeft,
-  Plus,
   Users,
   Globe,
   ExternalLink,
@@ -245,7 +244,6 @@ function MemberPanel({ org, onClose }: { org: Organisation; onClose: () => void 
                 onClick={() => setAddModalOpen(true)}
                 className="flex items-center gap-2 px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[14px] font-medium rounded-[8px] transition-colors whitespace-nowrap"
               >
-                <Plus className="w-4 h-4" />
                 Add member +
               </button>
               <button
@@ -866,7 +864,6 @@ function OrgCard({ org }: { org: Organisation }) {
                   onClick={() => setAddWebsiteOpen(true)}
                   className="flex items-center gap-2 px-4 py-2 rounded-[8px] border border-[#0b66e4] text-[14px] font-medium text-[#0b66e4] hover:bg-[#eef4ff] transition-colors"
                 >
-                  <Plus className="w-4 h-4" />
                   Add website +
                 </button>
               </div>

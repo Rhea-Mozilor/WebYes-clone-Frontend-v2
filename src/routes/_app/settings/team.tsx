@@ -39,6 +39,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<Exclude<OrgRole, 'owner'>>('viewer')
   const [orgId, setOrgId] = useState('')
+  const [accountNotFound, setAccountNotFound] = useState(false)
 
   const { data: orgs = [] } = useQuery({
     queryKey: ['organisations'],
@@ -50,6 +51,10 @@ function InviteModal({ onClose }: { onClose: () => void }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['team-members'] })
       onClose()
+    },
+    onError: (err: unknown) => {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? ''
+      if (detail.toLowerCase().includes('no account')) setAccountNotFound(true)
     },
   })
 
@@ -144,6 +149,24 @@ function InviteModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
       </div>
+
+      {accountNotFound && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30">
+          <div className="bg-white rounded-[16px] shadow-xl w-[360px] px-8 py-8 flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+              <X className="w-6 h-6 text-red-500" />
+            </div>
+            <h3 className="text-[18px] font-bold text-[#2e3240] mb-2">Account doesn't exist</h3>
+            <p className="text-[14px] text-[#73767f] mb-6">No account was found with that email address.</p>
+            <button
+              onClick={() => setAccountNotFound(false)}
+              className="px-8 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[14px] font-semibold rounded-[10px] transition-colors"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

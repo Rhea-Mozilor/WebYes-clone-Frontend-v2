@@ -346,18 +346,7 @@ function DashboardPage() {
   }
 
   // ── No scan yet for selected website ──────────────────────────────
-  if (!scanId) {
-    return (
-      <div className="p-8">
-        <h1 className="text-xl font-bold text-gray-900 mb-1">Site health overview</h1>
-        <p className="text-sm text-gray-400 mb-8">
-          No completed scans yet for{' '}
-          <span className="font-medium text-gray-600">{selectedWebsite?.name}</span>. Use{' '}
-          <span className="font-semibold text-blue-600">Run scan</span> in the top bar to start.
-        </p>
-      </div>
-    )
-  }
+  if (!scanId) return null
 
   // ── Loading ────────────────────────────────────────────────────────
   if (!dashboard) {

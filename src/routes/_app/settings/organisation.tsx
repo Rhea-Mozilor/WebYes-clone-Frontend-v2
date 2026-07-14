@@ -29,6 +29,7 @@ import {
   type OrgRole,
 } from '../../../api/organisations'
 import { transferWebsite, createWebsite, renameWebsite, deleteWebsite } from '../../../api/websites'
+import { getScanHistory } from '../../../api/scans'
 import { AddNewWebsiteModal } from '../../../components/AddNewWebsiteModal'
 import { useSiteStore } from '../../../store/siteStore'
 
@@ -669,9 +670,11 @@ function AddWebsiteToOrgModal({ orgId, onClose }: { orgId: string; onClose: () =
 function OrgCard({ org }: { org: Organisation }) {
   const navigate = useNavigate()
   const setWebsiteId = useSiteStore((s) => s.setWebsiteId)
+  const setScanForWebsite = useSiteStore((s) => s.setScanForWebsite)
   const isViewer = (org.user_role as string).toLowerCase() === 'viewer'
 
   const [expanded, setExpanded] = useState(false)
+  const [dashboardLoading, setDashboardLoading] = useState<string | null>(null)
   const [memberPanelOpen, setMemberPanelOpen] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState(org.name)
@@ -824,13 +827,25 @@ function OrgCard({ org }: { org: Organisation }) {
                   <span className="text-[14px] text-[#73767f]">{w.credits_used ?? '—'}</span>
 
                   <button
-                    onClick={() => {
+                    disabled={!w.last_scanned_at || dashboardLoading === w.id}
+                    onClick={async () => {
+                      setDashboardLoading(w.id)
+                      try {
+                        const history = await getScanHistory(w.id)
+                        if (history[0]) setScanForWebsite(w.id, history[0].scan_job_id)
+                      } catch { /* ok */ }
                       setWebsiteId(w.id)
                       void navigate({ to: '/dashboard' })
+                      setDashboardLoading(null)
                     }}
-                    className="px-3.5 py-2 rounded-[8px] border border-[#d1d5db] text-[13px] font-medium text-[#2e3240] hover:bg-[#f5f7fa] hover:border-[#b0b8c4] transition-colors whitespace-nowrap"
+                    className={cn(
+                      'px-3.5 py-2 rounded-[8px] border text-[13px] font-medium whitespace-nowrap transition-colors',
+                      !w.last_scanned_at
+                        ? 'border-[#d1d5db] text-[#9fa1a7] cursor-not-allowed opacity-50'
+                        : 'border-[#d1d5db] text-[#2e3240] hover:bg-[#f5f7fa] hover:border-[#b0b8c4]'
+                    )}
                   >
-                    Go to dashboard
+                    {dashboardLoading === w.id ? 'Loading…' : 'Go to dashboard'}
                   </button>
 
                   {!isViewer && (

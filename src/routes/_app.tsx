@@ -6,7 +6,7 @@ import {
   useNavigate,
   useRouterState,
 } from '@tanstack/react-router'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import {
   LayoutGrid,
@@ -77,6 +77,7 @@ function ScanProgressModal({
   onComplete: (scanId: string) => void
 }) {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const [cancelling, setCancelling] = useState(false)
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
 
@@ -259,6 +260,14 @@ function ScanProgressModal({
     mobileJob?.pages_scanned ?? 0
   )
 
+  const prevPagesRef = useRef(0)
+  useEffect(() => {
+    if (pagesScanned > prevPagesRef.current) {
+      prevPagesRef.current = pagesScanned
+      void qc.invalidateQueries({ queryKey: ['dashboard'] })
+    }
+  }, [pagesScanned, qc])
+
   // ── In-progress state ────────────────────────────────────────────────────
   if (!visible) return null
 
@@ -410,7 +419,8 @@ function ScanProgressModal({
           </button>
           <button
             onClick={handleExploreDashboard}
-            className="px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[14px] font-medium rounded-[4px] transition-colors"
+            disabled={pagesScanned === 0}
+            className="px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[14px] font-medium rounded-[4px] transition-colors"
             style={{ letterSpacing: '-0.28px' }}
           >
             Back to dashboard
@@ -436,6 +446,7 @@ function OnboardingScanModal({
   onClose: () => void
   onCancel: () => void
 }) {
+  const qc = useQueryClient()
   const [cancelling, setCancelling] = useState(false)
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
 
@@ -452,6 +463,14 @@ function OnboardingScanModal({
   const pages = job?.pages ?? []
   const pagesScanned = job?.pages_scanned ?? pages.length
   const currentUrl = job?.current_url ?? null
+
+  const prevPagesOnboardRef = useRef(0)
+  useEffect(() => {
+    if (pagesScanned > prevPagesOnboardRef.current) {
+      prevPagesOnboardRef.current = pagesScanned
+      void qc.invalidateQueries({ queryKey: ['dashboard'] })
+    }
+  }, [pagesScanned, qc])
 
   let name = url
   try { name = new URL(url).hostname.replace(/^www\./, '') } catch { /* ok */ }
@@ -583,7 +602,8 @@ function OnboardingScanModal({
           </button>
           <button
             onClick={onClose}
-            className="px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[14px] font-medium rounded-[4px] transition-colors"
+            disabled={pagesScanned === 0}
+            className="px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[14px] font-medium rounded-[4px] transition-colors"
             style={{ letterSpacing: '-0.28px' }}
           >
             Back to dashboard

@@ -1052,24 +1052,14 @@ function AppLayout() {
           {/* Divider before run scan */}
           <div className="w-px h-8 bg-slate-300 shrink-0 hidden sm:block mx-4" />
 
-          {/* Run scan — split button */}
-          <div className="flex items-stretch rounded-sm overflow-hidden">
-            <button
-              onClick={() => websiteId && !isScanRunning && setConfirmScanOpen(true)}
-              disabled={!websiteId || scanMutation.isPending || isScanRunning}
-              className="px-3 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm transition-colors"
-            >
-              {scanMutation.isPending ? 'Starting…' : 'Run scan'}
-            </button>
-            <div className="w-px bg-white/50 self-stretch" />
-            <button
-              type="button"
-              disabled={isScanRunning}
-              className="px-2 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors flex items-center"
-            >
-              <ChevronDown className="w-4 h-4" />
-            </button>
-          </div>
+          {/* Run scan button */}
+          <button
+            onClick={() => websiteId && !isScanRunning && setConfirmScanOpen(true)}
+            disabled={!websiteId || scanMutation.isPending || isScanRunning}
+            className="px-3 py-2.5 rounded-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm transition-colors"
+          >
+            {scanMutation.isPending ? 'Starting…' : 'Run scan'}
+          </button>
           </>)}
 
           <div className="flex-1" />

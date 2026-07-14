@@ -346,7 +346,11 @@ function DashboardPage() {
   }
 
   // ── No scan yet for selected website ──────────────────────────────
-  if (!scanId) return null
+  if (!scanId) return (
+    <div className="flex items-center justify-center h-full py-32">
+      <p className="text-sm text-gray-400">No completed scans yet. Run a scan to see dashboard data.</p>
+    </div>
+  )
 
   // ── Loading ────────────────────────────────────────────────────────
   if (!dashboard) {

@@ -61,6 +61,7 @@ function ScanProgressModal({
   mobileJobId,
   websiteUrl,
   websiteName,
+  websiteId,
   visible,
   onHide,
   onCancel,
@@ -78,6 +79,7 @@ function ScanProgressModal({
 }) {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const setScanForWebsite = useSiteStore((s) => s.setScanForWebsite)
   const [cancelling, setCancelling] = useState(false)
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
 
@@ -130,6 +132,8 @@ function ScanProgressModal({
   }, [bothComplete, desktopJobId, mobileJobId, onComplete])
 
   function handleExploreDashboard() {
+    const scanId = desktopJobId ?? mobileJobId
+    if (scanId) setScanForWebsite(websiteId, scanId)
     onHide()
     navigate({ to: '/dashboard' })
   }
@@ -447,6 +451,8 @@ function OnboardingScanModal({
   onCancel: () => void
 }) {
   const qc = useQueryClient()
+  const websiteId = useSiteStore((s) => s.websiteId)
+  const setScanForWebsite = useSiteStore((s) => s.setScanForWebsite)
   const [cancelling, setCancelling] = useState(false)
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
 
@@ -601,7 +607,10 @@ function OnboardingScanModal({
             {cancelling ? 'Cancelling...' : 'Cancel scan'}
           </button>
           <button
-            onClick={onClose}
+            onClick={() => {
+              if (websiteId) setScanForWebsite(websiteId, jobId)
+              onClose()
+            }}
             disabled={pagesScanned === 0}
             className="px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[14px] font-medium rounded-[4px] transition-colors"
             style={{ letterSpacing: '-0.28px' }}

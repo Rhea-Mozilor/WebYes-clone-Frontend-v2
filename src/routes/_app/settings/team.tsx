@@ -9,7 +9,6 @@ import {
   listTeamMembers,
   getMemberAccess,
   listOrganisations,
-  getOrganisation,
   addOrgMember,
   removeOrgMember,
   updateOrgMemberRole,
@@ -309,57 +308,57 @@ function OrgAccessEntry({
   onRemoveClick: (orgId: string) => void
   onRoleChanged: () => void
 }) {
-  const { data: orgDetail } = useQuery({
-    queryKey: ['org-detail', a.org_id],
-    queryFn: () => getOrganisation(a.org_id),
-    staleTime: 30_000,
-  })
-
   return (
-    <div className="border-b border-[#f0f2f5] last:border-0">
-      <div className="flex items-center justify-between px-8 py-5 hover:bg-[#fafbfc] group transition-colors">
+    <div className="mx-6 mb-3 border border-[#e5e7eb] rounded-[10px] overflow-hidden">
+      <div className="grid grid-cols-[1fr_160px_160px_40px] items-center px-5 py-4 bg-white hover:bg-[#fafbfc] transition-colors">
+        {/* Organisation */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-[8px] bg-[#f0f2f5] flex items-center justify-center shrink-0">
-            <Building2 className="w-4 h-4 text-[#73767f]" />
+          <div className="w-10 h-10 rounded-[10px] bg-[#eef2ff] flex items-center justify-center shrink-0">
+            <Building2 className="w-5 h-5 text-[#6366f1]" />
           </div>
-          <div className="min-w-0 flex items-center gap-2.5 flex-wrap">
-            <span className="text-[14px] font-bold text-[#2e3240] uppercase tracking-wide truncate">
-              {a.org_name}
-            </span>
-            {a.role === 'owner' ? (
-              <span className="px-2.5 py-0.5 rounded-full bg-[#f0f2f5] text-[12px] font-medium text-[#73767f]">
-                Owner
-              </span>
-            ) : (
-              <RoleDropdown
-                role={a.role}
-                orgId={a.org_id}
-                userId={member.user_id}
-                disabled={isSelf && a.role === 'viewer'}
-                variant="pill"
-                onChanged={onRoleChanged}
-              />
-            )}
+          <div className="min-w-0">
+            <p className="text-[14px] font-semibold text-[#2e3240] truncate">{a.org_name}</p>
+            <p className="text-[12px] text-[#9fa1a7]">
+              {a.website_count} website{a.website_count !== 1 ? 's' : ''}
+            </p>
           </div>
         </div>
-        {a.role !== 'owner' && (
-          <button
-            onClick={() => onRemoveClick(a.org_id)}
-            className="opacity-0 group-hover:opacity-100 w-8 h-8 flex items-center justify-center rounded hover:bg-red-50 text-[#9fa1a7] hover:text-red-500 transition-all shrink-0"
-            title="Remove"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
-      </div>
 
-      {orgDetail?.websites && orgDetail.websites.length > 0 && (
-        <div className="px-8 pb-4 space-y-1.5" style={{ paddingLeft: '72px' }}>
-          {orgDetail.websites.map((site) => (
-            <p key={site.id} className="text-[13px] text-[#73767f] truncate">{site.url}</p>
-          ))}
+        {/* Role */}
+        <div>
+          {a.role === 'owner' ? (
+            <span className="text-[14px] font-medium text-[#2e3240]">Owner</span>
+          ) : (
+            <RoleDropdown
+              role={a.role}
+              orgId={a.org_id}
+              userId={member.user_id}
+              disabled={isSelf}
+              variant="text"
+              onChanged={onRoleChanged}
+            />
+          )}
         </div>
-      )}
+
+        {/* Status */}
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-[#16a34a] shrink-0" />
+          <span className="text-[13px] font-medium text-[#16a34a]">Assigned</span>
+        </div>
+
+        {/* Delete */}
+        <div className="flex justify-end">
+          {a.role !== 'owner' && (
+            <button
+              onClick={() => onRemoveClick(a.org_id)}
+              className="w-8 h-8 flex items-center justify-center rounded hover:bg-red-50 text-[#9fa1a7] hover:text-red-500 transition-colors"
+              title="Remove"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -462,19 +461,28 @@ function AccessPanel({ member, onClose }: { member: TeamMember; onClose: () => v
               <p className="text-[15px] text-[#9fa1a7]">No organisation access yet</p>
             </div>
           ) : (
-            access.map((a: MemberAccess) => (
-              <OrgAccessEntry
-                key={a.org_id}
-                a={a}
-                member={member}
-                isSelf={isSelf}
-                onRemoveClick={setConfirmRemoveOrgId}
-                onRoleChanged={() => {
-                  qc.invalidateQueries({ queryKey: ['member-access', member.user_id] })
-                  qc.invalidateQueries({ queryKey: ['team-members'] })
-                }}
-              />
-            ))
+            <>
+              {/* Column headers */}
+              <div className="grid grid-cols-[1fr_160px_160px_40px] px-11 py-3 border-b border-[#f0f2f5] mb-2">
+                <span className="text-[12px] font-semibold text-[#9fa1a7] uppercase tracking-wide">Organisation</span>
+                <span className="text-[12px] font-semibold text-[#9fa1a7] uppercase tracking-wide">Role</span>
+                <span className="text-[12px] font-semibold text-[#9fa1a7] uppercase tracking-wide">Status</span>
+                <span />
+              </div>
+              {access.map((a: MemberAccess) => (
+                <OrgAccessEntry
+                  key={a.org_id}
+                  a={a}
+                  member={member}
+                  isSelf={isSelf}
+                  onRemoveClick={setConfirmRemoveOrgId}
+                  onRoleChanged={() => {
+                    qc.invalidateQueries({ queryKey: ['member-access', member.user_id] })
+                    qc.invalidateQueries({ queryKey: ['team-members'] })
+                  }}
+                />
+              ))}
+            </>
           )}
         </div>
 

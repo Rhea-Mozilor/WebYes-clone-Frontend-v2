@@ -716,6 +716,7 @@ function OrgCard({ org }: { org: Organisation }) {
   const setWebsiteId = useSiteStore((s) => s.setWebsiteId)
   const setScanForWebsite = useSiteStore((s) => s.setScanForWebsite)
   const isViewer = (org.user_role as string).toLowerCase() === 'viewer'
+  const isOwner = (org.user_role as string).toLowerCase() === 'owner'
 
   const [expanded, setExpanded] = useState(false)
   const [dashboardLoading, setDashboardLoading] = useState<string | null>(null)
@@ -804,18 +805,18 @@ function OrgCard({ org }: { org: Organisation }) {
             </button>
             <button
               onClick={() => {
-                if (isViewer) return
+                if (!isOwner) return
                 setEditingName(true)
                 setNameInput(org.name)
               }}
-              disabled={isViewer}
+              disabled={!isOwner}
               className={cn(
                 'w-9 h-9 flex items-center justify-center rounded-[6px] transition-colors',
-                isViewer
+                !isOwner
                   ? 'text-[#c8cbd2] cursor-not-allowed opacity-40'
                   : 'hover:bg-[#f0f2f5] text-[#9fa1a7] hover:text-[#73767f]',
               )}
-              title={isViewer ? 'Viewers cannot rename organisations' : 'Rename'}
+              title={!isOwner ? 'Only owners can rename organisations' : 'Rename'}
             >
               <Pencil className="w-4.5 h-4.5" />
             </button>

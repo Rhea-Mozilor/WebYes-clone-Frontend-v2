@@ -767,8 +767,14 @@ function OrgCard({ org }: { org: Organisation }) {
 
           <div className="flex items-center gap-2.5 shrink-0">
             <button
-              onClick={() => setMemberPanelOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-[8px] border border-[#d1d5db] text-[13px] font-medium text-[#73767f] hover:bg-[#f5f7fa] hover:border-[#b0b8c4] transition-colors"
+              onClick={() => { if (!isViewer) setMemberPanelOpen(true) }}
+              disabled={isViewer}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-[8px] border text-[13px] font-medium transition-colors',
+                isViewer
+                  ? 'border-[#d1d5db] text-[#b0b8c4] cursor-not-allowed'
+                  : 'border-[#d1d5db] text-[#73767f] hover:bg-[#f5f7fa] hover:border-[#b0b8c4]'
+              )}
             >
               <Users className="w-4 h-4" />
               {org.member_count} team member{org.member_count !== 1 ? 's' : ''}

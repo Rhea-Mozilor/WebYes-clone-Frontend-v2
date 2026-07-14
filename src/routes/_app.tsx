@@ -288,7 +288,7 @@ function ScanProgressModal({
           {/* Close button */}
           <button
             onClick={onHide}
-            className="absolute top-5 right-5 text-[#585b66] hover:text-[#141414] transition-colors z-10"
+            className="absolute top-3 right-4 p-1.5 text-[#585b66] hover:text-[#141414] transition-colors z-10"
           >
             <X size={18} />
           </button>
@@ -496,7 +496,7 @@ function OnboardingScanModal({
         <div className="px-8 pt-8 pb-0 flex flex-col gap-5">
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 text-[#585b66] hover:text-[#141414] transition-colors z-10"
+            className="absolute top-3 right-4 p-1.5 text-[#585b66] hover:text-[#141414] transition-colors z-10"
           >
             <X size={18} />
           </button>

@@ -10,6 +10,7 @@ export interface ScanArgs {
 
 export const ScanModalContext = createContext<{
   openScanModal: (args: ScanArgs) => void
-}>({ openScanModal: () => {} })
+  showViewerError: () => void
+}>({ openScanModal: () => {}, showViewerError: () => {} })
 
 export const useScanModal = () => useContext(ScanModalContext)

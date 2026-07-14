@@ -538,7 +538,7 @@ function WebsiteMenu({
 
 function AddWebsiteToOrgModal({ orgId, onClose }: { orgId: string; onClose: () => void }) {
   const qc = useQueryClient()
-  const { openScanModal } = useScanModal()
+  const { openScanModal, showViewerError } = useScanModal()
   const setWebsiteId = useSiteStore((s) => s.setWebsiteId)
   const strategy = useSiteStore((s) => s.strategy)
   const [name, setName] = useState('')
@@ -603,7 +603,9 @@ function AddWebsiteToOrgModal({ orgId, onClose }: { orgId: string; onClose: () =
                     websiteName: name.trim() || createdUrl,
                     websiteId: createdId,
                   })
-                } catch { /* ok */ } finally {
+                } catch (err) {
+                  if ((err as { response?: { status?: number } })?.response?.status === 403) showViewerError()
+                } finally {
                   setScanning(false)
                 }
                 onClose()

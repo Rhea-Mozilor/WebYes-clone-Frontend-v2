@@ -15,7 +15,7 @@ export function AddNewWebsiteModal({
   onClose: () => void
 }) {
   const qc = useQueryClient()
-  const { openScanModal } = useScanModal()
+  const { openScanModal, showViewerError } = useScanModal()
   const setWebsiteId = useSiteStore((s) => s.setWebsiteId)
   const strategy = useSiteStore((s) => s.strategy)
   const [orgId, setOrgId] = useState('')
@@ -83,7 +83,9 @@ export function AddNewWebsiteModal({
                     websiteName: name.trim() || createdUrl,
                     websiteId: createdId,
                   })
-                } catch { /* ok */ } finally {
+                } catch (err) {
+                  if ((err as { response?: { status?: number } })?.response?.status === 403) showViewerError()
+                } finally {
                   setScanning(false)
                 }
                 onClose()

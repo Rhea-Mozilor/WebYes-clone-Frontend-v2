@@ -645,6 +645,7 @@ function AppLayout() {
   const [confirmScanOpen, setConfirmScanOpen] = useState(false)
   const [scanDetailOpen, setScanDetailOpen] = useState(false)
   const [onboardingComplete, setOnboardingComplete] = useState<{ failed: boolean } | null>(null)
+  const [viewerErrorOpen, setViewerErrorOpen] = useState(false)
   const websiteRef = useRef<HTMLDivElement>(null)
   const strategyRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
@@ -727,6 +728,8 @@ function AppLayout() {
     setScanModalVisible(true)
   }, [])
 
+  const showViewerError = useCallback(() => setViewerErrorOpen(true), [])
+
   // True while any scan is in progress (onboarding background scan OR rescan)
   const isScanRunning = !!activeScanJob || (!!scanJobs && !scanJobsDone)
 
@@ -746,7 +749,13 @@ function AppLayout() {
       setScanJobsDone(false)
       setScanModalVisible(true)
     },
-    onError: () => toast.error('Could not start scan'),
+    onError: (err: unknown) => {
+      if ((err as { response?: { status?: number } })?.response?.status === 403) {
+        setViewerErrorOpen(true)
+      } else {
+        toast.error('Could not start scan')
+      }
+    },
   })
 
   async function handleLogout() {
@@ -769,7 +778,7 @@ function AppLayout() {
   ]
 
   return (
-    <ScanModalContext.Provider value={{ openScanModal }}>
+    <ScanModalContext.Provider value={{ openScanModal, showViewerError }}>
     <BgScanContext.Provider value={{ bgScan: activeScanJob, setBgScan: setActiveScanJob }}>
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
       {/* ── Rescan confirmation modal ──────────────────────────────── */}
@@ -1267,6 +1276,24 @@ function AppLayout() {
         orgs={orgs}
         onClose={() => setAddWebsiteModalOpen(false)}
       />
+    )}
+
+    {viewerErrorOpen && (
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30">
+        <div className="bg-white rounded-[16px] shadow-xl w-[380px] px-8 py-8 flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+            <X className="w-6 h-6 text-red-500" />
+          </div>
+          <h3 className="text-[18px] font-bold text-[#2e3240] mb-2">Permission denied</h3>
+          <p className="text-[14px] text-[#73767f] mb-6">Viewers cannot scan this site. Ask an admin to run the scan.</p>
+          <button
+            onClick={() => setViewerErrorOpen(false)}
+            className="px-8 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[14px] font-semibold rounded-[10px] transition-colors"
+          >
+            OK
+          </button>
+        </div>
+      </div>
     )}
     </BgScanContext.Provider>
     </ScanModalContext.Provider>

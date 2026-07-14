@@ -436,7 +436,7 @@ function AccessPanel({ member, onClose }: { member: TeamMember; onClose: () => v
                 onClick={() => setAddOrgOpen(true)}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-[8px] text-[14px] font-medium text-white bg-[#0b66e4] hover:bg-[#0952c6] transition-colors whitespace-nowrap"
               >
-                Add organisation +
+                Add to Organization
               </button>
               <button
                 onClick={onClose}

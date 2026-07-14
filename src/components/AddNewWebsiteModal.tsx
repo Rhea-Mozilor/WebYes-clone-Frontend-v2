@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, ChevronDown } from 'lucide-react'
 import { createWebsite, transferWebsite } from '../api/websites'
 import { triggerScan } from '../api/scans'
 import { type Organisation } from '../api/organisations'
 import { useSiteStore } from '../store/siteStore'
+import { useScanModal } from '../lib/ScanModalContext'
 
 export function AddNewWebsiteModal({
   orgs,
@@ -15,9 +15,8 @@ export function AddNewWebsiteModal({
   onClose: () => void
 }) {
   const qc = useQueryClient()
-  const navigate = useNavigate()
+  const { openScanModal } = useScanModal()
   const setWebsiteId = useSiteStore((s) => s.setWebsiteId)
-  const setPendingScan = useSiteStore((s) => s.setPendingScan)
   const strategy = useSiteStore((s) => s.strategy)
   const [orgId, setOrgId] = useState('')
   const [name, setName] = useState('')
@@ -76,17 +75,18 @@ export function AddNewWebsiteModal({
                   const job = await triggerScan(createdId)
                   const desktopId = job.desktop_scan_job_id ?? (strategy === 'desktop' ? job.scan_job_id : null) ?? null
                   const mobileId = job.mobile_scan_job_id ?? (strategy === 'mobile' ? job.scan_job_id : null) ?? null
-                  setPendingScan({
+                  setWebsiteId(createdId)
+                  openScanModal({
                     desktopJobId: desktopId ? String(desktopId) : null,
                     mobileJobId: mobileId ? String(mobileId) : null,
                     url: createdUrl,
                     websiteName: name.trim() || createdUrl,
                     websiteId: createdId,
                   })
-                  setWebsiteId(createdId)
-                } catch { /* AppLayout will show an error if job IDs are missing */ }
+                } catch { /* ok */ } finally {
+                  setScanning(false)
+                }
                 onClose()
-                void navigate({ to: '/dashboard' })
               }}
               className="px-6 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] disabled:opacity-50 text-white text-[14px] font-semibold rounded-[10px] transition-colors"
             >

@@ -7,7 +7,7 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   LayoutGrid,
   Globe,
@@ -44,6 +44,7 @@ import { triggerScan, getScanJob, cancelScan, getActiveScan } from '../api/scans
 import { useAuthStore } from '../store/authStore'
 import { useSiteStore } from '../store/siteStore'
 import { BgScanContext } from '../lib/BgScanContext'
+import { ScanModalContext, type ScanArgs } from '../lib/ScanModalContext'
 
 export const Route = createFileRoute('/_app')({
   beforeLoad: () => {
@@ -631,7 +632,7 @@ function AppLayout() {
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const { data: websites = [] } = useQuery({ queryKey: ['websites'], queryFn: listWebsites })
   const { data: orgs = [] } = useQuery({ queryKey: ['organisations'], queryFn: listOrganisations })
-  const { websiteId, setWebsiteId, strategy, setStrategy, setScanForWebsite, activeScanJob, setActiveScanJob, pendingScan, setPendingScan } = useSiteStore()
+  const { websiteId, setWebsiteId, strategy, setStrategy, setScanForWebsite, activeScanJob, setActiveScanJob } = useSiteStore()
   const location = useRouterState({ select: (s) => s.location.pathname })
 
   const [websiteDrop, setWebsiteDrop] = useState(false)
@@ -720,18 +721,11 @@ function AppLayout() {
     setActiveScanJob({ jobId: activeScanData.scan_job_id, url: selectedWebsite?.url ?? '' })
   }, [activeScanData, selectedWebsite, setActiveScanJob])
 
-  // Open scan modal when AddNewWebsiteModal triggers a scan via store
-  useEffect(() => {
-    if (pendingScan) {
-      const { desktopJobId, mobileJobId } = pendingScan
-      if (desktopJobId || mobileJobId) {
-        setScanJobs(pendingScan)
-        setScanJobsDone(false)
-        setScanModalVisible(true)
-      }
-      setPendingScan(null)
-    }
-  }, [pendingScan, setPendingScan])
+  const openScanModal = useCallback((args: ScanArgs) => {
+    setScanJobs(args)
+    setScanJobsDone(false)
+    setScanModalVisible(true)
+  }, [])
 
   // True while any scan is in progress (onboarding background scan OR rescan)
   const isScanRunning = !!activeScanJob || (!!scanJobs && !scanJobsDone)
@@ -775,6 +769,7 @@ function AppLayout() {
   ]
 
   return (
+    <ScanModalContext.Provider value={{ openScanModal }}>
     <BgScanContext.Provider value={{ bgScan: activeScanJob, setBgScan: setActiveScanJob }}>
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
       {/* ── Rescan confirmation modal ──────────────────────────────── */}
@@ -1274,5 +1269,6 @@ function AppLayout() {
       />
     )}
     </BgScanContext.Provider>
+    </ScanModalContext.Provider>
   )
 }

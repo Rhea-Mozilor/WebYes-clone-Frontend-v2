@@ -28,9 +28,10 @@ import {
   type OrgRole,
 } from '../../../api/organisations'
 import { transferWebsite, createWebsite, renameWebsite, deleteWebsite } from '../../../api/websites'
-import { getScanHistory } from '../../../api/scans'
+import { getScanHistory, triggerScan } from '../../../api/scans'
 import { AddNewWebsiteModal } from '../../../components/AddNewWebsiteModal'
 import { useSiteStore } from '../../../store/siteStore'
+import { useScanModal } from '../../../lib/ScanModalContext'
 
 export const Route = createFileRoute('/_app/settings/organisation')({
   component: OrganisationPage,
@@ -537,11 +538,14 @@ function WebsiteMenu({
 
 function AddWebsiteToOrgModal({ orgId, onClose }: { orgId: string; onClose: () => void }) {
   const qc = useQueryClient()
-  const navigate = useNavigate()
+  const { openScanModal } = useScanModal()
   const setWebsiteId = useSiteStore((s) => s.setWebsiteId)
+  const strategy = useSiteStore((s) => s.strategy)
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
   const [createdId, setCreatedId] = useState<string | null>(null)
+  const [createdUrl, setCreatedUrl] = useState('')
+  const [scanning, setScanning] = useState(false)
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -554,6 +558,7 @@ function AddWebsiteToOrgModal({ orgId, onClose }: { orgId: string; onClose: () =
       qc.invalidateQueries({ queryKey: ['organisations'] })
       qc.invalidateQueries({ queryKey: ['websites'] })
       setCreatedId(created.id)
+      setCreatedUrl(created.url ?? url.trim())
     },
   })
 
@@ -582,14 +587,30 @@ function AddWebsiteToOrgModal({ orgId, onClose }: { orgId: string; onClose: () =
               Scan later
             </button>
             <button
-              onClick={() => {
-                setWebsiteId(createdId)
-                void navigate({ to: '/dashboard' })
+              disabled={scanning}
+              onClick={async () => {
+                if (!createdId) return
+                setScanning(true)
+                try {
+                  const job = await triggerScan(createdId)
+                  const desktopId = job.desktop_scan_job_id ?? (strategy === 'desktop' ? job.scan_job_id : null) ?? null
+                  const mobileId = job.mobile_scan_job_id ?? (strategy === 'mobile' ? job.scan_job_id : null) ?? null
+                  setWebsiteId(createdId)
+                  openScanModal({
+                    desktopJobId: desktopId ? String(desktopId) : null,
+                    mobileJobId: mobileId ? String(mobileId) : null,
+                    url: createdUrl,
+                    websiteName: name.trim() || createdUrl,
+                    websiteId: createdId,
+                  })
+                } catch { /* ok */ } finally {
+                  setScanning(false)
+                }
                 onClose()
               }}
-              className="px-6 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[14px] font-semibold rounded-[10px] transition-colors"
+              className="px-6 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] disabled:opacity-50 text-white text-[14px] font-semibold rounded-[10px] transition-colors"
             >
-              Scan now
+              {scanning ? 'Starting…' : 'Scan now'}
             </button>
           </div>
         </div>

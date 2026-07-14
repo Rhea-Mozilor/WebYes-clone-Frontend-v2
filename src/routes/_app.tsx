@@ -283,15 +283,15 @@ function ScanProgressModal({
         className="relative bg-white rounded-[12px] w-full flex flex-col gap-5"
         style={{ maxWidth: 886, boxShadow: '0px 0px 20px 0px rgba(16,6,57,0.13)' }}
       >
-        <div className="px-8 pt-8 pb-0 flex flex-col gap-5">
+        {/* Close button */}
+        <button
+          onClick={onHide}
+          className="absolute top-4 right-5 p-1.5 text-[#585b66] hover:text-[#141414] transition-colors z-10"
+        >
+          <X size={18} />
+        </button>
 
-          {/* Close button */}
-          <button
-            onClick={onHide}
-            className="absolute top-3 right-4 p-1.5 text-[#585b66] hover:text-[#141414] transition-colors z-10"
-          >
-            <X size={18} />
-          </button>
+        <div className="px-8 pt-8 pb-0 flex flex-col gap-5">
 
           {/* Main bordered content box */}
           <div className="border border-[#adbbd8] rounded-[8px] flex overflow-hidden" style={{ minHeight: 324 }}>
@@ -493,13 +493,15 @@ function OnboardingScanModal({
         className="relative bg-white rounded-[12px] w-full flex flex-col gap-5"
         style={{ maxWidth: 886, boxShadow: '0px 0px 20px 0px rgba(16,6,57,0.13)' }}
       >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-5 p-1.5 text-[#585b66] hover:text-[#141414] transition-colors z-10"
+        >
+          <X size={18} />
+        </button>
+
         <div className="px-8 pt-8 pb-0 flex flex-col gap-5">
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-4 p-1.5 text-[#585b66] hover:text-[#141414] transition-colors z-10"
-          >
-            <X size={18} />
-          </button>
 
           <div className="border border-[#adbbd8] rounded-[8px] flex overflow-hidden" style={{ minHeight: 324 }}>
             <div className="flex-1 py-8 pl-9 pr-6 flex flex-col min-w-0">

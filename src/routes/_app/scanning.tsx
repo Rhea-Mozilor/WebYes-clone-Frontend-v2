@@ -20,9 +20,8 @@ function siteName(rawUrl: string) {
 
 function CheckIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" className="shrink-0">
-      <circle cx="11" cy="11" r="11" fill="#219653" />
-      <path d="M6 11.5l3.5 3.5 6.5-6.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="18" height="14" viewBox="0 0 18 14" fill="none" className="shrink-0">
+      <path d="M1.5 7l5 5L16.5 1.5" stroke="#219653" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -188,7 +187,8 @@ function ScanningPage() {
               if (jobId) setActiveScanJob({ jobId, url })
               navigate({ to: '/dashboard' })
             }}
-            className="absolute top-5 right-5 text-[#585b66] hover:text-[#141414] transition-colors"
+            disabled={pagesScanned === 0}
+            className="absolute top-2 right-3 p-1.5 text-[#585b66] hover:text-[#141414] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <X size={18} />
           </button>
@@ -316,7 +316,8 @@ function ScanningPage() {
               if (jobId) setActiveScanJob({ jobId, url })
               navigate({ to: '/dashboard' })
             }}
-            className="px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[14px] font-medium rounded-[4px] transition-colors"
+            disabled={pagesScanned === 0}
+            className="px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[14px] font-medium rounded-[4px] transition-colors"
             style={{ letterSpacing: '-0.28px' }}
           >
             Back to dashboard

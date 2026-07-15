@@ -28,7 +28,7 @@ import PerformanceSvg from '../components/svgicons/Performance.svg'
 import QualitySvg from '../components/svgicons/Quality.svg'
 import SeoSvg from '../components/svgicons/SEO.svg'
 import ScanModalGif from '../components/svgicons/scanmodal.gif'
-// import UpgradeSvg from '../components/svgicons/upgrade.svg'
+import UpgradeSvg from '../components/svgicons/upgrade.svg'
 
 const AccIcon = ({ className }: { className?: string }) => <img src={AccessibilitySvg} className={className} alt="" />
 const PerfIcon = ({ className }: { className?: string }) => <img src={PerformanceSvg} className={className} alt="" />
@@ -1125,13 +1125,13 @@ function AppLayout() {
           </Link>
 
           {/* Upgrade — hidden on mobile */}
-          {/* <Link
+          <Link
             to="/upgrade"
             className="hidden sm:flex items-center gap-1 px-4 py-3.5 rounded-sm text-sm font-semibold text-orange-950 bg-amber-500 hover:bg-amber-400 transition-colors"
           >
             <img src={UpgradeSvg} alt="" className="w-4 h-4" />
             Upgrade
-          </Link> */}
+          </Link>
 
           {/* Help — hidden on mobile */}
           {/* <button className="hidden sm:flex w-8 h-8 items-center justify-center text-blue-600 hover:text-blue-700 rounded-full hover:bg-gray-50 transition-colors">
@@ -1161,14 +1161,14 @@ function AppLayout() {
                 </div>
 
                 {/* Upgrade button */}
-                {/* <Link
+                <Link
                   to="/upgrade"
                   onClick={() => setUserMenu(false)}
                   className="w-full flex items-center justify-center gap-2 py-3 bg-amber-500 hover:bg-amber-400 rounded-lg text-sm font-semibold text-orange-950 transition-colors"
                 >
                   <img src={UpgradeSvg} alt="" className="w-4 h-4" />
                   Upgrade
-                </Link> */}
+                </Link>
 
                 {/* Organisation settings */}
                 <Link

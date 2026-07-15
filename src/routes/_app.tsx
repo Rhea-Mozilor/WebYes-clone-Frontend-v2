@@ -1124,6 +1124,15 @@ function AppLayout() {
             <History className="w-6 h-6" />
           </Link>
 
+          {/* Upgrade — hidden on mobile */}
+          <Link
+            to="/upgrade"
+            className="hidden sm:flex items-center gap-1 px-4 py-3.5 rounded-sm text-sm font-semibold text-orange-950 bg-amber-500 hover:bg-amber-400 transition-colors mx-2"
+          >
+            <img src={UpgradeSvg} alt="" className="w-4 h-4" />
+            Upgrade
+          </Link>
+
           {/* Help — hidden on mobile */}
           {/* <button className="hidden sm:flex w-8 h-8 items-center justify-center text-blue-600 hover:text-blue-700 rounded-full hover:bg-gray-50 transition-colors">
             <HelpCircle className="w-5 h-5" />
@@ -1133,9 +1142,9 @@ function AppLayout() {
           <div ref={userRef} className="relative">
             <button
               onClick={() => setUserMenu(!userMenu)}
-              className="hidden sm:flex items-center gap-2 pl-4 pr-1 py-1 rounded-full border border-[#d1d5db] hover:border-[#b0b8c4] transition-colors bg-white ml-3"
+              className="hidden sm:flex items-center gap-2 pl-4 pr-1 py-1 rounded-full border border-[#d1d5db] hover:border-[#b0b8c4] transition-colors bg-white"
             >
-              <span className="text-[12px] font-semibold text-[#2e3240] uppercase tracking-wide">{user?.plan ?? 'Free'}</span>
+              <span className="text-[12px] font-semibold text-[#2e3240] uppercase tracking-wide">{user?.plan ?? 'BASIC'}</span>
               <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center shrink-0">
                 <span className="text-white text-xs font-bold">{initials}</span>
               </div>

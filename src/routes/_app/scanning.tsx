@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { getScanJob, cancelScan } from '../../api/scans'
 import ScanModalGif from '../../components/svgicons/scanmodal.gif'
@@ -51,6 +51,7 @@ function ScanIcon() {
 function ScanningPage() {
   const { jobId, url } = Route.useSearch()
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const [cancelling, setCancelling] = useState(false)
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
   const [showComplete, setShowComplete] = useState(false)
@@ -82,6 +83,7 @@ function ScanningPage() {
     if (!jobId) { navigate({ to: '/dashboard' }); return }
     setCancelling(true)
     try { await cancelScan(jobId) } catch {}
+    void qc.invalidateQueries({ queryKey: ['billing-credits'] })
     navigate({ to: '/dashboard' })
   }
 

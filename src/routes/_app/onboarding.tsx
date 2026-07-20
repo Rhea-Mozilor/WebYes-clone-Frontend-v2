@@ -33,6 +33,7 @@ function OnboardingPage() {
       await queryClient.invalidateQueries({ queryKey: ['websites'] })
       setWebsiteId(website.id)
       const job = await triggerScan(website.id)
+      void queryClient.invalidateQueries({ queryKey: ['billing-credits'] })
 
       const jobId =
         job.desktop_scan_job_id

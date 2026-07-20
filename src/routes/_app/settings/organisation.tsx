@@ -616,6 +616,7 @@ function AddWebsiteToOrgModal({ orgId, onClose }: { orgId: string; onClose: () =
                 setScanning(true)
                 try {
                   const job = await triggerScan(createdId)
+                  void qc.invalidateQueries({ queryKey: ['billing-credits'] })
                   const desktopId = job.desktop_scan_job_id ?? (strategy === 'desktop' ? job.scan_job_id : null) ?? null
                   const mobileId = job.mobile_scan_job_id ?? (strategy === 'mobile' ? job.scan_job_id : null) ?? null
                   setWebsiteId(createdId)

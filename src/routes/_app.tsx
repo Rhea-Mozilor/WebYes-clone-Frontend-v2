@@ -93,6 +93,7 @@ function ScanProgressModal({
     } finally {
       setCancelling(false)
       onCancel()
+      void qc.invalidateQueries({ queryKey: ['billing-credits'] })
     }
   }
 
@@ -488,6 +489,7 @@ function OnboardingScanModal({
     setCancelling(true)
     try { await cancelScan(jobId) } catch { /* ok */ }
     onCancel()
+    void qc.invalidateQueries({ queryKey: ['billing-credits'] })
   }
 
   return (
@@ -631,6 +633,7 @@ function OnboardingScanModal({
 
 function AppLayout() {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const { clearAuth } = useAuthStore()
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const { data: billingCredits } = useQuery({ queryKey: ['billing-credits'], queryFn: getBillingCredits })
@@ -755,6 +758,7 @@ function AppLayout() {
       })
       setScanJobsDone(false)
       setScanModalVisible(true)
+      void qc.invalidateQueries({ queryKey: ['billing-credits'] })
     },
     onError: (err: unknown) => {
       if ((err as { response?: { status?: number } })?.response?.status === 403) {

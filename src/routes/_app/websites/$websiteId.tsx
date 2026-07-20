@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ScanLine, Loader2, Globe } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useNavigate } from '@tanstack/react-router'
@@ -13,6 +13,7 @@ export const Route = createFileRoute('/_app/websites/$websiteId')({
 function WebsiteDetailPage() {
   const { websiteId } = Route.useParams()
   const navigate = useNavigate()
+  const qc = useQueryClient()
 
   const { data: website, isLoading: loadingWebsite } = useQuery({
     queryKey: ['website', websiteId],
@@ -23,6 +24,7 @@ function WebsiteDetailPage() {
     mutationFn: () => triggerScan(websiteId),
     onSuccess: (job) => {
       toast.success('Scan started!')
+      void qc.invalidateQueries({ queryKey: ['billing-credits'] })
       const scanId = job.mobile_scan_job_id ?? job.desktop_scan_job_id ?? job.scan_job_id
       if (!scanId) return
       navigate({ to: '/scans/$scanId', params: { scanId } })

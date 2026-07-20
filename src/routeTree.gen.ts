@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as GuestRouteImport } from './routes/guest'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as UpgradeSuccessRouteImport } from './routes/upgrade/success'
 import { Route as AppUpgradeRouteImport } from './routes/_app/upgrade'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppSeoRouteImport } from './routes/_app/seo'
@@ -57,6 +58,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UpgradeSuccessRoute = UpgradeSuccessRouteImport.update({
+  id: '/upgrade/success',
+  path: '/upgrade/success',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppUpgradeRoute = AppUpgradeRouteImport.update({
@@ -175,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/seo': typeof AppSeoRoute
   '/settings': typeof AppSettingsRouteWithChildren
   '/upgrade': typeof AppUpgradeRoute
+  '/upgrade/success': typeof UpgradeSuccessRoute
   '/issues/$issueId': typeof AppIssuesIssueIdRoute
   '/settings/billing': typeof AppSettingsBillingRoute
   '/settings/integrations': typeof AppSettingsIntegrationsRoute
@@ -200,6 +207,7 @@ export interface FileRoutesByTo {
   '/scanning': typeof AppScanningRoute
   '/seo': typeof AppSeoRoute
   '/upgrade': typeof AppUpgradeRoute
+  '/upgrade/success': typeof UpgradeSuccessRoute
   '/issues/$issueId': typeof AppIssuesIssueIdRoute
   '/settings/billing': typeof AppSettingsBillingRoute
   '/settings/integrations': typeof AppSettingsIntegrationsRoute
@@ -228,6 +236,7 @@ export interface FileRoutesById {
   '/_app/seo': typeof AppSeoRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
   '/_app/upgrade': typeof AppUpgradeRoute
+  '/upgrade/success': typeof UpgradeSuccessRoute
   '/_app/issues/$issueId': typeof AppIssuesIssueIdRoute
   '/_app/settings/billing': typeof AppSettingsBillingRoute
   '/_app/settings/integrations': typeof AppSettingsIntegrationsRoute
@@ -256,6 +265,7 @@ export interface FileRouteTypes {
     | '/seo'
     | '/settings'
     | '/upgrade'
+    | '/upgrade/success'
     | '/issues/$issueId'
     | '/settings/billing'
     | '/settings/integrations'
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
     | '/scanning'
     | '/seo'
     | '/upgrade'
+    | '/upgrade/success'
     | '/issues/$issueId'
     | '/settings/billing'
     | '/settings/integrations'
@@ -308,6 +319,7 @@ export interface FileRouteTypes {
     | '/_app/seo'
     | '/_app/settings'
     | '/_app/upgrade'
+    | '/upgrade/success'
     | '/_app/issues/$issueId'
     | '/_app/settings/billing'
     | '/_app/settings/integrations'
@@ -326,6 +338,7 @@ export interface RootRouteChildren {
   GuestRoute: typeof GuestRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  UpgradeSuccessRoute: typeof UpgradeSuccessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -363,6 +376,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/upgrade/success': {
+      id: '/upgrade/success'
+      path: '/upgrade/success'
+      fullPath: '/upgrade/success'
+      preLoaderRoute: typeof UpgradeSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/upgrade': {
@@ -572,6 +592,7 @@ const rootRouteChildren: RootRouteChildren = {
   GuestRoute: GuestRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  UpgradeSuccessRoute: UpgradeSuccessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

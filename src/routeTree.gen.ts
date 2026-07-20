@@ -29,6 +29,8 @@ import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/ind
 import { Route as AppWebsitesWebsiteIdRouteImport } from './routes/_app/websites/$websiteId'
 import { Route as AppSettingsTeamRouteImport } from './routes/_app/settings/team'
 import { Route as AppSettingsOrganisationRouteImport } from './routes/_app/settings/organisation'
+import { Route as AppSettingsIntegrationsRouteImport } from './routes/_app/settings/integrations'
+import { Route as AppSettingsBillingRouteImport } from './routes/_app/settings/billing'
 import { Route as AppIssuesIssueIdRouteImport } from './routes/_app/issues/$issueId'
 import { Route as AppScansScanIdIndexRouteImport } from './routes/_app/scans/$scanId/index'
 import { Route as AppScansScanIdIssuesRouteImport } from './routes/_app/scans/$scanId/issues'
@@ -132,6 +134,16 @@ const AppSettingsOrganisationRoute = AppSettingsOrganisationRouteImport.update({
   path: '/organisation',
   getParentRoute: () => AppSettingsRoute,
 } as any)
+const AppSettingsIntegrationsRoute = AppSettingsIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsBillingRoute = AppSettingsBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
 const AppIssuesIssueIdRoute = AppIssuesIssueIdRouteImport.update({
   id: '/issues/$issueId',
   path: '/issues/$issueId',
@@ -164,6 +176,8 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRouteWithChildren
   '/upgrade': typeof AppUpgradeRoute
   '/issues/$issueId': typeof AppIssuesIssueIdRoute
+  '/settings/billing': typeof AppSettingsBillingRoute
+  '/settings/integrations': typeof AppSettingsIntegrationsRoute
   '/settings/organisation': typeof AppSettingsOrganisationRoute
   '/settings/team': typeof AppSettingsTeamRoute
   '/websites/$websiteId': typeof AppWebsitesWebsiteIdRoute
@@ -187,6 +201,8 @@ export interface FileRoutesByTo {
   '/seo': typeof AppSeoRoute
   '/upgrade': typeof AppUpgradeRoute
   '/issues/$issueId': typeof AppIssuesIssueIdRoute
+  '/settings/billing': typeof AppSettingsBillingRoute
+  '/settings/integrations': typeof AppSettingsIntegrationsRoute
   '/settings/organisation': typeof AppSettingsOrganisationRoute
   '/settings/team': typeof AppSettingsTeamRoute
   '/websites/$websiteId': typeof AppWebsitesWebsiteIdRoute
@@ -213,6 +229,8 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRouteWithChildren
   '/_app/upgrade': typeof AppUpgradeRoute
   '/_app/issues/$issueId': typeof AppIssuesIssueIdRoute
+  '/_app/settings/billing': typeof AppSettingsBillingRoute
+  '/_app/settings/integrations': typeof AppSettingsIntegrationsRoute
   '/_app/settings/organisation': typeof AppSettingsOrganisationRoute
   '/_app/settings/team': typeof AppSettingsTeamRoute
   '/_app/websites/$websiteId': typeof AppWebsitesWebsiteIdRoute
@@ -239,6 +257,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/upgrade'
     | '/issues/$issueId'
+    | '/settings/billing'
+    | '/settings/integrations'
     | '/settings/organisation'
     | '/settings/team'
     | '/websites/$websiteId'
@@ -262,6 +282,8 @@ export interface FileRouteTypes {
     | '/seo'
     | '/upgrade'
     | '/issues/$issueId'
+    | '/settings/billing'
+    | '/settings/integrations'
     | '/settings/organisation'
     | '/settings/team'
     | '/websites/$websiteId'
@@ -287,6 +309,8 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/upgrade'
     | '/_app/issues/$issueId'
+    | '/_app/settings/billing'
+    | '/_app/settings/integrations'
     | '/_app/settings/organisation'
     | '/_app/settings/team'
     | '/_app/websites/$websiteId'
@@ -446,6 +470,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsOrganisationRouteImport
       parentRoute: typeof AppSettingsRoute
     }
+    '/_app/settings/integrations': {
+      id: '/_app/settings/integrations'
+      path: '/integrations'
+      fullPath: '/settings/integrations'
+      preLoaderRoute: typeof AppSettingsIntegrationsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/_app/settings/billing': {
+      id: '/_app/settings/billing'
+      path: '/billing'
+      fullPath: '/settings/billing'
+      preLoaderRoute: typeof AppSettingsBillingRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
     '/_app/issues/$issueId': {
       id: '/_app/issues/$issueId'
       path: '/issues/$issueId'
@@ -471,12 +509,16 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppSettingsRouteChildren {
+  AppSettingsBillingRoute: typeof AppSettingsBillingRoute
+  AppSettingsIntegrationsRoute: typeof AppSettingsIntegrationsRoute
   AppSettingsOrganisationRoute: typeof AppSettingsOrganisationRoute
   AppSettingsTeamRoute: typeof AppSettingsTeamRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
 
 const AppSettingsRouteChildren: AppSettingsRouteChildren = {
+  AppSettingsBillingRoute: AppSettingsBillingRoute,
+  AppSettingsIntegrationsRoute: AppSettingsIntegrationsRoute,
   AppSettingsOrganisationRoute: AppSettingsOrganisationRoute,
   AppSettingsTeamRoute: AppSettingsTeamRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,

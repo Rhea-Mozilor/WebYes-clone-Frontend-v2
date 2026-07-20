@@ -826,3 +826,99 @@ export interface ScanHistoryItem {
   issues_detected?: number | null;
   scan_url?: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Billing
+// ---------------------------------------------------------------------------
+
+export type BillingPeriod = 'monthly' | 'annually';
+export type BillingPlanName = 'free' | 'pro' | 'enterprise';
+export type BillingPlanId = 'free' | 'pro_monthly' | 'pro_annually' | 'enterprise_monthly' | 'enterprise_annually';
+export type BillingStatus = 'active' | 'cancelled' | 'pending_payment' | 'payment_failed';
+export type InvoiceStatus = 'paid' | 'pending' | 'failed';
+export type InvoiceDateRange = '30d' | '90d' | '1y' | 'all';
+
+export interface BillingPlanFeature {
+  text: string;
+  included: boolean;
+}
+
+// Matches backend GET /billing/plans response — a flat list of 5 purchasable
+// plan variants (free, pro_monthly, pro_annually, enterprise_monthly,
+// enterprise_annually); `name` is the grouping key, `billing_period` is null
+// for the free plan (it has no monthly/annually split).
+export interface BillingPlan {
+  id: BillingPlanId;
+  name: BillingPlanName;
+  billing_period: BillingPeriod | null;
+  credits: number;
+  price: number;
+  features: BillingPlanFeature[];
+}
+
+export interface BillingPlansResponse {
+  plans: BillingPlan[];
+}
+
+// Matches backend GET /billing/credits response
+export interface BillingCredits {
+  plan_id: string;
+  plan_name: string;
+  is_trial: boolean;
+  credits_balance: number;
+  credits_total: number;
+  current_period_end: string | null;
+  status: BillingStatus;
+}
+
+export interface BillingPaymentMethod {
+  brand: string;
+  last4: string;
+  exp_month: number;
+  exp_year: number;
+}
+
+// Matches backend GET /billing/summary response
+export interface BillingSummary {
+  plan_id: string;
+  plan_name: string;
+  is_trial: boolean;
+  price: number;
+  billing_period: BillingPeriod;
+  expires_in_days: number | null;
+  status: BillingStatus;
+  payment_method: BillingPaymentMethod | null;
+  credits_balance: number;
+  credits_total: number;
+}
+
+// Matches backend POST /billing/checkout response
+export interface CheckoutResponse {
+  checkout_url: string;
+}
+
+// Matches backend POST /billing/cancel response
+export interface CancelSubscriptionResponse {
+  ok: boolean;
+}
+
+export interface InvoiceItem {
+  invoice_id: string;
+  plan: string;
+  billing_period: BillingPeriod;
+  amount: number;
+  date: string;
+  status: InvoiceStatus;
+  download_url: string;
+}
+
+// Matches backend GET /billing/invoices response
+export interface InvoicesResponse {
+  items: InvoiceItem[];
+  total: number;
+}
+
+// Matches backend GET /billing/invoices/{invoice_id}/pdf response
+export interface InvoicePdfResponse {
+  pdf_url: string;
+}

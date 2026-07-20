@@ -37,6 +37,7 @@ const SeoIcon = ({ className }: { className?: string }) => <img src={SeoSvg} cla
 import toast from 'react-hot-toast'
 import { cn } from '../lib/utils'
 import { getMe, logout } from '../api/auth'
+import { getBillingCredits } from '../api/billing'
 import { listWebsites } from '../api/websites'
 import { listOrganisations } from '../api/organisations'
 import { AddNewWebsiteModal } from '../components/AddNewWebsiteModal'
@@ -632,6 +633,7 @@ function AppLayout() {
   const navigate = useNavigate()
   const { clearAuth } = useAuthStore()
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: getMe })
+  const { data: billingCredits } = useQuery({ queryKey: ['billing-credits'], queryFn: getBillingCredits })
   const { data: websites = [] } = useQuery({ queryKey: ['websites'], queryFn: listWebsites })
   const { data: orgs = [] } = useQuery({ queryKey: ['organisations'], queryFn: listOrganisations })
   const { websiteId, setWebsiteId, strategy, setStrategy, setScanForWebsite, activeScanJob, setActiveScanJob } = useSiteStore()
@@ -651,6 +653,8 @@ function AppLayout() {
   const websiteRef = useRef<HTMLDivElement>(null)
   const strategyRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
+  const creditsRef = useRef<HTMLDivElement>(null)
+  const [creditsOpen, setCreditsOpen] = useState(false)
   const handledJobRef = useRef<string | null>(null)
   const recoveredJobRef = useRef<string | null>(null)
 
@@ -699,6 +703,7 @@ function AppLayout() {
       if (websiteRef.current && !websiteRef.current.contains(e.target as Node)) setWebsiteDrop(false)
       if (strategyRef.current && !strategyRef.current.contains(e.target as Node)) setStrategyDrop(false)
       if (userRef.current && !userRef.current.contains(e.target as Node)) setUserMenu(false)
+      if (creditsRef.current && !creditsRef.current.contains(e.target as Node)) setCreditsOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -903,7 +908,7 @@ function AppLayout() {
             <span className="text-blue-600">W</span>ebYes
           </span>
 
-          {location !== '/onboarding' && (<>
+          {location !== '/onboarding' && location !== '/upgrade' && (<>
           {/* Divider after logo */}
           <div className="w-px h-8 bg-slate-300 shrink-0 hidden sm:block" />
 
@@ -1119,6 +1124,79 @@ function AppLayout() {
             </div>
           )}
 
+          {/* Credits indicator — hidden on mobile */}
+          {(() => {
+            if (!billingCredits) return null
+            const totalCredits = billingCredits.credits_total
+            const leftCredits = billingCredits.credits_balance
+            const reservedCredits = Math.max(totalCredits - leftCredits, 0)
+            const pct = totalCredits > 0 ? Math.round((leftCredits / totalCredits) * 100) : 0
+            return (
+              <div ref={creditsRef} className="relative hidden sm:block mr-6 self-end pb-2">
+                <button
+                  onClick={() => setCreditsOpen(!creditsOpen)}
+                  className="flex flex-col items-end gap-1 hover:opacity-80 transition-opacity"
+                >
+                  <div className="w-40 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#2e3240] rounded-full" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[15px] font-semibold text-gray-900 whitespace-nowrap">{leftCredits}/{totalCredits} ({pct}%) credits left</span>
+                    <svg width="15" height="15" viewBox="0 0 14 14" fill="none" className="shrink-0 text-blue-600">
+                      <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
+                      <path d="M7 6.5v4M7 4.5v.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                </button>
+
+                {creditsOpen && (
+                  <div className="absolute right-0 top-full mt-3 w-[380px] bg-white rounded-xl shadow-2xl border border-gray-200 z-50">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                      <span className="text-[15px] font-bold text-[#2e3240]">Credit usage</span>
+                      <button onClick={() => setCreditsOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="px-5 py-5">
+                      <p className="text-[12px] text-gray-400 mb-2">Your balance</p>
+                      <div className="flex items-baseline gap-1.5 mb-3">
+                        <span className="text-[36px] font-bold text-[#2e3240] leading-none">{leftCredits}</span>
+                        <span className="text-[15px] text-gray-500">/ {totalCredits} credits left</span>
+                      </div>
+                      <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden mb-3">
+                        <div className="h-full bg-blue-500 rounded-full" style={{ width: `${pct}%` }} />
+                      </div>
+                      <div className="flex items-center gap-4 text-[13px] text-gray-600 mb-5">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                          Balance ({leftCredits})
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
+                          Reserved ({reservedCredits})
+                          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" className="text-gray-400">
+                            <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
+                            <path d="M7 6.5v4M7 4.5v.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                          </svg>
+                        </span>
+                      </div>
+                      <p className="text-[12px] text-gray-400 mb-4">Active scans</p>
+                      <div className="flex flex-col items-center py-6 gap-2">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="text-gray-300">
+                          <rect x="4" y="4" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
+                          <rect x="23" y="4" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
+                          <rect x="4" y="23" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
+                          <rect x="23" y="23" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
+                        </svg>
+                        <p className="text-[13px] text-gray-400">You don't have any active scans.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+
           {/* History — hidden on mobile */}
           <Link to="/scan-history" className="hidden sm:flex w-9 h-9 items-center justify-center text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-50 transition-colors">
             <History className="w-6 h-6" />
@@ -1142,7 +1220,7 @@ function AppLayout() {
           <div ref={userRef} className="relative">
             <button
               onClick={() => setUserMenu(!userMenu)}
-              className="hidden sm:flex items-center gap-2 pl-4 pr-1 py-1 rounded-full border border-[#d1d5db] hover:border-[#b0b8c4] transition-colors bg-white"
+              className="hidden sm:flex items-center gap-2 pl-4 pr-1 py-1 rounded-full border border-[#9ca3af] hover:border-[#6b7280] transition-colors bg-white"
             >
               <span className="text-[12px] font-semibold text-[#2e3240] uppercase tracking-wide">{user?.plan ?? 'BASIC'}</span>
               <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center shrink-0">
@@ -1205,8 +1283,8 @@ function AppLayout() {
 
       {/* ── Body: sidebar + content ───────────────────────────────── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Icon sidebar — hidden on mobile */}
-        <aside className="hidden md:flex w-[62px] shrink-0 bg-white border-r border-[#d8dde9] flex-col items-center py-3 z-30 overflow-y-auto">
+        {/* Icon sidebar — hidden on mobile, hidden on /upgrade */}
+        {location !== '/upgrade' && <aside className="hidden md:flex w-[62px] shrink-0 bg-white border-r border-[#d8dde9] flex-col items-center py-3 z-30 overflow-y-auto">
           <nav className="flex flex-col items-center w-full flex-1">
             {[...sideLinks, ...categoryLinks].map(({ to, icon: Icon, label }) => {
               const isActive = to ? location.startsWith(to) : false
@@ -1243,7 +1321,7 @@ function AppLayout() {
             </div>
             <span className="text-[11px] font-medium text-[#404041] leading-none">Settings</span>
           </Link>
-        </aside>
+        </aside>}
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto pb-16 md:pb-0">

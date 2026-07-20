@@ -10,6 +10,7 @@ const ACTIVE_LINKS = [
   { label: 'General settings', to: '/settings' as const, exact: true },
   { label: 'Organisations & websites', to: '/settings/organisation' as const, exact: false },
   { label: 'Team', to: '/settings/team' as const, exact: false },
+  { label: 'Billing and invoices', to: '/settings/billing' as const, exact: false },
 ] as const
 
 function SettingsLayout() {

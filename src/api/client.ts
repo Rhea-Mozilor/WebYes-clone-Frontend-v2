@@ -16,8 +16,14 @@ function buildUrl(path: string, params?: Record<string, string | undefined>): st
   return qs ? `${url}?${qs}` : url;
 }
 
+// These endpoints don't carry an existing session — a 401 from them means
+// "invalid credentials," not "your session expired," so they must not trigger
+// the global redirect-to-login (which would otherwise force-reload /login
+// itself mid-request and wipe any inline error the caller just set).
+const UNAUTHENTICATED_PATHS = ['/auth/login', '/auth/signup'];
+
 async function handleResponse<T>(res: Response): Promise<T> {
-  if (res.status === 401) {
+  if (res.status === 401 && !UNAUTHENTICATED_PATHS.some((p) => res.url.includes(p))) {
     localStorage.removeItem('access_token');
     window.location.href = '/login';
     throw new Error('Unauthorized');

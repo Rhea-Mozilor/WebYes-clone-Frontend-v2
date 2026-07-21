@@ -552,7 +552,7 @@ function PerformancePage() {
                 </div>
                 <div className={cn("text-center py-6 border-t border-gray-100 mt-2", dashIssues.items.length <= 5 && "hidden")}>
                   <p className="text-[14px] text-[#2e3240] mb-4">Your free plan shows only 5 issues. Upgrade to unlock all issues and get the full picture of your website's health.</p>
-                  <button className="bg-[#2563eb] text-white text-[14px] font-medium px-8 py-2.5 rounded-[6px] hover:bg-blue-700 transition-colors">Unlock all issues</button>
+                  <Link to="/upgrade" className="inline-block bg-[#2563eb] text-white text-[14px] font-medium px-8 py-2.5 rounded-[6px] hover:bg-blue-700 transition-colors">Unlock all issues</Link>
                 </div>
               </>
             )}

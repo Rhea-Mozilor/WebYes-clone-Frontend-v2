@@ -279,9 +279,9 @@ function AccessibilityPage() {
                     <p className="text-[12px] font-medium text-black text-center leading-tight px-2 absolute left-0 right-0 top-[48px]">
                       Want to see Level AAA?
                     </p>
-                    <a href="#" className="absolute left-[9px] right-[9px] bottom-[44px] bg-[#ff9500] text-[#2e1401] text-[10.5px] font-semibold py-1.5 rounded-[3.5px] text-center">
+                    <Link to="/upgrade" className="absolute left-[9px] right-[9px] bottom-[44px] bg-[#ff9500] text-[#2e1401] text-[10.5px] font-semibold py-1.5 rounded-[3.5px] text-center">
                       Upgrade Now
-                    </a>
+                    </Link>
                     <div className="absolute bottom-3 left-4 blur-md pointer-events-none select-none">
                       <div className="text-[13px] font-medium text-[rgba(43,28,80,0.7)]">Level AAA</div>
                       <div className="text-[28px] font-semibold text-[#2b1c50] leading-none">6%</div>
@@ -546,7 +546,7 @@ function AccessibilityPage() {
                 </div>
                 <div className={cn("text-center py-6 border-t border-gray-100 mt-2", dashIssues.items.length <= 5 && "hidden")}>
                   <p className="text-[14px] text-[#2e3240] mb-4">Your free plan shows only 5 issues. Upgrade to unlock all issues and get the full picture of your website's health.</p>
-                  <button className="bg-[#2563eb] text-white text-[14px] font-medium px-8 py-2.5 rounded-[6px] hover:bg-blue-700 transition-colors">Unlock all issues</button>
+                  <Link to="/upgrade" className="inline-block bg-[#2563eb] text-white text-[14px] font-medium px-8 py-2.5 rounded-[6px] hover:bg-blue-700 transition-colors">Unlock all issues</Link>
                 </div>
               </>
             )}

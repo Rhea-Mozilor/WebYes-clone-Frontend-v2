@@ -23,7 +23,6 @@ import { PriorityBadge } from '../../components/ui/PriorityBadge'
 import { AccessibilityIcon, PerformanceIcon, QualityIcon, SeoIcon } from '../../components/ui/CategoryIcons'
 import { useSiteStore } from '../../store/siteStore'
 import { listWebsites, createWebsite } from '../../api/websites'
-import { useIsBasicPlan, LockedOverlay } from '../../components/UpgradeLock'
 import { getScanDashboard, getScanIssues, getScanPages, getPageScores } from '../../api/scans'
 import {
   Dialog,
@@ -183,7 +182,6 @@ function ScannedPagesModal({ scanJobId, onClose }: { scanJobId: string; onClose:
 
 
 function DashboardPage() {
-  const isBasicPlan = useIsBasicPlan()
   const { websiteId, setWebsiteId, strategy, scansByWebsite } = useSiteStore()
   const scanInfo = websiteId ? scansByWebsite[websiteId] : undefined
   const scanId = scanInfo?.scanId ?? null
@@ -481,7 +479,6 @@ function DashboardPage() {
           <div className="bg-white rounded-lg border border-[#dfe4f3] shadow-sm p-4 sm:p-5">
             <h2 className="text-xl font-bold text-gray-900 mb-2">Total issues</h2>
             <div className="relative">
-              {isBasicPlan && <LockedOverlay label="Upgrade to see your issue breakdown" />}
               {pieData.length > 0 ? (
               <>
                 <ResponsiveContainer width="100%" height={190}>
@@ -545,7 +542,6 @@ function DashboardPage() {
             </div>
 
             <div className="relative">
-              {isBasicPlan && <LockedOverlay label="Upgrade to see issues per page" />}
               {scanPagesLoading ? (
               <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
             ) : issuesPerPage.length > 0 ? (

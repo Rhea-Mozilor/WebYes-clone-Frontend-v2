@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import toast from 'react-hot-toast'
 import { useQuery } from '@tanstack/react-query'
 import { useState, useMemo, useRef, useEffect } from 'react'
@@ -35,6 +35,12 @@ import {
 import type { DashboardScores, IssueCategory } from '../../types'
 
 export const Route = createFileRoute('/_app/dashboard')({
+  beforeLoad: async () => {
+    const websites = await listWebsites()
+    if (websites.length === 0) {
+      throw redirect({ to: '/onboarding' })
+    }
+  },
   component: DashboardPage,
 })
 

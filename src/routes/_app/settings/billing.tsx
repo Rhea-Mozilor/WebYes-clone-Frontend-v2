@@ -53,7 +53,11 @@ function BillingPage() {
     : null
   const creditsTotal = summary?.credits_total ?? 0
   const creditsLeft = summary?.credits_balance ?? 0
-  const creditsPct = creditsTotal > 0 ? Math.round((creditsLeft / creditsTotal) * 100) : 0
+  const creditsUsed = Math.max(creditsTotal - creditsLeft, 0)
+  const creditsRawPct = creditsTotal > 0 ? (creditsLeft / creditsTotal) * 100 : 0
+  // Leave a visible sliver of the unfilled track whenever any credits have been used,
+  // even if the used amount is small enough that the rounded percentage still reads ~100%.
+  const creditsPct = creditsUsed > 0 ? Math.min(creditsRawPct, 97) : 100
   const isCancelled = summary?.status === 'cancelled'
   const showCancelledBadge = false
 

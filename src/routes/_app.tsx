@@ -1134,7 +1134,11 @@ function AppLayout() {
             const totalCredits = billingCredits.credits_total
             const leftCredits = billingCredits.credits_balance
             const reservedCredits = Math.max(totalCredits - leftCredits, 0)
-            const pct = totalCredits > 0 ? Math.round((leftCredits / totalCredits) * 100) : 0
+            const rawPct = totalCredits > 0 ? (leftCredits / totalCredits) * 100 : 0
+            const pct = Math.floor(rawPct)
+            // Leave a visible sliver of the unfilled track whenever any credits have been used,
+            // even if the used amount is small enough that the rounded percentage still reads ~100%.
+            const barPct = reservedCredits > 0 ? Math.min(rawPct, 97) : 100
             return (
               <div ref={creditsRef} className="relative hidden sm:block mr-6 self-end pb-2">
                 <button
@@ -1142,7 +1146,7 @@ function AppLayout() {
                   className="flex flex-col items-end gap-1 hover:opacity-80 transition-opacity"
                 >
                   <div className="w-40 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#2e3240] rounded-full" style={{ width: `${pct}%` }} />
+                    <div className="h-full bg-[#2e3240] rounded-full" style={{ width: `${barPct}%` }} />
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-[15px] font-semibold text-gray-900 whitespace-nowrap">{leftCredits}/{totalCredits} ({pct}%) credits left</span>
@@ -1168,7 +1172,7 @@ function AppLayout() {
                         <span className="text-[15px] text-gray-500">/ {totalCredits} credits left</span>
                       </div>
                       <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-3">
-                        <div className="h-full bg-[#2e3240] rounded-full" style={{ width: `${pct}%` }} />
+                        <div className="h-full bg-[#2e3240] rounded-full" style={{ width: `${barPct}%` }} />
                       </div>
                       <div className="flex items-center gap-4 text-[13px] text-gray-600 mb-5">
                         <span className="flex items-center gap-1.5">

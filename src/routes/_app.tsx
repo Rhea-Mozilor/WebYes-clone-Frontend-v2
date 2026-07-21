@@ -915,7 +915,7 @@ function AppLayout() {
       )}
 
       {/* ── Full-width header ─────────────────────────────────────── */}
-      <header className="h-16 bg-white border-b border-zinc-200 flex items-center pl-6 pr-5 z-20 shrink-0 w-full gap-0">
+      <header className="h-16 bg-white border-b border-zinc-200 flex items-center pl-6 pr-5 z-40 shrink-0 w-full gap-0">
           <span className="font-bold text-3xl text-gray-900 hidden sm:block mr-[34px]">
             <span className="text-blue-600">W</span>ebYes
           </span>

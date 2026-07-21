@@ -1228,9 +1228,13 @@ function AppLayout() {
           <div ref={userRef} className="relative">
             <button
               onClick={() => setUserMenu(!userMenu)}
+              title={billingCredits?.status === 'cancelled' ? 'Plan cancelled — access continues until the current period ends' : undefined}
               className="hidden sm:flex items-center gap-2 pl-4 pr-1 py-1 rounded-full border border-[#9ca3af] hover:border-[#6b7280] transition-colors bg-white"
             >
-              <span className="text-[12px] font-semibold text-[#2e3240] uppercase tracking-wide">
+              <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2e3240] uppercase tracking-wide">
+                {billingCredits?.status === 'cancelled' && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0" />
+                )}
                 {!billingCredits?.plan_name || billingCredits.plan_name === 'free' ? 'BASIC' : billingCredits.plan_name.toUpperCase()}
               </span>
               <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center shrink-0">

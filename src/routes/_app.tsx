@@ -1167,12 +1167,12 @@ function AppLayout() {
                         <span className="text-[36px] font-bold text-[#2e3240] leading-none">{leftCredits}</span>
                         <span className="text-[15px] text-gray-500">/ {totalCredits} credits left</span>
                       </div>
-                      <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden mb-3">
-                        <div className="h-full bg-blue-500 rounded-full" style={{ width: `${pct}%` }} />
+                      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-3">
+                        <div className="h-full bg-[#2e3240] rounded-full" style={{ width: `${pct}%` }} />
                       </div>
                       <div className="flex items-center gap-4 text-[13px] text-gray-600 mb-5">
                         <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                          <span className="w-2 h-2 rounded-full bg-[#2e3240] shrink-0" />
                           Balance ({leftCredits})
                         </span>
                         <span className="flex items-center gap-1.5">

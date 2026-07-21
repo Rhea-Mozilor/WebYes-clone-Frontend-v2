@@ -267,7 +267,9 @@ function UpgradePage() {
         {/* Plan cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-10">
           {plans.map((plan) => {
-            const isCurrent = plan.key === currentPlan
+            // A trial hasn't actually been paid for yet — let the user check out on their
+            // trialed plan instead of locking it behind a disabled "Current plan" button.
+            const isCurrent = plan.key === currentPlan && !summary?.is_trial
             const isDowngrade =
               !isCurrent &&
               plan.key !== 'SCALE' &&

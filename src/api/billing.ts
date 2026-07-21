@@ -3,6 +3,7 @@ import type {
   BillingPlansResponse, BillingCredits, BillingSummary,
   BillingPlanId, CheckoutResponse, CancelSubscriptionResponse,
   InvoiceDateRange, InvoicesResponse, InvoicePdfResponse,
+  StartTrialPlan, StartTrialResponse,
 } from '../types';
 
 export const getBillingPlans = () =>
@@ -19,6 +20,9 @@ export const createCheckout = (planId: BillingPlanId) =>
 
 export const cancelSubscription = () =>
   client.post<CancelSubscriptionResponse>('/billing/cancel');
+
+export const startTrial = (plan: StartTrialPlan) =>
+  client.post<StartTrialResponse>('/billing/start-trial', { plan });
 
 export const getInvoices = (dateRange: InvoiceDateRange = 'all', page = 1, pageSize = 20) =>
   client.get<InvoicesResponse>('/billing/invoices', {

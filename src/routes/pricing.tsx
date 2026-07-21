@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { getBillingPlans } from '../api/billing'
-import type { BillingPlan, BillingPlanName } from '../types'
+import toast from 'react-hot-toast'
+import { getBillingPlans, startTrial } from '../api/billing'
+import type { BillingPlan, BillingPlanName, StartTrialPlan } from '../types'
 
 export const Route = createFileRoute('/pricing')({
   component: PricingPage,
@@ -105,6 +106,7 @@ function CheckIcon() {
 
 function PricingPage() {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const [billing, setBilling] = useState<'monthly' | 'annually'>('annually')
   const { data: plansResp } = useQuery({ queryKey: ['billing-plans'], queryFn: getBillingPlans })
 
@@ -116,8 +118,26 @@ function PricingPage() {
     .map((name) => buildPlanCard(name, plansByName[name] ?? []))
     .filter((p): p is NonNullable<typeof p> => p !== null)
 
-  function continueToOnboarding() {
-    navigate({ to: '/onboarding' })
+  const trialMutation = useMutation({
+    mutationFn: (plan: StartTrialPlan) => startTrial(plan),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['billing-credits'] })
+      qc.invalidateQueries({ queryKey: ['billing-summary'] })
+      navigate({ to: '/dashboard' })
+    },
+    onError: (err: unknown) => {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? ''
+      if (detail.toLowerCase().includes('already selected')) {
+        // User already has a plan from a previous visit — nothing to do, just continue.
+        navigate({ to: '/dashboard' })
+        return
+      }
+      toast.error(detail || 'Could not start your plan')
+    },
+  })
+
+  function goToDashboard() {
+    navigate({ to: '/dashboard' })
   }
 
   return (
@@ -204,14 +224,15 @@ function PricingPage() {
                 </div>
 
                 <button
-                  onClick={continueToOnboarding}
+                  disabled={trialMutation.isPending}
+                  onClick={() => trialMutation.mutate(plan.key)}
                   className={
                     plan.ctaVariant === 'primary'
-                      ? 'w-full py-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold transition-colors mb-8'
-                      : 'w-full py-3.5 rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 text-base font-semibold transition-colors mb-8'
+                      ? 'w-full py-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-base font-semibold transition-colors mb-8'
+                      : 'w-full py-3.5 rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-60 text-base font-semibold transition-colors mb-8'
                   }
                 >
-                  {plan.ctaLabel}
+                  {trialMutation.isPending ? 'Setting up...' : plan.ctaLabel}
                 </button>
 
                 <ul className="flex flex-col gap-4">
@@ -237,7 +258,7 @@ function PricingPage() {
             <div className="text-5xl font-extrabold text-gray-900 mb-1">Custom</div>
             <div className="h-6 mb-6" />
             <button
-              onClick={continueToOnboarding}
+              onClick={goToDashboard}
               className="w-full py-3.5 rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 text-base font-semibold transition-colors mb-8"
             >
               Contact sales
@@ -259,10 +280,11 @@ function PricingPage() {
           Audit, test, and find fixes for your website's technical and accessibility issues with WebYes full feature experience.
         </p>
         <button
-          onClick={continueToOnboarding}
-          className="bg-white text-blue-600 hover:bg-gray-100 rounded-lg px-8 py-3.5 text-base font-semibold transition-colors"
+          disabled={trialMutation.isPending}
+          onClick={() => trialMutation.mutate('free')}
+          className="bg-white text-blue-600 hover:bg-gray-100 disabled:opacity-60 rounded-lg px-8 py-3.5 text-base font-semibold transition-colors"
         >
-          Start for free
+          {trialMutation.isPending ? 'Setting up...' : 'Start for free'}
         </button>
       </div>
     </div>

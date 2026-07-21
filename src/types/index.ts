@@ -902,6 +902,12 @@ export interface CancelSubscriptionResponse {
   ok: boolean;
 }
 
+export type StartTrialPlan = 'free' | 'pro' | 'enterprise';
+
+// Response shape isn't fully specified by the backend beyond the 400 error
+// case ("Plan already selected") — callers should treat this as opaque.
+export type StartTrialResponse = unknown;
+
 export interface InvoiceItem {
   invoice_id: string;
   plan: string;

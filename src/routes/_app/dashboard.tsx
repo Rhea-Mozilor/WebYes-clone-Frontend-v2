@@ -217,10 +217,13 @@ function DashboardPage() {
 
   // 'best_practices' tab maps to 'quality' on the backend
   const categoryParam = activeTab === 'all' ? undefined : activeTab === 'best_practices' ? 'quality' : activeTab
+  // Basic plan never shows the items-per-page stepper (replaced by the upgrade footer), so
+  // always fetch enough rows (5 shown + up to 3 blurred teaser rows) regardless of that state.
+  const effectivePageSize = isBasicPlan ? 8 : itemsPerPage
 
   const { data: scanIssues } = useQuery({
-    queryKey: ['scan-issues', scanId, strategy, currentPage, itemsPerPage, activeTab],
-    queryFn: () => getScanIssues(scanId!, currentPage, itemsPerPage, categoryParam, strategy),
+    queryKey: ['scan-issues', scanId, strategy, currentPage, effectivePageSize, activeTab],
+    queryFn: () => getScanIssues(scanId!, currentPage, effectivePageSize, categoryParam, strategy),
     enabled: !!scanId,
     placeholderData: (prev) => prev,
   })

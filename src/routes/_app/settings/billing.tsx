@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Calendar, ChevronDown, Download, ListFilterPlus, Pencil } from 'lucide-react'
+import { Calendar, ChevronDown, Download, ListFilterPlus } from 'lucide-react'
 import { getBillingSummary, getInvoices, getInvoicePdfUrl } from '../../../api/billing'
 import type { InvoiceDateRange, InvoiceStatus } from '../../../types'
 import AccessibilitySvg from '../../../components/svgicons/AccessibilityBlue.svg'
@@ -125,9 +125,6 @@ function BillingPage() {
                       Expires {String(summary.payment_method.exp_month).padStart(2, '0')}/{String(summary.payment_method.exp_year).slice(-2)}
                     </div>
                   </div>
-                  <button className="ml-1 text-[#73767f] hover:text-[#2e3240] transition-colors">
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
                 </div>
               </div>
 

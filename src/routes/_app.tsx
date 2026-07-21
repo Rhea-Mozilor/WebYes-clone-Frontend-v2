@@ -1230,7 +1230,9 @@ function AppLayout() {
               onClick={() => setUserMenu(!userMenu)}
               className="hidden sm:flex items-center gap-2 pl-4 pr-1 py-1 rounded-full border border-[#9ca3af] hover:border-[#6b7280] transition-colors bg-white"
             >
-              <span className="text-[12px] font-semibold text-[#2e3240] uppercase tracking-wide">{user?.plan ?? 'BASIC'}</span>
+              <span className="text-[12px] font-semibold text-[#2e3240] uppercase tracking-wide">
+                {!billingCredits?.plan_name || billingCredits.plan_name === 'free' ? 'BASIC' : billingCredits.plan_name.toUpperCase()}
+              </span>
               <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center shrink-0">
                 <span className="text-white text-xs font-bold">{initials}</span>
               </div>

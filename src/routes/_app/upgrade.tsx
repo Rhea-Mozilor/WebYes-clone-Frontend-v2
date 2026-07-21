@@ -11,6 +11,10 @@ export const Route = createFileRoute('/_app/upgrade')({
 
 type CtaVariant = 'ghost' | 'primary' | 'outline'
 
+// Relative tier order — used to detect and disable downgrade attempts,
+// since the backend rejects downgrades via checkout (400) anyway.
+const PLAN_RANK: Record<string, number> = { FREE: 0, PRO: 1, ENTERPRISE: 2 }
+
 const STATIC_PLAN_META: Record<BillingPlanName, {
   desc: string; ctaLabel: string; ctaVariant: CtaVariant; popular: boolean; pages: number
 }> = {
@@ -264,6 +268,10 @@ function UpgradePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-10">
           {plans.map((plan) => {
             const isCurrent = plan.key === currentPlan
+            const isDowngrade =
+              !isCurrent &&
+              plan.key !== 'SCALE' &&
+              (PLAN_RANK[plan.key] ?? 0) < (PLAN_RANK[currentPlan] ?? 0)
             const price = billing === 'monthly' ? plan.monthlyPrice : plan.annualPrice
             const monthlyOrig = plan.monthlyPrice
 
@@ -331,6 +339,14 @@ function UpgradePage() {
                       className="w-full py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold cursor-default"
                     >
                       Current plan
+                    </button>
+                  ) : isDowngrade ? (
+                    <button
+                      disabled
+                      title="Contact support to downgrade your plan"
+                      className="w-full py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-400 cursor-not-allowed bg-gray-50"
+                    >
+                      Downgrade unavailable
                     </button>
                   ) : plan.ctaVariant === 'ghost' ? (
                     <button

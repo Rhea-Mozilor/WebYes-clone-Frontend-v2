@@ -15,6 +15,7 @@ interface SiteStore {
   setMaxPages: (n: number) => void;
   setScanForWebsite: (websiteId: string, newScanId: string) => void;
   setActiveScanJob: (job: { jobId: string; url: string } | null) => void;
+  reset: () => void;
 }
 
 export const useSiteStore = create<SiteStore>()(
@@ -38,6 +39,13 @@ export const useSiteStore = create<SiteStore>()(
         }))
       },
       setActiveScanJob: (job) => set({ activeScanJob: job }),
+      reset: () => set({
+        websiteId: null,
+        strategy: 'mobile',
+        maxPages: 5,
+        scansByWebsite: {},
+        activeScanJob: null,
+      }),
     }),
     { name: 'webyes-site' }
   )

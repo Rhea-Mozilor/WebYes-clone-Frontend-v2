@@ -16,7 +16,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user, token });
   },
   clearAuth: () => {
-    localStorage.removeItem('access_token');
+    localStorage.clear();
     set({ user: null, token: null });
   },
 }));

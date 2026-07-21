@@ -776,6 +776,7 @@ function AppLayout() {
   async function handleLogout() {
     try { await logout() } catch { /* ok */ }
     clearAuth()
+    useSiteStore.getState().reset()
     navigate({ to: '/login' })
   }
 

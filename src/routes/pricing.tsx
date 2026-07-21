@@ -123,21 +123,21 @@ function PricingPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['billing-credits'] })
       qc.invalidateQueries({ queryKey: ['billing-summary'] })
-      navigate({ to: '/dashboard' })
+      navigate({ to: '/onboarding' })
     },
     onError: (err: unknown) => {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? ''
       if (detail.toLowerCase().includes('already selected')) {
         // User already has a plan from a previous visit — nothing to do, just continue.
-        navigate({ to: '/dashboard' })
+        navigate({ to: '/onboarding' })
         return
       }
       toast.error(detail || 'Could not start your plan')
     },
   })
 
-  function goToDashboard() {
-    navigate({ to: '/dashboard' })
+  function continueOnboarding() {
+    navigate({ to: '/onboarding' })
   }
 
   return (
@@ -258,7 +258,7 @@ function PricingPage() {
             <div className="text-5xl font-extrabold text-gray-900 mb-1">Custom</div>
             <div className="h-6 mb-6" />
             <button
-              onClick={goToDashboard}
+              onClick={continueOnboarding}
               className="w-full py-3.5 rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 text-base font-semibold transition-colors mb-8"
             >
               Contact sales

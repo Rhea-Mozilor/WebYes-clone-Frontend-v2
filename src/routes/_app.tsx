@@ -1139,8 +1139,17 @@ function AppLayout() {
             // Leave a visible sliver of the unfilled track whenever any credits have been used,
             // even if the used amount is small enough that the rounded percentage still reads ~100%.
             const barPct = reservedCredits > 0 ? Math.min(rawPct, 97) : 100
+            const trialDaysLeft = billingCredits.current_period_end
+              ? Math.max(Math.ceil((new Date(billingCredits.current_period_end).getTime() - Date.now()) / 86400000), 0)
+              : null
             return (
-              <div ref={creditsRef} className="relative hidden sm:block mr-6 self-end pb-2">
+              <>
+                {billingCredits.is_trial && trialDaysLeft !== null && (
+                  <div className="hidden sm:flex items-center px-4 py-2.5 rounded-lg bg-amber-100 text-[13px] text-gray-900 mr-4 self-end mb-[9px] whitespace-nowrap">
+                    Trial: Expires in&nbsp;<span className="font-bold">{trialDaysLeft} day{trialDaysLeft === 1 ? '' : 's'}</span>
+                  </div>
+                )}
+                <div ref={creditsRef} className="relative hidden sm:block mr-6 self-end pb-2">
                 <button
                   onClick={() => setCreditsOpen(!creditsOpen)}
                   className="flex flex-col items-end gap-1 hover:opacity-80 transition-opacity"
@@ -1202,6 +1211,7 @@ function AppLayout() {
                   </div>
                 )}
               </div>
+              </>
             )
           })()}
 

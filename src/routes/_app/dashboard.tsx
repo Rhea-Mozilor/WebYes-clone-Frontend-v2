@@ -478,10 +478,11 @@ function DashboardPage() {
           </div>
 
           {/* Card 2: Total issues donut */}
-          <div className="relative bg-white rounded-lg border border-[#dfe4f3] shadow-sm p-4 sm:p-5">
-            {isBasicPlan && <LockedOverlay label="Upgrade to see your issue breakdown" />}
+          <div className="bg-white rounded-lg border border-[#dfe4f3] shadow-sm p-4 sm:p-5">
             <h2 className="text-xl font-bold text-gray-900 mb-2">Total issues</h2>
-            {pieData.length > 0 ? (
+            <div className="relative">
+              {isBasicPlan && <LockedOverlay label="Upgrade to see your issue breakdown" />}
+              {pieData.length > 0 ? (
               <>
                 <ResponsiveContainer width="100%" height={190}>
                   <PieChart>
@@ -522,14 +523,14 @@ function DashboardPage() {
                   ))}
                 </div>
               </>
-            ) : (
-              <div className="text-xs text-gray-400 text-center py-8">No issues found</div>
-            )}
+              ) : (
+                <div className="text-xs text-gray-400 text-center py-8">No issues found</div>
+              )}
+            </div>
           </div>
 
           {/* Issues per page */}
-          <div className="relative bg-white rounded-lg border border-[#dfe4f3] shadow-sm p-4 sm:p-5">
-            {isBasicPlan && <LockedOverlay label="Upgrade to see issues per page" />}
+          <div className="bg-white rounded-lg border border-[#dfe4f3] shadow-sm p-4 sm:p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-[#2e3240] tracking-tight">Issues per page</h2>
               {scanId && (
@@ -543,7 +544,9 @@ function DashboardPage() {
               )}
             </div>
 
-            {scanPagesLoading ? (
+            <div className="relative">
+              {isBasicPlan && <LockedOverlay label="Upgrade to see issues per page" />}
+              {scanPagesLoading ? (
               <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
             ) : issuesPerPage.length > 0 ? (
               <div className="space-y-3.5">
@@ -575,6 +578,7 @@ function DashboardPage() {
             ) : (
               <div className="text-xs text-gray-400 text-center py-6">No data yet</div>
             )}
+            </div>
           </div>
         </div>
 

@@ -395,8 +395,7 @@ function PerformancePage() {
           </div>
 
           {/* Performance over time */}
-          <div className="relative bg-white rounded-[8px] border border-[#dfe4f3] p-5">
-            {isBasicPlan && <LockedOverlay label="Upgrade to see performance trends over time" />}
+          <div className="bg-white rounded-[8px] border border-[#dfe4f3] p-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Performance over time</h3>
               <div className="flex items-center gap-2 flex-wrap">
@@ -409,30 +408,33 @@ function PerformancePage() {
                 ))}
               </div>
             </div>
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <AreaChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="perfGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.18} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                  <RTooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }}
-                    formatter={(v) => [`${v}%`, 'Score']} />
-                  <Area type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={2}
-                    fill="url(#perfGrad)" dot={{ fill: '#3b82f6', r: 3, strokeWidth: 0 }}
-                    activeDot={{ r: 5, fill: '#3b82f6' }} connectNulls />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-48 text-xs text-gray-400">
-                Not enough historical data yet
-              </div>
-            )}
+            <div className="relative">
+              {isBasicPlan && <LockedOverlay label="Upgrade to see performance trends over time" />}
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={220}>
+                  <AreaChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="perfGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.18} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                    <RTooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }}
+                      formatter={(v) => [`${v}%`, 'Score']} />
+                    <Area type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={2}
+                      fill="url(#perfGrad)" dot={{ fill: '#3b82f6', r: 3, strokeWidth: 0 }}
+                      activeDot={{ r: 5, fill: '#3b82f6' }} connectNulls />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-48 text-xs text-gray-400">
+                  Not enough historical data yet
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Bottom row: response times + critical issues */}

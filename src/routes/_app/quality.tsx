@@ -235,8 +235,7 @@ function QualityPage() {
           {/* === ROW 2: Chart + Critical issues === */}
           <div className="flex flex-col lg:flex-row gap-4 sm:gap-5">
             {/* Quality over time */}
-            <div className="relative flex-1 bg-white rounded-[8px] border border-[#dfe4f3] p-5 min-w-0">
-              {isBasicPlan && <LockedOverlay label="Upgrade to see quality trends over time" />}
+            <div className="flex-1 bg-white rounded-[8px] border border-[#dfe4f3] p-5 min-w-0">
               <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Quality over time</h3>
                 <div className="flex items-center gap-2">
@@ -245,27 +244,30 @@ function QualityPage() {
                   <button className="border border-[#e0e2e7] rounded-[24px] px-3 py-1.5 text-[10px] text-[#242424]">Last week</button>
                 </div>
               </div>
-              {chartData.length < 2 ? (
-                <div className="flex items-center justify-center h-48 text-xs text-gray-400">Need at least 2 scans to show trend</div>
-              ) : (
-                <ResponsiveContainer width="100%" height={240}>
-                  <AreaChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
-                    <defs>
-                      <linearGradient id="qualityGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0b66e4" stopOpacity={0.15} />
-                        <stop offset="95%" stopColor="#0b66e4" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                    <YAxis domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #f0f0f0' }}
-                      formatter={(v) => [`${Number(v)}%`, 'Quality']} />
-                    <Area type="monotone" dataKey="score" stroke="#0b66e4" strokeWidth={2}
-                      fill="url(#qualityGrad)" dot={{ fill: '#06387d', r: 3 }} activeDot={{ r: 5 }} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
+              <div className="relative">
+                {isBasicPlan && <LockedOverlay label="Upgrade to see quality trends over time" />}
+                {chartData.length < 2 ? (
+                  <div className="flex items-center justify-center h-48 text-xs text-gray-400">Need at least 2 scans to show trend</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={240}>
+                    <AreaChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
+                      <defs>
+                        <linearGradient id="qualityGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#0b66e4" stopOpacity={0.15} />
+                          <stop offset="95%" stopColor="#0b66e4" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                      <YAxis domain={[0, 120]} ticks={[0, 20, 40, 60, 80, 100, 120]} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                      <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #f0f0f0' }}
+                        formatter={(v) => [`${Number(v)}%`, 'Quality']} />
+                      <Area type="monotone" dataKey="score" stroke="#0b66e4" strokeWidth={2}
+                        fill="url(#qualityGrad)" dot={{ fill: '#06387d', r: 3 }} activeDot={{ r: 5 }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
             </div>
 
             {/* Critical issues panel */}

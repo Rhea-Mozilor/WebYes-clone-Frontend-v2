@@ -39,7 +39,7 @@ function SignupPage() {
       localStorage.setItem('access_token', tokens.access_token)
       const user = await getMe()
       setAuth(user, tokens.access_token)
-      navigate({ to: '/onboarding' })
+      navigate({ to: '/pricing' })
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??

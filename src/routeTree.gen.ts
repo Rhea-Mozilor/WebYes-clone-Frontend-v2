@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as GuestRouteImport } from './routes/guest'
 import { Route as AppRouteImport } from './routes/_app'
@@ -40,6 +41,11 @@ import { Route as AppScansScanIdIssuesRouteImport } from './routes/_app/scans/$s
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/guest': typeof GuestRoute
   '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/accessibility': typeof AppAccessibilityRoute
   '/dashboard': typeof AppDashboardRoute
@@ -204,6 +211,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/guest': typeof GuestRoute
   '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/accessibility': typeof AppAccessibilityRoute
   '/dashboard': typeof AppDashboardRoute
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/guest': typeof GuestRoute
   '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/_app/accessibility': typeof AppAccessibilityRoute
   '/_app/dashboard': typeof AppDashboardRoute
@@ -263,6 +272,7 @@ export interface FileRouteTypes {
     | '/'
     | '/guest'
     | '/login'
+    | '/pricing'
     | '/signup'
     | '/accessibility'
     | '/dashboard'
@@ -291,6 +301,7 @@ export interface FileRouteTypes {
     | '/'
     | '/guest'
     | '/login'
+    | '/pricing'
     | '/signup'
     | '/accessibility'
     | '/dashboard'
@@ -319,6 +330,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/guest'
     | '/login'
+    | '/pricing'
     | '/signup'
     | '/_app/accessibility'
     | '/_app/dashboard'
@@ -349,6 +361,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   GuestRoute: typeof GuestRoute
   LoginRoute: typeof LoginRoute
+  PricingRoute: typeof PricingRoute
   SignupRoute: typeof SignupRoute
   UpgradeFailedRoute: typeof UpgradeFailedRoute
   UpgradeSuccessRoute: typeof UpgradeSuccessRoute
@@ -361,6 +374,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -611,6 +631,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   GuestRoute: GuestRoute,
   LoginRoute: LoginRoute,
+  PricingRoute: PricingRoute,
   SignupRoute: SignupRoute,
   UpgradeFailedRoute: UpgradeFailedRoute,
   UpgradeSuccessRoute: UpgradeSuccessRoute,

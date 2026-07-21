@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
-import toast from 'react-hot-toast'
 import { login, getMe } from '../api/auth'
 import { useAuthStore } from '../store/authStore'
 import Login1 from '../components/svgicons/login/login1.png'
@@ -22,9 +21,11 @@ function LoginPage() {
   const [showPass, setShowPass] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setError(null)
     setLoading(true)
     try {
       const tokens = await login(email, password)
@@ -33,7 +34,7 @@ function LoginPage() {
       setAuth(user, tokens.access_token)
       navigate({ to: '/dashboard' })
     } catch {
-      toast.error('Invalid email or password')
+      setError('Incorrect email or password')
     } finally {
       setLoading(false)
     }
@@ -116,10 +117,16 @@ function LoginPage() {
           {/* Subtitle — font 14px, top=262 */}
           <p
             className="text-center text-black/60"
-            style={{ fontSize: '14px', lineHeight: 'normal', marginBottom: '63px' }}
+            style={{ fontSize: '14px', lineHeight: 'normal', marginBottom: error ? '16px' : '63px' }}
           >
             Log in to continue
           </p>
+
+          {error && (
+            <p className="text-red-600 font-medium" style={{ fontSize: '14px', marginBottom: '24px' }}>
+              {error}
+            </p>
+          )}
 
           <form onSubmit={handleSubmit}>
             {/* Email — label top=345, input top=368 h=51 */}

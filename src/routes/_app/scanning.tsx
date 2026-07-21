@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { getScanJob, cancelScan } from '../../api/scans'
@@ -79,8 +79,25 @@ function ScanningPage() {
     }
   }, [job?.status, jobId, websiteId, setScanForWebsite])
 
+  // Leaving this page (via sidebar/header nav, browser back, etc. — not just the
+  // dedicated "X"/"Back to dashboard" buttons) unmounts this component and kills its
+  // polling. Hand off to the persistent header-level tracking on any unmount while the
+  // scan is still running, so polling continues instead of silently stopping.
+  const jobStatusRef = useRef(job?.status)
+  useEffect(() => { jobStatusRef.current = job?.status }, [job?.status])
+  const cancelledRef = useRef(false)
+  useEffect(() => {
+    return () => {
+      const status = jobStatusRef.current
+      if (jobId && !cancelledRef.current && status !== 'completed' && status !== 'failed') {
+        setActiveScanJob({ jobId, url })
+      }
+    }
+  }, [jobId, url, setActiveScanJob])
+
   async function handleCancel() {
     if (!jobId) { navigate({ to: '/dashboard' }); return }
+    cancelledRef.current = true
     setCancelling(true)
     try { await cancelScan(jobId) } catch {}
     void qc.invalidateQueries({ queryKey: ['billing-credits'] })

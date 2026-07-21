@@ -134,6 +134,19 @@ function ScanProgressModal({
     }
   }, [bothComplete, desktopJobId, mobileJobId, onComplete])
 
+  const pagesScanned = Math.max(
+    desktopJob?.pages_scanned ?? 0,
+    mobileJob?.pages_scanned ?? 0
+  )
+
+  const prevPagesRef = useRef(0)
+  useEffect(() => {
+    if (pagesScanned > prevPagesRef.current) {
+      prevPagesRef.current = pagesScanned
+      void qc.invalidateQueries({ queryKey: ['dashboard'] })
+    }
+  }, [pagesScanned, qc])
+
   function handleExploreDashboard() {
     const scanId = desktopJobId ?? mobileJobId
     if (scanId) setScanForWebsite(websiteId, scanId)
@@ -261,19 +274,6 @@ function ScanProgressModal({
       displayPages.push({ url: cur, done: false })
     }
   }
-
-  const pagesScanned = Math.max(
-    desktopJob?.pages_scanned ?? 0,
-    mobileJob?.pages_scanned ?? 0
-  )
-
-  const prevPagesRef = useRef(0)
-  useEffect(() => {
-    if (pagesScanned > prevPagesRef.current) {
-      prevPagesRef.current = pagesScanned
-      void qc.invalidateQueries({ queryKey: ['dashboard'] })
-    }
-  }, [pagesScanned, qc])
 
   // ── In-progress state ────────────────────────────────────────────────────
   if (!visible) return null

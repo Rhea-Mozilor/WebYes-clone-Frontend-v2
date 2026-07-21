@@ -330,7 +330,7 @@ function UpgradePage() {
                       disabled
                       className="w-full py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold cursor-default"
                     >
-                      {plan.key === 'PRO' ? 'Pro' : 'Current plan'}
+                      Current plan
                     </button>
                   ) : plan.ctaVariant === 'ghost' ? (
                     <button

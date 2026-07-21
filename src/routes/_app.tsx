@@ -446,11 +446,13 @@ function ScanProgressModal({
 function OnboardingScanModal({
   jobId,
   url,
+  visible,
   onClose,
   onCancel,
 }: {
   jobId: string
   url: string
+  visible: boolean
   onClose: () => void
   onCancel: () => void
 }) {
@@ -491,6 +493,8 @@ function OnboardingScanModal({
     onCancel()
     void qc.invalidateQueries({ queryKey: ['billing-credits'] })
   }
+
+  if (!visible) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-sm p-4">
@@ -838,11 +842,14 @@ function AppLayout() {
         />
       )}
 
-      {/* ── Onboarding scan detail modal (opened via "Scan details" header button) ── */}
-      {scanDetailOpen && activeScanJob && (
+      {/* ── Onboarding scan detail modal (opened via "Scan details" header button) ──
+          Always mounted while a background scan exists so its polling query keeps
+          running even while the modal itself is hidden — only `visible` toggles the UI. */}
+      {activeScanJob && (
         <OnboardingScanModal
           jobId={activeScanJob.jobId}
           url={activeScanJob.url}
+          visible={scanDetailOpen}
           onClose={() => setScanDetailOpen(false)}
           onCancel={() => { setActiveScanJob(null); setScanDetailOpen(false) }}
         />

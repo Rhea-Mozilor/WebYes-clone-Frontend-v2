@@ -15,6 +15,7 @@ import {
   FileText,
 } from 'lucide-react'
 import { cn } from '../../../lib/utils'
+import { useIsBasicPlan } from '../../../components/UpgradeLock'
 import {
   listOrganisations,
   createOrganisation,
@@ -725,6 +726,7 @@ function OrgCard({ org }: { org: Organisation }) {
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState(org.name)
   const [addWebsiteOpen, setAddWebsiteOpen] = useState(false)
+  const isBasicPlan = useIsBasicPlan()
   const qc = useQueryClient()
 
   const { data: orgDetail, isLoading: loadingDetail } = useQuery({
@@ -915,8 +917,15 @@ function OrgCard({ org }: { org: Organisation }) {
             {!isViewer && (
               <div className="px-6 py-4 border-t border-[#e5e7eb] bg-[#fafbfc]">
                 <button
+                  disabled={isBasicPlan}
+                  title={isBasicPlan ? 'Upgrade your plan to add more websites' : undefined}
                   onClick={() => setAddWebsiteOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-[8px] border border-[#0b66e4] text-[14px] font-medium text-[#0b66e4] hover:bg-[#eef4ff] transition-colors"
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-2 rounded-[8px] border text-[14px] font-medium transition-colors',
+                    isBasicPlan
+                      ? 'border-[#d1d5db] text-[#9fa1a7] cursor-not-allowed'
+                      : 'border-[#0b66e4] text-[#0b66e4] hover:bg-[#eef4ff]'
+                  )}
                 >
                   Add website +
                 </button>
@@ -1005,6 +1014,7 @@ function OrganisationPage() {
   const [search, setSearch] = useState('')
   const [addOrgOpen, setAddOrgOpen] = useState(false)
   const [addWebsiteOpen, setAddWebsiteOpen] = useState(false)
+  const isBasicPlan = useIsBasicPlan()
 
   const { data: orgs = [], isLoading } = useQuery({
     queryKey: ['organisations'],
@@ -1027,8 +1037,15 @@ function OrganisationPage() {
             Add organisation +
           </button>
           <button
+            disabled={isBasicPlan}
+            title={isBasicPlan ? 'Upgrade your plan to add more websites' : undefined}
             onClick={() => setAddWebsiteOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-[8px] bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[14px] font-medium transition-colors"
+            className={cn(
+              'flex items-center gap-2 px-5 py-2.5 rounded-[8px] text-[14px] font-medium transition-colors',
+              isBasicPlan
+                ? 'bg-[#d1d5db] text-[#9fa1a7] cursor-not-allowed'
+                : 'bg-[#0b66e4] hover:bg-[#0952c6] text-white'
+            )}
           >
             Add website +
           </button>

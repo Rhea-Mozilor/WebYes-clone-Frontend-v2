@@ -1096,15 +1096,15 @@ function AppLayout() {
 
           {/* Onboarding scan in-progress banner */}
           {activeScanJob && (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-[#bdd0f8] bg-[#eef4ff] rounded-full mr-3">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 animate-spin">
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 border border-[#bdd0f8] bg-[#eef4ff] rounded-full mr-3 whitespace-nowrap">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="shrink-0 animate-spin">
                 <circle cx="8" cy="8" r="7" stroke="#bfdbfe" strokeWidth="1.5" />
                 <path d="M8 1a7 7 0 0 1 7 7" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
-              <span className="text-[13px] font-medium text-[#374151]">Scanning...</span>
+              <span className="text-[12px] font-medium text-[#374151]">Scanning...</span>
               <button
                 onClick={() => setScanDetailOpen(true)}
-                className="text-[13px] font-medium text-[#2563eb] hover:underline"
+                className="text-[12px] font-medium text-[#2563eb] hover:underline"
               >
                 Scan details
               </button>
@@ -1113,15 +1113,15 @@ function AppLayout() {
 
           {/* Run-scan in-progress banner */}
           {scanJobs && !scanJobsDone && (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-[#bdd0f8] bg-[#eef4ff] rounded-full mr-3">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 animate-spin">
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 border border-[#bdd0f8] bg-[#eef4ff] rounded-full mr-3 whitespace-nowrap">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="shrink-0 animate-spin">
                 <circle cx="8" cy="8" r="7" stroke="#bfdbfe" strokeWidth="1.5" />
                 <path d="M8 1a7 7 0 0 1 7 7" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
-              <span className="text-[13px] font-medium text-[#374151]">Scanning...</span>
+              <span className="text-[12px] font-medium text-[#374151]">Scanning...</span>
               <button
                 onClick={() => setScanModalVisible(true)}
-                className="text-[13px] font-medium text-[#2563eb] hover:underline"
+                className="text-[12px] font-medium text-[#2563eb] hover:underline"
               >
                 Scan details
               </button>

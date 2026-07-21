@@ -17,7 +17,7 @@ export function SignupForm({
   subtitle,
   submitLabel,
 }: {
-  plan: 'free' | 'pro'
+  plan: 'free' | 'pro' | 'enterprise'
   heading: string
   subtitle: string | null
   submitLabel: string

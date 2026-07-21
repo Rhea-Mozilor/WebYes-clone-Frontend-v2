@@ -9,12 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as GuestRouteImport } from './routes/guest'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SignupIndexRouteImport } from './routes/signup/index'
 import { Route as UpgradeSuccessRouteImport } from './routes/upgrade/success'
 import { Route as UpgradeFailedRouteImport } from './routes/upgrade/failed'
 import { Route as SignupProRouteImport } from './routes/signup/pro'
@@ -39,11 +39,6 @@ import { Route as AppIssuesIssueIdRouteImport } from './routes/_app/issues/$issu
 import { Route as AppScansScanIdIndexRouteImport } from './routes/_app/scans/$scanId/index'
 import { Route as AppScansScanIdIssuesRouteImport } from './routes/_app/scans/$scanId/issues'
 
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
@@ -68,6 +63,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignupIndexRoute = SignupIndexRouteImport.update({
+  id: '/signup/',
+  path: '/signup/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UpgradeSuccessRoute = UpgradeSuccessRouteImport.update({
   id: '/upgrade/success',
   path: '/upgrade/success',
@@ -79,9 +79,9 @@ const UpgradeFailedRoute = UpgradeFailedRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupProRoute = SignupProRouteImport.update({
-  id: '/pro',
-  path: '/pro',
-  getParentRoute: () => SignupRoute,
+  id: '/signup/pro',
+  path: '/signup/pro',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppUpgradeRoute = AppUpgradeRouteImport.update({
   id: '/upgrade',
@@ -189,7 +189,6 @@ export interface FileRoutesByFullPath {
   '/guest': typeof GuestRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
-  '/signup': typeof SignupRouteWithChildren
   '/accessibility': typeof AppAccessibilityRoute
   '/dashboard': typeof AppDashboardRoute
   '/onboarding': typeof AppOnboardingRoute
@@ -203,6 +202,7 @@ export interface FileRoutesByFullPath {
   '/signup/pro': typeof SignupProRoute
   '/upgrade/failed': typeof UpgradeFailedRoute
   '/upgrade/success': typeof UpgradeSuccessRoute
+  '/signup/': typeof SignupIndexRoute
   '/issues/$issueId': typeof AppIssuesIssueIdRoute
   '/settings/billing': typeof AppSettingsBillingRoute
   '/settings/integrations': typeof AppSettingsIntegrationsRoute
@@ -219,7 +219,6 @@ export interface FileRoutesByTo {
   '/guest': typeof GuestRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
-  '/signup': typeof SignupRouteWithChildren
   '/accessibility': typeof AppAccessibilityRoute
   '/dashboard': typeof AppDashboardRoute
   '/onboarding': typeof AppOnboardingRoute
@@ -232,6 +231,7 @@ export interface FileRoutesByTo {
   '/signup/pro': typeof SignupProRoute
   '/upgrade/failed': typeof UpgradeFailedRoute
   '/upgrade/success': typeof UpgradeSuccessRoute
+  '/signup': typeof SignupIndexRoute
   '/issues/$issueId': typeof AppIssuesIssueIdRoute
   '/settings/billing': typeof AppSettingsBillingRoute
   '/settings/integrations': typeof AppSettingsIntegrationsRoute
@@ -250,7 +250,6 @@ export interface FileRoutesById {
   '/guest': typeof GuestRoute
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
-  '/signup': typeof SignupRouteWithChildren
   '/_app/accessibility': typeof AppAccessibilityRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/onboarding': typeof AppOnboardingRoute
@@ -264,6 +263,7 @@ export interface FileRoutesById {
   '/signup/pro': typeof SignupProRoute
   '/upgrade/failed': typeof UpgradeFailedRoute
   '/upgrade/success': typeof UpgradeSuccessRoute
+  '/signup/': typeof SignupIndexRoute
   '/_app/issues/$issueId': typeof AppIssuesIssueIdRoute
   '/_app/settings/billing': typeof AppSettingsBillingRoute
   '/_app/settings/integrations': typeof AppSettingsIntegrationsRoute
@@ -282,7 +282,6 @@ export interface FileRouteTypes {
     | '/guest'
     | '/login'
     | '/pricing'
-    | '/signup'
     | '/accessibility'
     | '/dashboard'
     | '/onboarding'
@@ -296,6 +295,7 @@ export interface FileRouteTypes {
     | '/signup/pro'
     | '/upgrade/failed'
     | '/upgrade/success'
+    | '/signup/'
     | '/issues/$issueId'
     | '/settings/billing'
     | '/settings/integrations'
@@ -312,7 +312,6 @@ export interface FileRouteTypes {
     | '/guest'
     | '/login'
     | '/pricing'
-    | '/signup'
     | '/accessibility'
     | '/dashboard'
     | '/onboarding'
@@ -325,6 +324,7 @@ export interface FileRouteTypes {
     | '/signup/pro'
     | '/upgrade/failed'
     | '/upgrade/success'
+    | '/signup'
     | '/issues/$issueId'
     | '/settings/billing'
     | '/settings/integrations'
@@ -342,7 +342,6 @@ export interface FileRouteTypes {
     | '/guest'
     | '/login'
     | '/pricing'
-    | '/signup'
     | '/_app/accessibility'
     | '/_app/dashboard'
     | '/_app/onboarding'
@@ -356,6 +355,7 @@ export interface FileRouteTypes {
     | '/signup/pro'
     | '/upgrade/failed'
     | '/upgrade/success'
+    | '/signup/'
     | '/_app/issues/$issueId'
     | '/_app/settings/billing'
     | '/_app/settings/integrations'
@@ -374,20 +374,14 @@ export interface RootRouteChildren {
   GuestRoute: typeof GuestRoute
   LoginRoute: typeof LoginRoute
   PricingRoute: typeof PricingRoute
-  SignupRoute: typeof SignupRouteWithChildren
+  SignupProRoute: typeof SignupProRoute
   UpgradeFailedRoute: typeof UpgradeFailedRoute
   UpgradeSuccessRoute: typeof UpgradeSuccessRoute
+  SignupIndexRoute: typeof SignupIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/pricing': {
       id: '/pricing'
       path: '/pricing'
@@ -423,6 +417,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/signup/': {
+      id: '/signup/'
+      path: '/signup'
+      fullPath: '/signup/'
+      preLoaderRoute: typeof SignupIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/upgrade/success': {
       id: '/upgrade/success'
       path: '/upgrade/success'
@@ -439,10 +440,10 @@ declare module '@tanstack/react-router' {
     }
     '/signup/pro': {
       id: '/signup/pro'
-      path: '/pro'
+      path: '/signup/pro'
       fullPath: '/signup/pro'
       preLoaderRoute: typeof SignupProRouteImport
-      parentRoute: typeof SignupRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_app/upgrade': {
       id: '/_app/upgrade'
@@ -645,26 +646,16 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
-interface SignupRouteChildren {
-  SignupProRoute: typeof SignupProRoute
-}
-
-const SignupRouteChildren: SignupRouteChildren = {
-  SignupProRoute: SignupProRoute,
-}
-
-const SignupRouteWithChildren =
-  SignupRoute._addFileChildren(SignupRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   GuestRoute: GuestRoute,
   LoginRoute: LoginRoute,
   PricingRoute: PricingRoute,
-  SignupRoute: SignupRouteWithChildren,
+  SignupProRoute: SignupProRoute,
   UpgradeFailedRoute: UpgradeFailedRoute,
   UpgradeSuccessRoute: UpgradeSuccessRoute,
+  SignupIndexRoute: SignupIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

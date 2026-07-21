@@ -433,27 +433,40 @@ function UpgradePage() {
         </p>
 
         {/* Cancel Plan */}
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-5">Cancel Plan</h2>
+        {currentPlan !== 'FREE' && (
           <div>
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col gap-4 w-full">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Cancel plan</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  By cancelling your subscription, your account will downgrade to the free plan after the current plan ends. You will only have access to 10 credits when downgraded, but your existing audit data will be retained.
-                </p>
-              </div>
-              <div className="mt-auto pt-2">
-                <button
-                  onClick={() => setCancelModalOpen(true)}
-                  className="px-5 py-2 rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 text-sm font-semibold transition-colors"
-                >
-                  Cancel my plan
-                </button>
+            <h2 className="text-xl font-bold text-gray-900 mb-5">Cancel Plan</h2>
+            <div>
+              <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col gap-4 w-full">
+                {summary?.status === 'cancelled' ? (
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">Plan already cancelled</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      Your subscription is set to end at the close of the current billing period. You'll keep access to your plan's features until then — no further action is needed.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">Cancel plan</h3>
+                      <p className="text-sm text-gray-600 leading-relaxed">
+                        By cancelling your subscription, your account will downgrade to the free plan after the current plan ends. You will only have access to 10 credits when downgraded, but your existing audit data will be retained.
+                      </p>
+                    </div>
+                    <div className="mt-auto pt-2">
+                      <button
+                        onClick={() => setCancelModalOpen(true)}
+                        className="px-5 py-2 rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 text-sm font-semibold transition-colors"
+                      >
+                        Cancel my plan
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="h-12" />
       </div>

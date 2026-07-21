@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
 import { getBillingPlans } from '../api/billing'
 import type { BillingPlan, BillingPlanName } from '../types'
 
@@ -131,8 +130,8 @@ function PricingPage() {
           <p className="text-gray-600 text-base">Upgrade anytime as you grow.</p>
         </div>
 
-        {/* Billing toggle + currency */}
-        <div className="relative flex items-center justify-center mb-12">
+        {/* Billing toggle */}
+        <div className="flex items-center justify-center mb-12">
           <div className="inline-flex bg-white rounded-full p-1.5 shadow-sm border border-gray-200">
             <button
               onClick={() => setBilling('monthly')}
@@ -150,14 +149,6 @@ function PricingPage() {
             >
               Annually
             </button>
-          </div>
-
-          <div className="hidden lg:flex items-center gap-2 absolute right-0 text-sm text-gray-700">
-            Currency
-            <div className="flex items-center gap-1.5 border border-gray-300 rounded px-3 py-2">
-              $(USD)
-              <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
-            </div>
           </div>
         </div>
 

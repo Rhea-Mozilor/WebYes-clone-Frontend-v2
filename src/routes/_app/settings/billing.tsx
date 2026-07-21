@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Calendar, ChevronDown, Download, ListFilterPlus } from 'lucide-react'
+import { Calendar, ChevronDown, Download } from 'lucide-react'
 import { getBillingSummary, getInvoices, getInvoicePdfUrl } from '../../../api/billing'
 import type { InvoiceDateRange, InvoiceStatus } from '../../../types'
 import AccessibilitySvg from '../../../components/svgicons/AccessibilityBlue.svg'
@@ -34,7 +34,6 @@ function BillingPage() {
   const [dateRange, setDateRange] = useState<InvoiceDateRange>('30d')
   const [page, setPage] = useState(1)
   const pageSize = 20
-  const [productFilter, setProductFilter] = useState(false)
   const [dateFilter, setDateFilter] = useState(false)
 
   const { data: summary } = useQuery({ queryKey: ['billing-summary'], queryFn: getBillingSummary })
@@ -180,21 +179,10 @@ function BillingPage() {
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#f3f4f6]">
           <span className="text-[16px] font-bold text-[#2e3240]">Invoice history</span>
           <div className="flex items-center gap-2">
-            {/* Product filter */}
-            <div className="relative">
-              <button
-                onClick={() => { setProductFilter(!productFilter); setDateFilter(false) }}
-                className="flex items-center gap-1.5 px-3 py-2 border border-[#e5e7eb] rounded-[6px] text-[13px] font-medium text-[#2e3240] hover:bg-[#f9fafb] transition-colors"
-              >
-                <ListFilterPlus className="w-3.5 h-3.5 text-[#73767f]" />
-                Product
-                <ChevronDown className="w-3.5 h-3.5 text-[#73767f]" />
-              </button>
-            </div>
             {/* Date filter */}
             <div className="relative">
               <button
-                onClick={() => { setDateFilter(!dateFilter); setProductFilter(false) }}
+                onClick={() => setDateFilter(!dateFilter)}
                 className="flex items-center gap-1.5 px-3 py-2 border border-[#e5e7eb] rounded-[6px] text-[13px] font-medium text-[#2e3240] hover:bg-[#f9fafb] transition-colors"
               >
                 <Calendar className="w-3.5 h-3.5 text-[#73767f]" />

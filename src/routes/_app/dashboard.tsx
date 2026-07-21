@@ -23,6 +23,7 @@ import { PriorityBadge } from '../../components/ui/PriorityBadge'
 import { AccessibilityIcon, PerformanceIcon, QualityIcon, SeoIcon } from '../../components/ui/CategoryIcons'
 import { useSiteStore } from '../../store/siteStore'
 import { listWebsites, createWebsite } from '../../api/websites'
+import { useIsBasicPlan, LockedOverlay } from '../../components/UpgradeLock'
 import { getScanDashboard, getScanIssues, getScanPages, getPageScores } from '../../api/scans'
 import {
   Dialog,
@@ -176,6 +177,7 @@ function ScannedPagesModal({ scanJobId, onClose }: { scanJobId: string; onClose:
 
 
 function DashboardPage() {
+  const isBasicPlan = useIsBasicPlan()
   const { websiteId, setWebsiteId, strategy, scansByWebsite } = useSiteStore()
   const scanInfo = websiteId ? scansByWebsite[websiteId] : undefined
   const scanId = scanInfo?.scanId ?? null
@@ -470,7 +472,8 @@ function DashboardPage() {
           </div>
 
           {/* Card 2: Total issues donut */}
-          <div className="bg-white rounded-lg border border-[#dfe4f3] shadow-sm p-4 sm:p-5">
+          <div className="relative bg-white rounded-lg border border-[#dfe4f3] shadow-sm p-4 sm:p-5">
+            {isBasicPlan && <LockedOverlay label="Upgrade to see your issue breakdown" />}
             <h2 className="text-xl font-bold text-gray-900 mb-2">Total issues</h2>
             {pieData.length > 0 ? (
               <>
@@ -519,7 +522,8 @@ function DashboardPage() {
           </div>
 
           {/* Issues per page */}
-          <div className="bg-white rounded-lg border border-[#dfe4f3] shadow-sm p-4 sm:p-5">
+          <div className="relative bg-white rounded-lg border border-[#dfe4f3] shadow-sm p-4 sm:p-5">
+            {isBasicPlan && <LockedOverlay label="Upgrade to see issues per page" />}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-[#2e3240] tracking-tight">Issues per page</h2>
               {scanId && (

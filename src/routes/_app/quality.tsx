@@ -12,6 +12,7 @@ import { PriorityBadge } from '../../components/ui/PriorityBadge'
 import { useSiteStore } from '../../store/siteStore'
 import { IssueDetailPanel } from '../../components/IssueDetailPanel'
 import { CategoryPageDetail } from '../../components/CategoryPageDetail'
+import { useIsBasicPlan, LockedOverlay, LimitedListUpgradeFooter } from '../../components/UpgradeLock'
 import {
   getQualityScore,
   getQualityCriticalIssues,
@@ -52,6 +53,7 @@ function pageName(url: string): string {
 }
 
 function QualityPage() {
+  const isBasicPlan = useIsBasicPlan()
   const { websiteId, strategy, scansByWebsite } = useSiteStore()
   const scanId = websiteId ? scansByWebsite[websiteId]?.scanId ?? null : null
   const { tab: activeTab, issueId: preselectedIssueId } = Route.useSearch()
@@ -233,7 +235,8 @@ function QualityPage() {
           {/* === ROW 2: Chart + Critical issues === */}
           <div className="flex flex-col lg:flex-row gap-4 sm:gap-5">
             {/* Quality over time */}
-            <div className="flex-1 bg-white rounded-[8px] border border-[#dfe4f3] p-5 min-w-0">
+            <div className="relative flex-1 bg-white rounded-[8px] border border-[#dfe4f3] p-5 min-w-0">
+              {isBasicPlan && <LockedOverlay label="Upgrade to see quality trends over time" />}
               <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Quality over time</h3>
                 <div className="flex items-center gap-2">
@@ -457,7 +460,7 @@ function QualityPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {affectedPages.items.map((item, i) => {
+                      {(isBasicPlan ? affectedPages.items.slice(0, 5) : affectedPages.items).map((item, i) => {
                         const s = item.page_score ?? 0
                         const shortUrl = item.page_url.replace(/^https?:\/\//, '').replace(/\/$/, '')
                         return (
@@ -487,7 +490,11 @@ function QualityPage() {
                     </tbody>
                   </table>
                 </div>
-                <Pagination page={affectedPage} totalPages={affectedPages.total_pages} onPage={setAffectedPage} />
+                {isBasicPlan ? (
+                  <LimitedListUpgradeFooter totalCount={affectedPages.total} shown={5} />
+                ) : (
+                  <Pagination page={affectedPage} totalPages={affectedPages.total_pages} onPage={setAffectedPage} />
+                )}
               </>
             )}
           </div>
@@ -514,6 +521,7 @@ function QualityPage() {
           ) : (() => {
             const filtered = issueList.items
               .filter(i => !issueSearch || i.title.toLowerCase().includes(issueSearch.toLowerCase()))
+            const displayed = isBasicPlan ? filtered.slice(0, 5) : filtered
             if (filtered.length === 0) return (
               <p className="text-sm text-gray-400 text-center py-16">No issues found</p>
             )
@@ -531,7 +539,7 @@ function QualityPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map((item) => (
+                      {displayed.map((item) => (
                         <tr key={item.id}
                           onClick={() => setSelectedIssueId(item.id)}
                           className="border-t border-gray-100 hover:bg-gray-50/60 cursor-pointer">
@@ -547,7 +555,11 @@ function QualityPage() {
                     </tbody>
                   </table>
                 </div>
-                <Pagination page={issueListPage} totalPages={issueList.total_pages} onPage={setIssueListPage} />
+                {isBasicPlan ? (
+                  <LimitedListUpgradeFooter totalCount={issueList.total} shown={5} />
+                ) : (
+                  <Pagination page={issueListPage} totalPages={issueList.total_pages} onPage={setIssueListPage} />
+                )}
               </>
             )
           })()}

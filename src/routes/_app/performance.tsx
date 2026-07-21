@@ -23,6 +23,7 @@ import { PriorityBadge } from '../../components/ui/PriorityBadge'
 import { useSiteStore } from '../../store/siteStore'
 import { IssueDetailPanel } from '../../components/IssueDetailPanel'
 import { PerformancePageDetail } from '../../components/PerformancePageDetail'
+import { useIsBasicPlan, LockedOverlay, LimitedListUpgradeFooter } from '../../components/UpgradeLock'
 import {
   getPerformanceScore,
   getPerformanceVitals,
@@ -93,6 +94,7 @@ function pageName(url: string): string {
 
 
 function PerformancePage() {
+  const isBasicPlan = useIsBasicPlan()
   const { websiteId, strategy, scansByWebsite } = useSiteStore()
   const scanId = websiteId ? scansByWebsite[websiteId]?.scanId ?? null : null
   const { tab: activeTab, issueId: preselectedIssueId } = Route.useSearch()
@@ -393,7 +395,8 @@ function PerformancePage() {
           </div>
 
           {/* Performance over time */}
-          <div className="bg-white rounded-[8px] border border-[#dfe4f3] p-5">
+          <div className="relative bg-white rounded-[8px] border border-[#dfe4f3] p-5">
+            {isBasicPlan && <LockedOverlay label="Upgrade to see performance trends over time" />}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Performance over time</h3>
               <div className="flex items-center gap-2 flex-wrap">
@@ -440,7 +443,7 @@ function PerformancePage() {
               {!responseTimes || responseTimes.pages.length === 0 ? (
                 <p className="text-xs text-gray-400 py-6 text-center">No page data available</p>
               ) : (() => {
-                const pages = responseTimes.pages.slice(0, 8)
+                const pages = responseTimes.pages.slice(0, isBasicPlan ? 5 : 8)
                 const maxMs = Math.max(...pages.map(p => p.response_time_ms ?? 0))
                 const chartData = pages.map(p => ({
                   name: (p.title || p.page_url.replace(/^https?:\/\//, '')).slice(0, 40),
@@ -448,6 +451,7 @@ function PerformancePage() {
                   isSlowest: p.response_time_ms === maxMs,
                 }))
                 return (
+                  <>
                   <ResponsiveContainer width="100%" height={chartData.length * 52 + 30}>
                     <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 40, left: 0, bottom: 0 }}>
                       <XAxis type="number" tickFormatter={v => `${v} sec`} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
@@ -460,6 +464,8 @@ function PerformancePage() {
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
+                  {isBasicPlan && <LimitedListUpgradeFooter totalCount={responseTimes.pages.length} shown={5} />}
+                  </>
                 )
               })()}
             </div>
@@ -655,7 +661,7 @@ function PerformancePage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {affectedPages.items.map((item, i) => {
+                      {(isBasicPlan ? affectedPages.items.slice(0, 5) : affectedPages.items).map((item, i) => {
                         const s = item.page_score ?? 0
                         const shortUrl = item.page_url.replace(/^https?:\/\//, '').replace(/\/$/, '')
                         return (
@@ -685,7 +691,11 @@ function PerformancePage() {
                     </tbody>
                   </table>
                 </div>
-                <Pagination page={affectedPage} totalPages={affectedPages.total_pages} onPage={setAffectedPage} />
+                {isBasicPlan ? (
+                  <LimitedListUpgradeFooter totalCount={affectedPages.total} shown={5} />
+                ) : (
+                  <Pagination page={affectedPage} totalPages={affectedPages.total_pages} onPage={setAffectedPage} />
+                )}
               </>
             )}
           </div>
@@ -718,6 +728,7 @@ function PerformancePage() {
               if (issueSearch && !item.title.toLowerCase().includes(issueSearch.toLowerCase())) return false
               return true
             })
+            const displayed = isBasicPlan ? filtered.slice(0, 5) : filtered
             return filtered.length === 0 ? (
               <p className="text-sm text-gray-400 text-center py-12">No issues found</p>
             ) : (
@@ -734,7 +745,7 @@ function PerformancePage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map((item) => (
+                      {displayed.map((item) => (
                         <tr key={item.id}
                           onClick={() => setSelectedIssueId(item.id)}
                           className="border-t border-gray-100 hover:bg-gray-50/60 cursor-pointer">
@@ -750,7 +761,11 @@ function PerformancePage() {
                     </tbody>
                   </table>
                 </div>
-                <Pagination page={issueListPage} totalPages={issueList.total_pages} onPage={setIssueListPage} />
+                {isBasicPlan ? (
+                  <LimitedListUpgradeFooter totalCount={issueList.total} shown={5} />
+                ) : (
+                  <Pagination page={issueListPage} totalPages={issueList.total_pages} onPage={setIssueListPage} />
+                )}
               </>
             )
           })()}

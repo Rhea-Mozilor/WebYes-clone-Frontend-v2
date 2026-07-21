@@ -28,6 +28,7 @@ import {
   getAccessibilityChecklist,
 } from '../../api/scans'
 import { AccessibilityPageDetail } from '../../components/AccessibilityPageDetail'
+import { useIsBasicPlan, LockedOverlay, LimitedListUpgradeFooter, UpgradeButton } from '../../components/UpgradeLock'
 
 export const Route = createFileRoute('/_app/accessibility')({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -69,6 +70,7 @@ function pageName(url: string): string {
 
 
 function AccessibilityPage() {
+  const isBasicPlan = useIsBasicPlan()
   const { websiteId, strategy, scansByWebsite } = useSiteStore()
   const scanId = websiteId ? scansByWebsite[websiteId]?.scanId ?? null : null
   const { tab: activeTab, issueId: preselectedIssueId } = Route.useSearch()
@@ -415,7 +417,8 @@ function AccessibilityPage() {
           {/* === ROW 3: Accessibility over time + Issues per page === */}
           <div className="flex flex-col lg:flex-row gap-4 sm:gap-5">
             {/* Accessibility over time */}
-            <div className="flex-1 bg-white rounded-lg border border-[#dfe4f3] p-5 min-w-0">
+            <div className="relative flex-1 bg-white rounded-lg border border-[#dfe4f3] p-5 min-w-0">
+              {isBasicPlan && <LockedOverlay label="Upgrade to see accessibility trends over time" />}
               <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Accessibility over time</h3>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -680,7 +683,7 @@ function AccessibilityPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {affectedPages.items.map((item, i) => {
+                      {(isBasicPlan ? affectedPages.items.slice(0, 5) : affectedPages.items).map((item, i) => {
                         const s = item.page_score ?? 0
                         const shortUrl = item.page_url.replace(/^https?:\/\//, '')
                         return (
@@ -715,14 +718,18 @@ function AccessibilityPage() {
                     </tbody>
                   </table>
                 </div>
-                <div className="px-6 pb-6">
-                  <IssuesLogPagination
-                    page={affectedPagesPage}
-                    total={affectedPages.total}
-                    pageSize={20}
-                    onPage={setAffectedPagesPage}
-                  />
-                </div>
+                {isBasicPlan ? (
+                  <LimitedListUpgradeFooter totalCount={affectedPages.total} shown={5} />
+                ) : (
+                  <div className="px-6 pb-6">
+                    <IssuesLogPagination
+                      page={affectedPagesPage}
+                      total={affectedPages.total}
+                      pageSize={20}
+                      onPage={setAffectedPagesPage}
+                    />
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -793,6 +800,7 @@ function AccessibilityPage() {
               if (catFilter && item.responsibility?.toLowerCase() !== catFilter) return false
               return true
             })
+            const displayed = isBasicPlan ? filtered.slice(0, 5) : filtered
             return (
               <div className="bg-white rounded-[10px] border border-[#e8eaf0] overflow-x-auto">
                 <table className="w-full min-w-[700px]">
@@ -808,9 +816,9 @@ function AccessibilityPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.length === 0 ? (
+                    {displayed.length === 0 ? (
                       <tr><td colSpan={5} className="py-14 text-center text-sm text-[#9ca3af]">No issues found.</td></tr>
-                    ) : filtered.map((item) => {
+                    ) : displayed.map((item) => {
                       const priority = item.priority ?? 'low'
                       const resp = item.responsibility?.toLowerCase()
                       return (
@@ -854,9 +862,13 @@ function AccessibilityPage() {
                     })}
                   </tbody>
                 </table>
-                <div className="px-5 py-3 border-t border-[#f0f1f5]">
-                  <IssuesLogPagination page={issueListPage} total={issueList.total} pageSize={20} onPage={setIssueListPage} />
-                </div>
+                {isBasicPlan ? (
+                  <LimitedListUpgradeFooter totalCount={issueList.total} shown={5} />
+                ) : (
+                  <div className="px-5 py-3 border-t border-[#f0f1f5]">
+                    <IssuesLogPagination page={issueListPage} total={issueList.total} pageSize={20} onPage={setIssueListPage} />
+                  </div>
+                )}
               </div>
             )
           })()}
@@ -895,11 +907,19 @@ function AccessibilityPage() {
             <p className="text-sm text-gray-400 text-center py-16">No checklist data available</p>
           ) : (
             <div className="space-y-8">
+              {isBasicPlan && (
+                <div className="rounded-[8px] border border-[#e0e3eb] bg-[#f9fafb] px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+                  <p className="text-[13px] text-[#2e3240]">Your free plan only includes checklist item 1.1.1. Upgrade to see the full WCAG checklist.</p>
+                  <UpgradeButton />
+                </div>
+              )}
               {checklistData.principles.map((principle) => {
-                const principleGuidelines = (principle.guidelines ?? []).filter(g =>
-                  !checklistSearch || g.title.toLowerCase().includes(checklistSearch.toLowerCase()) ||
-                  (g.items ?? []).some(c => c.description.toLowerCase().includes(checklistSearch.toLowerCase()) || c.criterion.toLowerCase().includes(checklistSearch.toLowerCase()))
-                )
+                const principleGuidelines = (principle.guidelines ?? [])
+                  .filter(g =>
+                    !checklistSearch || g.title.toLowerCase().includes(checklistSearch.toLowerCase()) ||
+                    (g.items ?? []).some(c => c.description.toLowerCase().includes(checklistSearch.toLowerCase()) || c.criterion.toLowerCase().includes(checklistSearch.toLowerCase()))
+                  )
+                  .filter(g => !isBasicPlan || (g.items ?? []).some(c => c.criterion === '1.1.1'))
                 if (principleGuidelines.length === 0) return null
                 return (
                   <div key={principle.number}>
@@ -914,6 +934,7 @@ function AccessibilityPage() {
                           key={guideline.guideline}
                           guideline={guideline}
                           search={checklistSearch}
+                          basicLocked={isBasicPlan}
                         />
                       ))}
                     </div>
@@ -941,16 +962,19 @@ function outcomeStyle(outcome: string): { bg: string; color: string; label: stri
   return { bg: '#ffeddf', color: '#ff5e00', label: 'Manual check' }
 }
 
-function ChecklistGuideline({ guideline, search }: {
+function ChecklistGuideline({ guideline, search, basicLocked }: {
   guideline: import('../../types').ChecklistGuidelineItem
   search: string
+  basicLocked?: boolean
 }) {
   const [open, setOpen] = useState(false)
-  const filteredCriteria = (guideline.items ?? []).filter(c =>
-    !search ||
-    c.criterion.toLowerCase().includes(search.toLowerCase()) ||
-    c.description.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredCriteria = (guideline.items ?? [])
+    .filter(c =>
+      !search ||
+      c.criterion.toLowerCase().includes(search.toLowerCase()) ||
+      c.description.toLowerCase().includes(search.toLowerCase())
+    )
+    .filter(c => !basicLocked || c.criterion === '1.1.1')
   if (filteredCriteria.length === 0) return null
   return (
     <div className="border border-[#ebebeb] rounded-[8px] overflow-hidden">

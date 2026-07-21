@@ -23,6 +23,7 @@ import { PriorityBadge } from '../../components/ui/PriorityBadge'
 import { AccessibilityIcon, PerformanceIcon, QualityIcon, SeoIcon } from '../../components/ui/CategoryIcons'
 import { useSiteStore } from '../../store/siteStore'
 import { listWebsites, createWebsite } from '../../api/websites'
+import { useIsBasicPlan, LimitedListUpgradeFooter } from '../../components/UpgradeLock'
 import { getScanDashboard, getScanIssues, getScanPages, getPageScores } from '../../api/scans'
 import {
   Dialog,
@@ -182,6 +183,7 @@ function ScannedPagesModal({ scanJobId, onClose }: { scanJobId: string; onClose:
 
 
 function DashboardPage() {
+  const isBasicPlan = useIsBasicPlan()
   const { websiteId, setWebsiteId, strategy, scansByWebsite } = useSiteStore()
   const scanInfo = websiteId ? scansByWebsite[websiteId] : undefined
   const scanId = scanInfo?.scanId ?? null
@@ -231,7 +233,7 @@ function DashboardPage() {
 
   const selectedWebsite = websites.find((w) => w.id === websiteId)
 
-  const pagedIssues = scanIssues?.items ?? []
+  const pagedIssues = isBasicPlan ? (scanIssues?.items ?? []).slice(0, 5) : (scanIssues?.items ?? [])
   const totalPages = scanIssues?.total_pages ?? 1
 
   function buildPageNums(current: number, total: number): (number | '...')[] {
@@ -654,54 +656,57 @@ function DashboardPage() {
             </table>
           )}
 
-          {/* Pagination — always show items-per-page, conditionally show page buttons */}
-          <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Items per page</span>
-              <div className="flex items-center border border-gray-200 rounded px-2 py-1 gap-1.5">
-                <span className="text-xs text-gray-800 min-w-[1rem] text-center">{itemsPerPage}</span>
-                <div className="flex flex-col">
-                  <button onClick={() => { setItemsPerPage((p) => Math.min(p + 5, 50)) }} className="text-gray-400 hover:text-gray-700 leading-none text-[9px]">▲</button>
-                  <button onClick={() => { setItemsPerPage((p) => Math.max(p - 5, 5)) }} className="text-gray-400 hover:text-gray-700 leading-none text-[9px]">▼</button>
+          {isBasicPlan ? (
+            <LimitedListUpgradeFooter totalCount={scanIssues?.total ?? pagedIssues.length} shown={5} />
+          ) : (
+            <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">Items per page</span>
+                <div className="flex items-center border border-gray-200 rounded px-2 py-1 gap-1.5">
+                  <span className="text-xs text-gray-800 min-w-[1rem] text-center">{itemsPerPage}</span>
+                  <div className="flex flex-col">
+                    <button onClick={() => { setItemsPerPage((p) => Math.min(p + 5, 50)) }} className="text-gray-400 hover:text-gray-700 leading-none text-[9px]">▲</button>
+                    <button onClick={() => { setItemsPerPage((p) => Math.max(p - 5, 5)) }} className="text-gray-400 hover:text-gray-700 leading-none text-[9px]">▼</button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {totalPages > 1 && (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 text-sm"
-                >
-                  ‹
-                </button>
-                {pageNums.map((n, idx) => (
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1">
                   <button
-                    key={idx}
-                    onClick={() => typeof n === 'number' && setCurrentPage(n)}
-                    className={cn(
-                      'w-7 h-7 flex items-center justify-center rounded text-xs transition-colors',
-                      n === currentPage
-                        ? 'border border-[#1160c6] text-[#1160c6] font-semibold'
-                        : n === '...'
-                        ? 'text-gray-400 cursor-default'
-                        : 'text-[#4e4b66] border border-[#c7cade] hover:bg-gray-50'
-                    )}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 text-sm"
                   >
-                    {n}
+                    ‹
                   </button>
-                ))}
-                <button
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 text-sm"
-                >
-                  ›
-                </button>
-              </div>
-            )}
-          </div>
+                  {pageNums.map((n, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => typeof n === 'number' && setCurrentPage(n)}
+                      className={cn(
+                        'w-7 h-7 flex items-center justify-center rounded text-xs transition-colors',
+                        n === currentPage
+                          ? 'border border-[#1160c6] text-[#1160c6] font-semibold'
+                          : n === '...'
+                          ? 'text-gray-400 cursor-default'
+                          : 'text-[#4e4b66] border border-[#c7cade] hover:bg-gray-50'
+                      )}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 text-sm"
+                  >
+                    ›
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

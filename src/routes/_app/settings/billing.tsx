@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Calendar, ChevronDown, Download, ListFilterPlus } from 'lucide-react'
+import { Calendar, ChevronDown, Download, ListFilterPlus, Pencil } from 'lucide-react'
 import { getBillingSummary, getInvoices, getInvoicePdfUrl } from '../../../api/billing'
 import type { InvoiceDateRange, InvoiceStatus } from '../../../types'
 import AccessibilitySvg from '../../../components/svgicons/AccessibilityBlue.svg'
@@ -108,6 +108,33 @@ function BillingPage() {
 
           <div className="w-px h-11 bg-[#e5e7eb] shrink-0" />
 
+          {/* Payment method — only once a real payment has actually been made */}
+          {summary?.payment_method && (
+            <>
+              <div>
+                <p className="text-[12px] font-medium text-[#73767f] mb-3">Payment method</p>
+                <div className="flex items-center gap-2.5 bg-white border border-[#e5e7eb] rounded-[8px] px-3 py-2.5 w-fit">
+                  <div className="bg-[#1a1f71] rounded px-1.5 py-0.5">
+                    <span className="text-white text-[10px] font-bold italic tracking-wide">
+                      {summary.payment_method.brand.toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-medium text-[#2e3240]">•••• {summary.payment_method.last4}</div>
+                    <div className="text-[11px] text-[#73767f]">
+                      Expires {String(summary.payment_method.exp_month).padStart(2, '0')}/{String(summary.payment_method.exp_year).slice(-2)}
+                    </div>
+                  </div>
+                  <button className="ml-1 text-[#73767f] hover:text-[#2e3240] transition-colors">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="w-px h-11 bg-[#e5e7eb] shrink-0" />
+            </>
+          )}
+
           {/* Credit usage */}
           <div className="min-w-0">
             <p className="text-[12px] font-medium text-[#73767f] mb-3">Credit usage</p>
@@ -130,7 +157,7 @@ function BillingPage() {
                 : 'shrink-0 px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[13px] font-semibold rounded-[6px] transition-colors whitespace-nowrap'
             }
           >
-            {isCancelled ? 'Upgrade' : 'Manage Subscription'}
+            {isCancelled || planName === 'free' ? 'Upgrade' : 'Manage Subscription'}
           </Link>
         </div>
       </div>

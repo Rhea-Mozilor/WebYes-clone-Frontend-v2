@@ -462,13 +462,14 @@ function QualityPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(isBasicPlan ? affectedPages.items.slice(0, 5) : affectedPages.items).map((item, i) => {
+                      {(isBasicPlan ? affectedPages.items.slice(0, 8) : affectedPages.items).map((item, i) => {
                         const s = item.page_score ?? 0
                         const shortUrl = item.page_url.replace(/^https?:\/\//, '').replace(/\/$/, '')
+                        const locked = isBasicPlan && i >= 5
                         return (
                           <tr key={i}
-                            onClick={() => item.scan_result_id && item.total_issues > 0 && setPageDetailView({ scanResultId: item.scan_result_id, pageUrl: item.page_url })}
-                            className={cn('border-b border-[#ebebeb] hover:bg-gray-50/60 transition-colors', item.scan_result_id && item.total_issues > 0 && 'cursor-pointer')}>
+                            onClick={() => !locked && item.scan_result_id && item.total_issues > 0 && setPageDetailView({ scanResultId: item.scan_result_id, pageUrl: item.page_url })}
+                            className={cn('border-b border-[#ebebeb] transition-colors', locked ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60', item.scan_result_id && item.total_issues > 0 && 'cursor-pointer')}>
                             <td className="px-5 py-4">
                               <div className="text-[14px] font-medium text-[#2e3240]">{pageName(item.page_url)}</div>
                               <div className="text-[12px] text-[#73767f] mt-0.5">
@@ -523,7 +524,7 @@ function QualityPage() {
           ) : (() => {
             const filtered = issueList.items
               .filter(i => !issueSearch || i.title.toLowerCase().includes(issueSearch.toLowerCase()))
-            const displayed = isBasicPlan ? filtered.slice(0, 5) : filtered
+            const displayed = isBasicPlan ? filtered.slice(0, 8) : filtered
             if (filtered.length === 0) return (
               <p className="text-sm text-gray-400 text-center py-16">No issues found</p>
             )
@@ -541,10 +542,10 @@ function QualityPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {displayed.map((item) => (
+                      {displayed.map((item, idx) => (
                         <tr key={item.id}
-                          onClick={() => setSelectedIssueId(item.id)}
-                          className="border-t border-gray-100 hover:bg-gray-50/60 cursor-pointer">
+                          onClick={() => !(isBasicPlan && idx >= 5) && setSelectedIssueId(item.id)}
+                          className={cn('border-t border-gray-100 transition-colors', isBasicPlan && idx >= 5 ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60 cursor-pointer')}>
                           <td className="px-5 py-4">
                             <span className="text-sm text-[#0a5dcf] leading-snug">{item.title}</span>
                           </td>

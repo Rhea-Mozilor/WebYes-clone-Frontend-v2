@@ -233,7 +233,9 @@ function DashboardPage() {
 
   const selectedWebsite = websites.find((w) => w.id === websiteId)
 
-  const pagedIssues = isBasicPlan ? (scanIssues?.items ?? []).slice(0, 5) : (scanIssues?.items ?? [])
+  const allScanIssues = scanIssues?.items ?? []
+  const pagedIssues = isBasicPlan ? allScanIssues.slice(0, 5) : allScanIssues
+  const teaserIssues = isBasicPlan ? allScanIssues.slice(5, 8) : []
   const totalPages = scanIssues?.total_pages ?? 1
 
   function buildPageNums(current: number, total: number): (number | '...')[] {
@@ -652,6 +654,18 @@ function DashboardPage() {
                     </tr>
                   )
                 })}
+                {teaserIssues.map((issue) => (
+                  <tr key={issue.id} className="border-t border-[#eaebec] blur-sm select-none pointer-events-none">
+                    <td className="px-4 py-[26px] text-[14px] text-[#2e3240] leading-[1.4] tracking-[-0.14px] overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px]">{issue.title}</td>
+                    <td className="px-4 py-[26px]">
+                      <PriorityBadge priority={issue.priority} />
+                    </td>
+                    <td className="px-4 py-[26px]">{categoryIcon(issue.category)}</td>
+                    <td className="px-4 py-[26px] text-right">
+                      <span className="text-[12px] text-[#0b66e4] underline font-medium tracking-[-0.24px]">View more</span>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           )}

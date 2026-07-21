@@ -685,13 +685,14 @@ function AccessibilityPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(isBasicPlan ? affectedPages.items.slice(0, 5) : affectedPages.items).map((item, i) => {
+                      {(isBasicPlan ? affectedPages.items.slice(0, 8) : affectedPages.items).map((item, i) => {
                         const s = item.page_score ?? 0
                         const shortUrl = item.page_url.replace(/^https?:\/\//, '')
+                        const locked = isBasicPlan && i >= 5
                         return (
                           <tr key={i}
-                            onClick={() => item.scan_result_id && item.total_issues > 0 && setPageDetailView({ scanResultId: item.scan_result_id, pageUrl: item.page_url })}
-                            className={cn('border-b border-[#ebebeb] hover:bg-gray-50/60 transition-colors', item.scan_result_id && item.total_issues > 0 && 'cursor-pointer')}>
+                            onClick={() => !locked && item.scan_result_id && item.total_issues > 0 && setPageDetailView({ scanResultId: item.scan_result_id, pageUrl: item.page_url })}
+                            className={cn('border-b border-[#ebebeb] transition-colors', locked ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60', item.scan_result_id && item.total_issues > 0 && 'cursor-pointer')}>
                             <td className="px-4 py-[18px]">
                               <div className="text-[14px] font-medium text-[#2e3240] tracking-[-0.14px] leading-[1.4]">
                                 {pageName(item.page_url)}
@@ -802,7 +803,7 @@ function AccessibilityPage() {
               if (catFilter && item.responsibility?.toLowerCase() !== catFilter) return false
               return true
             })
-            const displayed = isBasicPlan ? filtered.slice(0, 5) : filtered
+            const displayed = isBasicPlan ? filtered.slice(0, 8) : filtered
             return (
               <div className="bg-white rounded-[10px] border border-[#e8eaf0] overflow-x-auto">
                 <table className="w-full min-w-[700px]">
@@ -820,11 +821,12 @@ function AccessibilityPage() {
                   <tbody>
                     {displayed.length === 0 ? (
                       <tr><td colSpan={5} className="py-14 text-center text-sm text-[#9ca3af]">No issues found.</td></tr>
-                    ) : displayed.map((item) => {
+                    ) : displayed.map((item, idx) => {
                       const priority = item.priority ?? 'low'
                       const resp = item.responsibility?.toLowerCase()
+                      const locked = isBasicPlan && idx >= 5
                       return (
-                        <tr key={item.id} onClick={() => setSelectedIssueId(item.id)} className="border-t border-[#f0f1f5] hover:bg-[#fafbfd] transition-colors cursor-pointer">
+                        <tr key={item.id} onClick={() => !locked && setSelectedIssueId(item.id)} className={cn('border-t border-[#f0f1f5] transition-colors', locked ? 'blur-sm select-none pointer-events-none' : 'hover:bg-[#fafbfd] cursor-pointer')}>
                           <td className="px-5 py-4">
                             <div className="flex flex-wrap items-baseline gap-x-2">
                               <span className="text-sm text-[#0b66e4] font-medium leading-snug">{item.title}</span>

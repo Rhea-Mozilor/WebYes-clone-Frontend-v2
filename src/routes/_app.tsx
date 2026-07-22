@@ -42,7 +42,7 @@ import { listWebsites, deleteWebsite } from '../api/websites'
 import { listOrganisations } from '../api/organisations'
 import { AddNewWebsiteModal } from '../components/AddNewWebsiteModal'
 import { useIsBasicPlan } from '../components/UpgradeLock'
-import { triggerScan, getScanJob, cancelScan, getActiveScan } from '../api/scans'
+import { triggerScan, getScanJob, cancelScan, getActiveScan, getScanHistory } from '../api/scans'
 import { useAuthStore } from '../store/authStore'
 import { useSiteStore } from '../store/siteStore'
 import { BgScanContext } from '../lib/BgScanContext'
@@ -665,7 +665,7 @@ function AppLayout() {
   })
   const { data: websites = [] } = useQuery({ queryKey: ['websites'], queryFn: listWebsites })
   const { data: orgs = [] } = useQuery({ queryKey: ['organisations'], queryFn: listOrganisations })
-  const { websiteId, setWebsiteId, strategy, setStrategy, setScanForWebsite, activeScanJob, setActiveScanJob } = useSiteStore()
+  const { websiteId, setWebsiteId, strategy, setStrategy, scansByWebsite, setScanForWebsite, activeScanJob, setActiveScanJob } = useSiteStore()
   const location = useRouterState({ select: (s) => s.location.pathname })
   const isBasicPlan = useIsBasicPlan()
 
@@ -727,6 +727,20 @@ function AppLayout() {
   useEffect(() => {
     if (websites.length && !websiteId) setWebsiteId(websites[0].id)
   }, [websites, websiteId, setWebsiteId])
+
+  // Restore the selected website's latest scan from the backend whenever it's
+  // not already known locally — e.g. right after logging back in, since
+  // logout clears the persisted site store but the backend still has history.
+  const restoredScanRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!websiteId || scansByWebsite[websiteId] || restoredScanRef.current === websiteId) return
+    restoredScanRef.current = websiteId
+    getScanHistory(websiteId)
+      .then((history) => {
+        if (history[0]) setScanForWebsite(websiteId, history[0].scan_job_id)
+      })
+      .catch(() => {})
+  }, [websiteId, scansByWebsite, setScanForWebsite])
 
   // close dropdowns on outside click
   useEffect(() => {

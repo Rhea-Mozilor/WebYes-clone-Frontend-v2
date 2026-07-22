@@ -641,7 +641,11 @@ function AppLayout() {
   const qc = useQueryClient()
   const { clearAuth } = useAuthStore()
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: getMe })
-  const { data: billingCredits } = useQuery({ queryKey: ['billing-credits'], queryFn: getBillingCredits })
+  const { data: billingCredits } = useQuery({
+    queryKey: ['billing-credits'],
+    queryFn: getBillingCredits,
+    refetchInterval: 60 * 60 * 1000,
+  })
   const { data: websites = [] } = useQuery({ queryKey: ['websites'], queryFn: listWebsites })
   const { data: orgs = [] } = useQuery({ queryKey: ['organisations'], queryFn: listOrganisations })
   const { websiteId, setWebsiteId, strategy, setStrategy, setScanForWebsite, activeScanJob, setActiveScanJob } = useSiteStore()

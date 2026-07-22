@@ -3,6 +3,7 @@ import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Users, Building2, Search, Trash2, ChevronDown, Check, ChevronLeft } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { cn } from '../../../lib/utils'
 import { useAuthStore } from '../../../store/authStore'
 import {
@@ -20,6 +21,10 @@ import {
 export const Route = createFileRoute('/_app/settings/team')({
   component: TeamPage,
 })
+
+function errorDetail(err: unknown, fallback: string): string {
+  return (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? fallback
+}
 
 function Spinner() {
   return (
@@ -53,8 +58,9 @@ function InviteModal({ onClose }: { onClose: () => void }) {
       onClose()
     },
     onError: (err: unknown) => {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? ''
+      const detail = errorDetail(err, '')
       if (detail.toLowerCase().includes('no account')) setAccountNotFound(true)
+      else toast.error(detail || 'Could not invite member')
     },
   })
 
@@ -249,6 +255,7 @@ function RoleDropdown({
   const updateMutation = useMutation({
     mutationFn: (newRole: Exclude<OrgRole, 'owner'>) => updateOrgMemberRole(orgId, userId, newRole),
     onSuccess: () => { setOpen(false); onChanged() },
+    onError: (err: unknown) => toast.error(errorDetail(err, 'Could not update role')),
   })
 
   const handleOpen = (e: React.MouseEvent) => {
@@ -414,6 +421,7 @@ function AccessPanel({ member, onClose }: { member: TeamMember; onClose: () => v
       setSelectedOrgId('')
       setSelectedRole('viewer')
     },
+    onError: (err: unknown) => toast.error(errorDetail(err, 'Could not grant access')),
   })
 
   const removeMutation = useMutation({
@@ -423,6 +431,7 @@ function AccessPanel({ member, onClose }: { member: TeamMember; onClose: () => v
       qc.invalidateQueries({ queryKey: ['team-members'] })
       setConfirmRemoveOrgId(null)
     },
+    onError: (err: unknown) => toast.error(errorDetail(err, 'Could not remove access')),
   })
 
   const existingOrgIds = new Set(access.map((a: MemberAccess) => a.org_id))

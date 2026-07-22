@@ -1,11 +1,16 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, ChevronDown } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { createWebsite, transferWebsite } from '../api/websites'
 import { triggerScan } from '../api/scans'
 import { type Organisation } from '../api/organisations'
 import { useSiteStore } from '../store/siteStore'
 import { useScanModal } from '../lib/ScanModalContext'
+
+function errorDetail(err: unknown, fallback: string): string {
+  return (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? fallback
+}
 
 export function AddNewWebsiteModal({
   orgs,
@@ -40,6 +45,7 @@ export function AddNewWebsiteModal({
       setCreatedId(created.id)
       setCreatedUrl(created.url ?? url.trim())
     },
+    onError: (err: unknown) => toast.error(errorDetail(err, 'Could not add website')),
   })
 
   if (createdId) {
@@ -86,6 +92,7 @@ export function AddNewWebsiteModal({
                   })
                 } catch (err) {
                   if ((err as { response?: { status?: number } })?.response?.status === 403) showViewerError()
+                  else toast.error(errorDetail(err, 'Could not start scan'))
                 } finally {
                   setScanning(false)
                 }

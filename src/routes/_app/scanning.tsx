@@ -138,7 +138,9 @@ function ScanningPage() {
               <div className="px-6 pb-7">
                 <h2 className="text-[20px] font-bold text-gray-900 mb-2">Scan failed</h2>
                 <p className="text-sm text-gray-600 mb-6">
-                  The scan for <span className="font-bold text-gray-900">{url}</span> could not be completed. Please try running the scan again.
+                  {job?.message ?? (
+                    <>The scan for <span className="font-bold text-gray-900">{url}</span> could not be completed. Please try running the scan again.</>
+                  )}
                 </p>
                 <button
                   onClick={() => setShowComplete(false)}

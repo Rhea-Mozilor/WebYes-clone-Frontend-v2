@@ -2,6 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Calendar, ChevronDown, Download } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { getBillingSummary, getInvoices, getInvoicePdfUrl } from '../../../api/billing'
 import type { InvoiceDateRange, InvoiceStatus } from '../../../types'
 import AccessibilitySvg from '../../../components/svgicons/AccessibilityBlue.svg'
@@ -243,8 +244,13 @@ function BillingPage() {
                   <td className="px-5 py-4">
                     <button
                       onClick={async () => {
-                        const url = await getInvoicePdfUrl(inv.invoice_id)
-                        window.open(url, '_blank')
+                        try {
+                          const url = await getInvoicePdfUrl(inv.invoice_id)
+                          window.open(url, '_blank')
+                        } catch (err: unknown) {
+                          const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+                          toast.error(detail ?? 'Could not open invoice')
+                        }
                       }}
                       className="text-[#0b66e4] hover:text-[#0952c6] transition-colors"
                     >

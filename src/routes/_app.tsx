@@ -200,7 +200,9 @@ function ScanProgressModal({
               <div className="px-6 pb-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-2">Scan failed</h2>
                 <p className="text-sm text-gray-600 mb-6">
-                  The scan for <span className="font-bold text-gray-900">{websiteUrl}</span> could not be completed. Please try running the scan again.
+                  {desktopJob?.message ?? mobileJob?.message ?? (
+                    <>The scan for <span className="font-bold text-gray-900">{websiteUrl}</span> could not be completed. Please try running the scan again.</>
+                  )}
                 </p>
                 <button
                   onClick={onCancel}
@@ -661,7 +663,7 @@ function AppLayout() {
   const [scanJobsDone, setScanJobsDone] = useState(false)
   const [confirmScanOpen, setConfirmScanOpen] = useState(false)
   const [scanDetailOpen, setScanDetailOpen] = useState(false)
-  const [onboardingComplete, setOnboardingComplete] = useState<{ failed: boolean } | null>(null)
+  const [onboardingComplete, setOnboardingComplete] = useState<{ failed: boolean; message?: string } | null>(null)
   const [viewerErrorOpen, setViewerErrorOpen] = useState(false)
   const websiteRef = useRef<HTMLDivElement>(null)
   const strategyRef = useRef<HTMLDivElement>(null)
@@ -691,7 +693,7 @@ function AppLayout() {
       setScanForWebsite(websiteId, activeScanJob.jobId)
     }
     if (onboardingJob.status !== 'cancelled') {
-      setOnboardingComplete({ failed: onboardingJob.status === 'failed' })
+      setOnboardingComplete({ failed: onboardingJob.status === 'failed', message: onboardingJob.message })
     }
     setActiveScanJob(null)
     setScanDetailOpen(false)
@@ -889,7 +891,7 @@ function AppLayout() {
                 </div>
                 <div className="px-6 pb-7">
                   <h2 className="text-[20px] font-bold text-gray-900 mb-2">Scan failed</h2>
-                  <p className="text-sm text-gray-600 mb-6">The scan could not be completed. Please try running the scan again.</p>
+                  <p className="text-sm text-gray-600 mb-6">{onboardingComplete.message ?? 'The scan could not be completed. Please try running the scan again.'}</p>
                   <button onClick={() => setOnboardingComplete(null)} className="w-full py-3 bg-gray-800 hover:bg-gray-900 text-white text-sm font-semibold rounded-lg transition-colors">Close</button>
                 </div>
               </>

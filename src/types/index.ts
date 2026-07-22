@@ -34,6 +34,8 @@ export interface ScanJob {
   pages_scanned: number;
   current_url: string | null;
   pages: ScannedPage[];
+  // Present when status is 'failed' or 'cancelled' — the backend's explanation.
+  message?: string;
 }
 
 // Matches backend TriggerScanResponse (new: dual-job; legacy: single scan_job_id)

@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
 import {
   X,
   ChevronDown,
@@ -37,6 +38,10 @@ import { useScanModal } from '../../../lib/ScanModalContext'
 export const Route = createFileRoute('/_app/settings/organisation')({
   component: OrganisationPage,
 })
+
+function errorDetail(err: unknown, fallback: string): string {
+  return (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? fallback
+}
 
 function Spinner() {
   return (
@@ -89,8 +94,9 @@ function AddMemberModal({
       onBack()
     },
     onError: (err: unknown) => {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? ''
+      const detail = errorDetail(err, '')
       if (detail.toLowerCase().includes('no account')) setAccountNotFound(true)
+      else toast.error(detail || 'Could not add member')
     },
   })
 
@@ -250,6 +256,7 @@ function MemberPanel({ org, onClose }: { org: Organisation; onClose: () => void 
       qc.invalidateQueries({ queryKey: ['org-members', org.id] })
       qc.invalidateQueries({ queryKey: ['organisations'] })
     },
+    onError: (err: unknown) => toast.error(errorDetail(err, 'Could not remove member')),
   })
 
   return createPortal(
@@ -390,16 +397,19 @@ function WebsiteMenu({
   const renameMutation = useMutation({
     mutationFn: () => renameWebsite(websiteId, nameInput.trim()),
     onSuccess: () => { invalidate(); setEditOpen(false) },
+    onError: (err: unknown) => toast.error(errorDetail(err, 'Could not rename website')),
   })
 
   const transferMutation = useMutation({
     mutationFn: () => transferWebsite(websiteId, targetOrgId || null),
     onSuccess: () => { invalidate(); setTransferOpen(false); setTargetOrgId('') },
+    onError: (err: unknown) => toast.error(errorDetail(err, 'Could not transfer website')),
   })
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteWebsite(websiteId),
     onSuccess: () => { invalidate(); setDeleteOpen(false) },
+    onError: (err: unknown) => toast.error(errorDetail(err, 'Could not delete website')),
   })
 
   const { data: orgs = [] } = useQuery({
@@ -584,6 +594,7 @@ function AddWebsiteToOrgModal({ orgId, onClose }: { orgId: string; onClose: () =
       setCreatedId(created.id)
       setCreatedUrl(created.url ?? url.trim())
     },
+    onError: (err: unknown) => toast.error(errorDetail(err, 'Could not add website')),
   })
 
   if (createdId) {
@@ -743,6 +754,7 @@ function OrgCard({ org }: { org: Organisation }) {
       qc.invalidateQueries({ queryKey: ['organisations'] })
       setEditingName(false)
     },
+    onError: (err: unknown) => toast.error(errorDetail(err, 'Could not rename organisation')),
   })
 
   const fmtDate = (d: string | null) =>
@@ -955,6 +967,7 @@ function AddOrgModal({ onClose }: { onClose: () => void }) {
       qc.invalidateQueries({ queryKey: ['organisations'] })
       onClose()
     },
+    onError: (err: unknown) => toast.error(errorDetail(err, 'Could not create organisation')),
   })
 
   return (

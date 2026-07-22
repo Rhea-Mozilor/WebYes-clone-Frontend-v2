@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { triggerGuestScan, pollGuestScan, guestScanPdfUrl } from '../api/scans'
 import type { GuestScanData, GuestScanPendingResponse, ScanStrategy } from '../types'
 import { cn } from '../lib/utils'
+import { scoreColor as sharedScoreColor } from '../lib/score'
 
 export const Route = createFileRoute('/guest')({
   component: GuestScanPage,
@@ -28,9 +29,7 @@ const METRICS_META: Record<string, { label: string; unit: string }> = {
 
 function scoreColor(s: number | null) {
   if (s == null) return '#9ca3af'
-  if (s >= 90) return '#22c55e'
-  if (s >= 50) return '#f59e0b'
-  return '#ef4444'
+  return sharedScoreColor(s)
 }
 
 function formatMetric(key: string, value: number | null) {
@@ -67,7 +66,7 @@ function ScoreRing({ score, label }: { score: number | null; label: string }) {
 
 function GuestScanPage() {
   const [url, setUrl] = useState('')
-  const [strategy, setStrategy] = useState<ScanStrategy>('mobile')
+  const [strategy, setStrategy] = useState<ScanStrategy>('desktop')
   const [phase, setPhase] = useState<'idle' | 'scanning' | 'done' | 'error'>('idle')
   const [guestId, setGuestId] = useState<string | null>(null)
   const [result, setResult] = useState<GuestScanData | null>(null)

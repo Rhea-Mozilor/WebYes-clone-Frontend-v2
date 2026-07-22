@@ -22,7 +22,7 @@ export const useSiteStore = create<SiteStore>()(
   persist(
     (set, get) => ({
       websiteId: null,
-      strategy: 'mobile',
+      strategy: 'desktop',
       maxPages: 5,
       scansByWebsite: {},
       activeScanJob: null,
@@ -41,7 +41,7 @@ export const useSiteStore = create<SiteStore>()(
       setActiveScanJob: (job) => set({ activeScanJob: job }),
       reset: () => set({
         websiteId: null,
-        strategy: 'mobile',
+        strategy: 'desktop',
         maxPages: 5,
         scansByWebsite: {},
         activeScanJob: null,

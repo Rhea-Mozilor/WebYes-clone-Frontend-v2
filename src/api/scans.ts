@@ -231,7 +231,7 @@ export const resolveAccessibilityOutcome = (scanJobId: string, outcomeId: string
 // Guest scan
 // ---------------------------------------------------------------------------
 
-export const triggerGuestScan = (url: string, strategy: ScanStrategy = 'mobile') =>
+export const triggerGuestScan = (url: string, strategy: ScanStrategy = 'desktop') =>
   client.post<GuestScanPendingResponse | GuestScanData>('/scans/guest', { url, strategy });
 
 export const pollGuestScan = (guestScanId: string) =>

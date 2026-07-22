@@ -327,7 +327,7 @@ function QualityPage() {
                       {dashIssues.items.slice(0, 8).map((item, idx) => {
                         const priority = item.priority ?? 'low'
                         return (
-                          <tr key={item.issue_id} className={cn('border-t border-[#eaebec] transition-colors', idx >= 5 ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60')}>
+                          <tr key={item.issue_id} className={cn('border-t border-[#eaebec] transition-colors', isBasicPlan && idx >= 5 ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60')}>
                             <td className="px-4 py-[18px] text-[14px] text-[#252833] tracking-[-0.14px] leading-snug">{item.title}</td>
                             <td className="px-4 py-[18px]">
                               {item.page_url ? (
@@ -349,10 +349,12 @@ function QualityPage() {
                     </tbody>
                   </table>
                 </div>
-                <div className={cn("text-center py-6 border-t border-gray-100 mt-2", dashIssues.items.length <= 5 && "hidden")}>
-                  <p className="text-[14px] text-[#2e3240] mb-4">Your free plan shows only 5 issues. Upgrade to unlock all issues and get the full picture of your website's health.</p>
-                  <Link to="/upgrade" className="inline-block bg-[#2563eb] text-white text-[14px] font-medium px-8 py-2.5 rounded-[6px] hover:bg-blue-700 transition-colors">Unlock all issues</Link>
-                </div>
+                {isBasicPlan && dashIssues.items.length > 5 && (
+                  <div className="text-center py-6 border-t border-gray-100 mt-2">
+                    <p className="text-[14px] text-[#2e3240] mb-4">Your free plan shows only 5 issues. Upgrade to unlock all issues and get the full picture of your website's health.</p>
+                    <Link to="/upgrade" className="inline-block bg-[#2563eb] text-white text-[14px] font-medium px-8 py-2.5 rounded-[6px] hover:bg-blue-700 transition-colors">Unlock all issues</Link>
+                  </div>
+                )}
               </>
             )}
           </div>

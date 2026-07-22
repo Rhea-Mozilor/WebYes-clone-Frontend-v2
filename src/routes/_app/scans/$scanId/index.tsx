@@ -9,16 +9,11 @@ import {
 } from 'recharts'
 import { ArrowLeft, Loader2, AlertCircle, CheckCircle2, Zap, Eye, Shield, Search } from 'lucide-react'
 import { getScanJob, getScanDashboard } from '../../../../api/scans'
+import { scoreColor } from '../../../../lib/score'
 
 export const Route = createFileRoute('/_app/scans/$scanId/')({
   component: ScanResultsPage,
 })
-
-function scoreColor(score: number) {
-  if (score >= 90) return '#22c55e'
-  if (score >= 50) return '#f59e0b'
-  return '#ef4444'
-}
 
 function ScoreRing({ score, label, icon: Icon }: { score: number; label: string; icon: typeof Zap }) {
   const r = 36
@@ -55,9 +50,10 @@ function ScoreRing({ score, label, icon: Icon }: { score: number; label: string;
 function ScanResultsPage() {
   const { scanId } = Route.useParams()
 
-  const { data: job } = useQuery({
+  const { data: job, isLoading: isJobLoading, isError: isJobError } = useQuery({
     queryKey: ['scan-job', scanId],
     queryFn: () => getScanJob(scanId),
+    retry: false,
     refetchInterval: (query) => {
       const status = query.state.data?.status
       return status === 'running' || status === 'pending' ? 3000 : false
@@ -71,6 +67,29 @@ function ScanResultsPage() {
   })
 
   const isRunning = job?.status === 'running' || job?.status === 'pending'
+
+  if (isJobLoading) {
+    return (
+      <div className="flex justify-center items-center py-32">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    )
+  }
+
+  if (isJobError || !job) {
+    return (
+      <div className="p-8">
+        <Link
+          to="/dashboard"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-6"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Dashboard
+        </Link>
+        <div className="text-sm text-gray-500">Scan not found.</div>
+      </div>
+    )
+  }
 
   const scores = summary?.scores ?? { performance: 0, accessibility: 0, quality: 0, seo: 0 }
   const radarData = [

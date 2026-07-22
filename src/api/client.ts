@@ -16,11 +16,15 @@ function buildUrl(path: string, params?: Record<string, string | undefined>): st
   return qs ? `${url}?${qs}` : url;
 }
 
-// These endpoints don't carry an existing session — a 401 from them means
-// "invalid credentials," not "your session expired," so they must not trigger
-// the global redirect-to-login (which would otherwise force-reload /login
-// itself mid-request and wipe any inline error the caller just set).
-const UNAUTHENTICATED_PATHS = ['/auth/login', '/auth/signup'];
+// These endpoints don't require (or don't carry) an existing session, so a
+// 401 from them must not trigger the global redirect-to-login — for
+// /auth/login and /auth/signup a 401 means "invalid credentials," not
+// "your session expired" (redirecting would force-reload /login itself
+// mid-request and wipe any inline error the caller just set); for
+// /billing/plans, an anonymous visitor viewing the public pricing page
+// shouldn't get bounced to /login (and have any existing token wiped) just
+// because the plans list requires auth.
+const UNAUTHENTICATED_PATHS = ['/auth/login', '/auth/signup', '/billing/plans'];
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (res.status === 401 && !UNAUTHENTICATED_PATHS.some((p) => res.url.includes(p))) {

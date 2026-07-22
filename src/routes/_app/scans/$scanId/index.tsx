@@ -7,8 +7,8 @@ import {
   Radar,
   ResponsiveContainer,
 } from 'recharts'
-import { ArrowLeft, Loader2, AlertCircle, CheckCircle2, Zap, Eye, Shield, Search, TrendingDown } from 'lucide-react'
-import { getScanJob, getScanSummary } from '../../../../api/scans'
+import { ArrowLeft, Loader2, AlertCircle, CheckCircle2, Zap, Eye, Shield, Search } from 'lucide-react'
+import { getScanJob, getScanDashboard } from '../../../../api/scans'
 
 export const Route = createFileRoute('/_app/scans/$scanId/')({
   component: ScanResultsPage,
@@ -65,19 +65,19 @@ function ScanResultsPage() {
   })
 
   const { data: summary } = useQuery({
-    queryKey: ['scan-summary', scanId],
-    queryFn: () => getScanSummary(scanId),
+    queryKey: ['scan-dashboard', scanId],
+    queryFn: () => getScanDashboard(scanId),
     enabled: job?.status === 'completed',
   })
 
   const isRunning = job?.status === 'running' || job?.status === 'pending'
 
-  const scores = summary?.scores ?? {}
+  const scores = summary?.scores ?? { performance: 0, accessibility: 0, quality: 0, seo: 0 }
   const radarData = [
-    { subject: 'Performance', value: scores.performance?.avg ?? 0 },
-    { subject: 'Accessibility', value: scores.accessibility?.avg ?? 0 },
-    { subject: 'Best Practices', value: scores.best_practices?.avg ?? 0 },
-    { subject: 'SEO', value: scores.seo?.avg ?? 0 },
+    { subject: 'Performance', value: scores.performance ?? 0 },
+    { subject: 'Accessibility', value: scores.accessibility ?? 0 },
+    { subject: 'Quality', value: scores.quality ?? 0 },
+    { subject: 'SEO', value: scores.seo ?? 0 },
   ]
 
   return (
@@ -153,16 +153,16 @@ function ScanResultsPage() {
         <>
           {/* Score rings */}
           <div className="bg-white rounded-sm border border-gray-100 shadow-sm p-6 mb-5">
-            <h2 className="text-sm font-semibold text-gray-700 mb-5">Category Scores (avg across pages)</h2>
+            <h2 className="text-sm font-semibold text-gray-700 mb-5">Category Scores</h2>
             <div className="flex justify-around flex-wrap gap-6">
-              <ScoreRing score={scores.performance?.avg ?? 0} label="Performance" icon={Zap} />
-              <ScoreRing score={scores.accessibility?.avg ?? 0} label="Accessibility" icon={Eye} />
-              <ScoreRing score={scores.best_practices?.avg ?? 0} label="Best Practices" icon={Shield} />
-              <ScoreRing score={scores.seo?.avg ?? 0} label="SEO" icon={Search} />
+              <ScoreRing score={scores.performance ?? 0} label="Performance" icon={Zap} />
+              <ScoreRing score={scores.accessibility ?? 0} label="Accessibility" icon={Eye} />
+              <ScoreRing score={scores.quality ?? 0} label="Quality" icon={Shield} />
+              <ScoreRing score={scores.seo ?? 0} label="SEO" icon={Search} />
             </div>
           </div>
 
-          {/* Radar + page summary */}
+          {/* Radar + issues summary */}
           <div className="grid grid-cols-3 gap-5 mb-5">
             <div className="col-span-2 bg-white rounded-sm border border-gray-100 shadow-sm p-5">
               <h2 className="text-sm font-semibold text-gray-700 mb-4">Score Overview</h2>
@@ -176,12 +176,12 @@ function ScanResultsPage() {
             </div>
 
             <div className="bg-white rounded-sm border border-gray-100 shadow-sm p-5">
-              <h2 className="text-sm font-semibold text-gray-700 mb-4">Pages Summary</h2>
+              <h2 className="text-sm font-semibold text-gray-700 mb-4">Issues Summary</h2>
               <div className="space-y-3">
                 {[
-                  { label: 'Total Pages', value: summary.total_pages, color: 'text-gray-900' },
-                  { label: 'Passed', value: summary.passed_pages, color: 'text-green-600' },
-                  { label: 'Failed', value: summary.failed_pages, color: 'text-red-600' },
+                  { label: 'Pages scanned', value: summary.scanned_pages.length, color: 'text-gray-900' },
+                  { label: 'Total issues', value: summary.issues_summary.total, color: 'text-gray-900' },
+                  { label: 'Critical issues', value: summary.issues_summary.critical, color: 'text-red-600' },
                 ].map((s) => (
                   <div key={s.label} className="flex justify-between items-center">
                     <span className="text-xs text-gray-500">{s.label}</span>
@@ -190,66 +190,18 @@ function ScanResultsPage() {
                 ))}
               </div>
 
-              {/* Min/max spread per category */}
+              {/* Issues by category */}
               <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                <div className="text-xs text-gray-400 mb-2">Score range (min → max)</div>
-                {Object.entries(scores).map(([key, stat]) => (
-                  <div key={key} className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 w-20 capitalize truncate">{key.replace('_', ' ')}</span>
-                    <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden relative">
-                      <div
-                        className="absolute h-full rounded-full bg-blue-400"
-                        style={{ left: `${stat.min}%`, width: `${stat.max - stat.min}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-gray-500 w-8 text-right">{stat.avg}</span>
+                <div className="text-xs text-gray-400 mb-2">Issues by category</div>
+                {Object.entries(summary.issues_by_category).map(([key, count]) => (
+                  <div key={key} className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500 capitalize">{key.replace('_', ' ')}</span>
+                    <span className="text-xs font-semibold text-gray-700">{count}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-
-          {/* Worst pages */}
-          {summary.worst_pages.length > 0 && (
-            <div className="bg-white rounded-sm border border-gray-100 shadow-sm p-5 mb-5">
-              <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
-                <TrendingDown className="w-4 h-4 text-red-400" />
-                Worst Pages
-              </h2>
-              <div className="space-y-2">
-                {summary.worst_pages.map((page) => {
-                  const color = scoreColor(page.overall_score)
-                  return (
-                    <div key={page.url} className="flex items-center gap-3">
-                      <span className="text-xs font-bold w-8 text-center" style={{ color }}>{page.overall_score}</span>
-                      <span className="text-xs text-gray-600 truncate flex-1">{page.url}</span>
-                      <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${page.overall_score}%`, backgroundColor: color }} />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Common critical audits */}
-          {summary.common_critical_audits.length > 0 && (
-            <div className="bg-white rounded-sm border border-gray-100 shadow-sm p-5">
-              <h2 className="text-sm font-semibold text-gray-700 mb-3">Common Critical Audits</h2>
-              <div className="space-y-2">
-                {summary.common_critical_audits.map((audit) => (
-                  <div key={audit.id} className="flex items-center gap-3 py-1.5 border-b border-gray-50 last:border-0">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm text-gray-800 font-medium truncate">{audit.title}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">{audit.affected_pages} pages affected</div>
-                    </div>
-                    <span className="text-xs font-bold text-red-600 shrink-0">{audit.affected_percent}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </>
       )}
     </div>

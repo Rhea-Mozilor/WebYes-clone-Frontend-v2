@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { getBillingCredits } from '../api/billing'
+import { FREE_PLAN_VISIBLE_ROWS } from '../lib/planLimits'
 
 export function useIsBasicPlan() {
   const { data: billingCredits } = useQuery({ queryKey: ['billing-credits'], queryFn: getBillingCredits })
@@ -30,7 +31,7 @@ export function LockedOverlay({ label }: { label: string }) {
 }
 
 // Footer shown below a list that's been truncated for Basic plans.
-export function LimitedListUpgradeFooter({ totalCount, shown }: { totalCount: number; shown: number }) {
+export function LimitedListUpgradeFooter({ totalCount, shown = FREE_PLAN_VISIBLE_ROWS }: { totalCount: number; shown?: number }) {
   if (totalCount <= shown) return null
   return (
     <div className="text-center py-6 border-t border-gray-100 mt-2">

@@ -1,17 +1,13 @@
+import { scoreColorPair } from '../../lib/score';
+
 interface ScoreCircleProps {
   score: number;
   label: string;
   size?: 'sm' | 'md' | 'lg';
 }
 
-function getScoreColor(score: number) {
-  if (score >= 90) return { stroke: '#22c55e', text: '#15803d' };
-  if (score >= 50) return { stroke: '#f59e0b', text: '#b45309' };
-  return { stroke: '#ef4444', text: '#b91c1c' };
-}
-
 export function ScoreCircle({ score, label, size = 'md' }: ScoreCircleProps) {
-  const { stroke, text } = getScoreColor(score);
+  const { stroke, text } = scoreColorPair(score);
   const sizes = { sm: 64, md: 88, lg: 120 };
   const px = sizes[size];
   const radius = px * 0.38;

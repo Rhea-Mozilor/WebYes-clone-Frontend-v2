@@ -8,6 +8,8 @@ import {
 import { AlertTriangle, Loader2, AlertCircle, Search, ChevronLeft, ChevronRight, SlidersHorizontal, Download } from 'lucide-react'
 import UrlSvg from '../../components/svgicons/url.svg'
 import { cn } from '../../lib/utils'
+import { scoreColor } from '../../lib/score'
+import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS, isRowLocked } from '../../lib/planLimits'
 import { PriorityBadge } from '../../components/ui/PriorityBadge'
 import { useSiteStore } from '../../store/siteStore'
 import { IssueDetailPanel } from '../../components/IssueDetailPanel'
@@ -31,12 +33,6 @@ export const Route = createFileRoute('/_app/seo')({
 })
 
 const TABS = ['Dashboard', 'Affected pages', 'Issues list']
-
-function scoreColor(s: number) {
-  if (s >= 90) return '#22c55e'
-  if (s >= 50) return '#f59e0b'
-  return '#ef4444'
-}
 
 
 function pageName(url: string): string {
@@ -324,10 +320,10 @@ function SeoPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {dashIssues.items.slice(0, 8).map((item, idx) => {
+                      {dashIssues.items.slice(0, FREE_PLAN_PREVIEW_ROWS).map((item, idx) => {
                         const priority = item.priority ?? 'low'
                         return (
-                          <tr key={item.issue_id} className={cn('border-t border-[#eaebec] transition-colors', isBasicPlan && idx >= 5 ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60')}>
+                          <tr key={item.issue_id} className={cn('border-t border-[#eaebec] transition-colors', isRowLocked(idx, isBasicPlan) ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60')}>
                             <td className="px-4 py-[18px] text-[14px] text-[#252833] tracking-[-0.14px] leading-snug">{item.title}</td>
                             <td className="px-4 py-[18px]">
                               {item.page_url ? (
@@ -349,9 +345,9 @@ function SeoPage() {
                     </tbody>
                   </table>
                 </div>
-                {isBasicPlan && dashIssues.items.length > 5 && (
+                {isBasicPlan && dashIssues.items.length > FREE_PLAN_VISIBLE_ROWS && (
                   <div className="text-center py-6 border-t border-gray-100 mt-2">
-                    <p className="text-[14px] text-[#2e3240] mb-4">Your free plan shows only 5 issues. Upgrade to unlock all issues and get the full picture of your website's health.</p>
+                    <p className="text-[14px] text-[#2e3240] mb-4">Your free plan shows only {FREE_PLAN_VISIBLE_ROWS} issues. Upgrade to unlock all issues and get the full picture of your website's health.</p>
                     <Link to="/upgrade" className="inline-block bg-[#2563eb] text-white text-[14px] font-medium px-8 py-2.5 rounded-[6px] hover:bg-blue-700 transition-colors">Unlock all issues</Link>
                   </div>
                 )}
@@ -471,10 +467,10 @@ function SeoPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(isBasicPlan ? affectedPages.items.slice(0, 8) : affectedPages.items).map((item, i) => {
+                      {(isBasicPlan ? affectedPages.items.slice(0, FREE_PLAN_PREVIEW_ROWS) : affectedPages.items).map((item, i) => {
                         const s = item.page_score ?? 0
                         const shortUrl = item.page_url.replace(/^https?:\/\//, '').replace(/\/$/, '')
-                        const locked = isBasicPlan && i >= 5
+                        const locked = isRowLocked(i, isBasicPlan)
                         return (
                           <tr key={i}
                             onClick={() => !locked && item.scan_result_id && item.total_issues > 0 && setPageDetailView({ scanResultId: item.scan_result_id, pageUrl: item.page_url })}
@@ -503,7 +499,7 @@ function SeoPage() {
                   </table>
                 </div>
                 {isBasicPlan ? (
-                  <LimitedListUpgradeFooter totalCount={affectedPages.total} shown={5} />
+                  <LimitedListUpgradeFooter totalCount={affectedPages.total} />
                 ) : (
                   <Pagination page={affectedPage} totalPages={affectedPages.total_pages} onPage={setAffectedPage} />
                 )}
@@ -539,7 +535,7 @@ function SeoPage() {
               if (issueSearch && !item.title.toLowerCase().includes(issueSearch.toLowerCase())) return false
               return true
             })
-            const displayed = isBasicPlan ? filtered.slice(0, 8) : filtered
+            const displayed = isBasicPlan ? filtered.slice(0, FREE_PLAN_PREVIEW_ROWS) : filtered
             return filtered.length === 0 ? (
               <p className="text-sm text-gray-400 text-center py-12">No issues found</p>
             ) : (
@@ -558,8 +554,8 @@ function SeoPage() {
                     <tbody>
                       {displayed.map((item, idx) => (
                         <tr key={item.id}
-                          onClick={() => !(isBasicPlan && idx >= 5) && setSelectedIssueId(item.id)}
-                          className={cn('border-t border-gray-100 transition-colors', isBasicPlan && idx >= 5 ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60 cursor-pointer')}>
+                          onClick={() => !isRowLocked(idx, isBasicPlan) && setSelectedIssueId(item.id)}
+                          className={cn('border-t border-gray-100 transition-colors', isRowLocked(idx, isBasicPlan) ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60 cursor-pointer')}>
                           <td className="px-5 py-4">
                             <span className="text-sm text-[#0a5dcf] leading-snug">{item.title}</span>
                           </td>
@@ -573,7 +569,7 @@ function SeoPage() {
                   </table>
                 </div>
                 {isBasicPlan ? (
-                  <LimitedListUpgradeFooter totalCount={issueList.total} shown={5} />
+                  <LimitedListUpgradeFooter totalCount={issueList.total} />
                 ) : (
                   <Pagination page={issueListPage} totalPages={issueList.total_pages} onPage={setIssueListPage} />
                 )}

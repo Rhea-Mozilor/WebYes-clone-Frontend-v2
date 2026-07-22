@@ -13,6 +13,7 @@ import {
 import AccessibilitySvg from '../../components/svgicons/Accessibility.svg'
 import UrlSvg from '../../components/svgicons/url.svg'
 import { cn } from '../../lib/utils'
+import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS, isRowLocked } from '../../lib/planLimits'
 import { PriorityBadge } from '../../components/ui/PriorityBadge'
 import { useSiteStore } from '../../store/siteStore'
 import { IssueDetailPanel } from '../../components/IssueDetailPanel'
@@ -516,12 +517,12 @@ function AccessibilityPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {dashIssues.items.slice(0, 8).map((item, idx) => {
+                      {dashIssues.items.slice(0, FREE_PLAN_PREVIEW_ROWS).map((item, idx) => {
                         const priority = item.priority ?? ''
                         const rawLevel = item.conformance_level ?? item.wcag_level ?? 'AA'
                         const level = rawLevel.startsWith('Level ') ? rawLevel : `Level ${rawLevel}`
                         return (
-                          <tr key={item.issue_id} className={cn('border-t border-[#eaebec] transition-colors', isBasicPlan && idx >= 5 ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60')}>
+                          <tr key={item.issue_id} className={cn('border-t border-[#eaebec] transition-colors', isRowLocked(idx, isBasicPlan) ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60')}>
                             <td className="px-4 py-[18px] text-[14px] text-[#252833] tracking-[-0.14px] leading-snug">{item.title}</td>
                             <td className="px-4 py-[18px]">
                               {item.page_url ? (
@@ -544,9 +545,9 @@ function AccessibilityPage() {
                     </tbody>
                   </table>
                 </div>
-                {isBasicPlan && dashIssues.items.length > 5 && (
+                {isBasicPlan && dashIssues.items.length > FREE_PLAN_VISIBLE_ROWS && (
                   <div className="text-center py-6 border-t border-gray-100 mt-2">
-                    <p className="text-[14px] text-[#2e3240] mb-4">Your free plan shows only 5 issues. Upgrade to unlock all issues and get the full picture of your website's health.</p>
+                    <p className="text-[14px] text-[#2e3240] mb-4">Your free plan shows only {FREE_PLAN_VISIBLE_ROWS} issues. Upgrade to unlock all issues and get the full picture of your website's health.</p>
                     <Link to="/upgrade" className="inline-block bg-[#2563eb] text-white text-[14px] font-medium px-8 py-2.5 rounded-[6px] hover:bg-blue-700 transition-colors">Unlock all issues</Link>
                   </div>
                 )}
@@ -687,10 +688,10 @@ function AccessibilityPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(isBasicPlan ? affectedPages.items.slice(0, 8) : affectedPages.items).map((item, i) => {
+                      {(isBasicPlan ? affectedPages.items.slice(0, FREE_PLAN_PREVIEW_ROWS) : affectedPages.items).map((item, i) => {
                         const s = item.page_score ?? 0
                         const shortUrl = item.page_url.replace(/^https?:\/\//, '')
-                        const locked = isBasicPlan && i >= 5
+                        const locked = isRowLocked(i, isBasicPlan)
                         return (
                           <tr key={i}
                             onClick={() => !locked && item.scan_result_id && item.total_issues > 0 && setPageDetailView({ scanResultId: item.scan_result_id, pageUrl: item.page_url })}
@@ -724,7 +725,7 @@ function AccessibilityPage() {
                   </table>
                 </div>
                 {isBasicPlan ? (
-                  <LimitedListUpgradeFooter totalCount={affectedPages.total} shown={5} />
+                  <LimitedListUpgradeFooter totalCount={affectedPages.total} />
                 ) : (
                   <div className="px-6 pb-6">
                     <IssuesLogPagination
@@ -805,7 +806,7 @@ function AccessibilityPage() {
               if (catFilter && item.responsibility?.toLowerCase() !== catFilter) return false
               return true
             })
-            const displayed = isBasicPlan ? filtered.slice(0, 8) : filtered
+            const displayed = isBasicPlan ? filtered.slice(0, FREE_PLAN_PREVIEW_ROWS) : filtered
             return (
               <div className="bg-white rounded-[10px] border border-[#e8eaf0] overflow-x-auto">
                 <table className="w-full min-w-[700px]">
@@ -826,7 +827,7 @@ function AccessibilityPage() {
                     ) : displayed.map((item, idx) => {
                       const priority = item.priority ?? 'low'
                       const resp = item.responsibility?.toLowerCase()
-                      const locked = isBasicPlan && idx >= 5
+                      const locked = isRowLocked(idx, isBasicPlan)
                       return (
                         <tr key={item.id} onClick={() => !locked && setSelectedIssueId(item.id)} className={cn('border-t border-[#f0f1f5] transition-colors', locked ? 'blur-sm select-none pointer-events-none' : 'hover:bg-[#fafbfd] cursor-pointer')}>
                           <td className="px-5 py-4">
@@ -869,7 +870,7 @@ function AccessibilityPage() {
                   </tbody>
                 </table>
                 {isBasicPlan ? (
-                  <LimitedListUpgradeFooter totalCount={issueList.total} shown={5} />
+                  <LimitedListUpgradeFooter totalCount={issueList.total} />
                 ) : (
                   <div className="px-5 py-3 border-t border-[#f0f1f5]">
                     <IssuesLogPagination page={issueListPage} total={issueList.total} pageSize={20} onPage={setIssueListPage} />

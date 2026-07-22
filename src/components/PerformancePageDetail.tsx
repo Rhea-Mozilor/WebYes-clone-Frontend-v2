@@ -4,6 +4,7 @@ import { ChevronLeft, Loader2, Search, Download } from 'lucide-react'
 import { PriorityBadge } from './ui/PriorityBadge'
 import { getPerformancePageIssues } from '../api/scans'
 import { IssueDetailPanel } from './IssueDetailPanel'
+import { VITAL_THRESHOLDS } from '../lib/vitals'
 import type { PageCategoryIssue, PerformancePageVitals } from '../types'
 
 interface Props {
@@ -16,11 +17,11 @@ interface Props {
 type VitalKey = keyof Omit<PerformancePageVitals, never>
 
 const VITALS = [
-  { key: 'fcp_ms' as VitalKey,        abbr: 'FCP', label: 'First Contentful Paint',   good: 1800,  needs: 3000,  unit: 's'  },
-  { key: 'lcp_ms' as VitalKey,        abbr: 'LCP', label: 'Largest Contentful Paint',  good: 2500,  needs: 4000,  unit: 's'  },
-  { key: 'tbt_ms' as VitalKey,        abbr: 'TBT', label: 'Total Blocking Time',       good: 200,   needs: 600,   unit: 'ms' },
-  { key: 'cls' as VitalKey,           abbr: 'CLS', label: 'Cumulative Layout Shift',   good: 0.1,   needs: 0.25,  unit: ''   },
-  { key: 'speed_index_ms' as VitalKey, abbr: 'SI', label: 'Speed Index',              good: 3400,  needs: 5800,  unit: 's'  },
+  { key: 'fcp_ms' as VitalKey,        abbr: 'FCP', label: 'First Contentful Paint',   unit: 's',  ...VITAL_THRESHOLDS.fcp_ms },
+  { key: 'lcp_ms' as VitalKey,        abbr: 'LCP', label: 'Largest Contentful Paint',  unit: 's',  ...VITAL_THRESHOLDS.lcp_ms },
+  { key: 'tbt_ms' as VitalKey,        abbr: 'TBT', label: 'Total Blocking Time',       unit: 'ms', ...VITAL_THRESHOLDS.tbt_ms },
+  { key: 'cls' as VitalKey,           abbr: 'CLS', label: 'Cumulative Layout Shift',   unit: '',   ...VITAL_THRESHOLDS.cls },
+  { key: 'speed_index_ms' as VitalKey, abbr: 'SI', label: 'Speed Index',              unit: 's',  ...VITAL_THRESHOLDS.speed_index_ms },
 ]
 
 function formatVital(key: VitalKey, value: number, unit: string): string {

@@ -78,7 +78,7 @@ function ScanProgressModal({
   visible: boolean
   onHide: () => void
   onCancel: () => void
-  onComplete: (scanId: string) => void
+  onComplete: (scanId: string, failed: boolean) => void
 }) {
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -131,9 +131,10 @@ function ScanProgressModal({
     if (bothComplete && !completedRef.current) {
       completedRef.current = true
       const scanId = desktopJobId ?? mobileJobId
-      if (scanId) onComplete(scanId)
+      const failed = desktopJob?.status === 'failed' || mobileJob?.status === 'failed'
+      if (scanId) onComplete(scanId, failed)
     }
-  }, [bothComplete, desktopJobId, mobileJobId, onComplete])
+  }, [bothComplete, desktopJobId, mobileJobId, onComplete, desktopJob?.status, mobileJob?.status])
 
   const pagesScanned = Math.max(
     desktopJob?.pages_scanned ?? 0,
@@ -159,6 +160,8 @@ function ScanProgressModal({
     onCancel()
     navigate({ to: '/dashboard' })
   }
+
+  if (!visible) return null
 
   // ── Completed / Failed state ─────────────────────────────────────────────
   if (bothComplete) {
@@ -279,8 +282,6 @@ function ScanProgressModal({
   }
 
   // ── In-progress state ────────────────────────────────────────────────────
-  if (!visible) return null
-
   const displayName = websiteName || websiteUrl
 
   return (
@@ -661,6 +662,7 @@ function AppLayout() {
   const [scanJobs, setScanJobs] = useState<{ desktopJobId: string | null; mobileJobId: string | null; url: string; websiteName: string; websiteId: string } | null>(null)
   const [scanModalVisible, setScanModalVisible] = useState(false)
   const [scanJobsDone, setScanJobsDone] = useState(false)
+  const [scanJobsFailed, setScanJobsFailed] = useState(false)
   const [confirmScanOpen, setConfirmScanOpen] = useState(false)
   const [scanDetailOpen, setScanDetailOpen] = useState(false)
   const [onboardingComplete, setOnboardingComplete] = useState<{ failed: boolean; message?: string } | null>(null)
@@ -747,6 +749,7 @@ function AppLayout() {
   const openScanModal = useCallback((args: ScanArgs) => {
     setScanJobs(args)
     setScanJobsDone(false)
+    setScanJobsFailed(false)
     setScanModalVisible(true)
   }, [])
 
@@ -769,6 +772,7 @@ function AppLayout() {
         websiteId: websiteId!,
       })
       setScanJobsDone(false)
+      setScanJobsFailed(false)
       setScanModalVisible(true)
       void qc.invalidateQueries({ queryKey: ['billing-credits'] })
     },
@@ -846,8 +850,8 @@ function AppLayout() {
           websiteId={scanJobs.websiteId}
           visible={scanModalVisible}
           onHide={() => setScanModalVisible(false)}
-          onCancel={() => { setScanJobs(null); setScanModalVisible(false); setScanJobsDone(false) }}
-          onComplete={(scanId) => { setScanForWebsite(scanJobs.websiteId, scanId); setScanJobsDone(true) }}
+          onCancel={() => { setScanJobs(null); setScanModalVisible(false); setScanJobsDone(false); setScanJobsFailed(false) }}
+          onComplete={(scanId, failed) => { setScanForWebsite(scanJobs.websiteId, scanId); setScanJobsDone(true); setScanJobsFailed(failed) }}
         />
       )}
 
@@ -1135,13 +1139,25 @@ function AppLayout() {
           )}
 
           {/* Run-scan in-progress banner */}
-          {scanJobs && !scanJobsDone && (
+          {scanJobs && (
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 border border-[#bdd0f8] bg-[#eef4ff] rounded-full mr-3 whitespace-nowrap">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="shrink-0 animate-spin">
-                <circle cx="8" cy="8" r="7" stroke="#bfdbfe" strokeWidth="1.5" />
-                <path d="M8 1a7 7 0 0 1 7 7" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-              <span className="text-[12px] font-medium text-[#374151]">Scanning...</span>
+              {scanJobsDone ? (
+                scanJobsFailed ? (
+                  <X className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                ) : (
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="shrink-0">
+                    <path d="M3 8.5l3.5 3.5 7-7" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )
+              ) : (
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="shrink-0 animate-spin">
+                  <circle cx="8" cy="8" r="7" stroke="#bfdbfe" strokeWidth="1.5" />
+                  <path d="M8 1a7 7 0 0 1 7 7" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              )}
+              <span className="text-[12px] font-medium text-[#374151]">
+                {scanJobsDone ? (scanJobsFailed ? 'Scan failed' : 'Scan complete') : 'Scanning...'}
+              </span>
               <button
                 onClick={() => setScanModalVisible(true)}
                 className="text-[12px] font-medium text-[#2563eb] hover:underline"

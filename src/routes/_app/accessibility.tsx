@@ -771,7 +771,7 @@ function AccessibilityPage() {
                     </div>
                     <div>
                       <div className={cn('text-sm font-semibold', cat.textCls)}>{cat.label}</div>
-                      <div className="text-[13px] text-[#6b7280]">{cat.count} issues</div>
+                      <div className="text-[13px] text-[#6b7280]">{cat.count} issue{cat.count === 1 ? '' : 's'}</div>
                     </div>
                   </button>
                 ))}

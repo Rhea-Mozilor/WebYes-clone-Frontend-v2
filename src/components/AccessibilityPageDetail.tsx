@@ -8,6 +8,7 @@ import { cn } from '../lib/utils'
 import { PriorityBadge } from './ui/PriorityBadge'
 import { getAccessibilityPageIssues } from '../api/scans'
 import { IssueDetailPanel } from './IssueDetailPanel'
+import { FREE_PLAN_VISIBLE_ROWS } from '../lib/planLimits'
 import type { AccessibilityPageIssue } from '../types'
 
 interface Props {
@@ -127,7 +128,7 @@ export function AccessibilityPageDetail({ scanJobId, scanResultId, pageUrl, onBa
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map(issue => {
+                    {filtered.slice(0, FREE_PLAN_VISIBLE_ROWS).map(issue => {
                       const wcagBadge = issue.wcag_version ? `WCAG ${issue.wcag_version}` : ''
                       const resp = issue.responsibility?.toLowerCase() ?? ''
                       const catMeta = CATEGORY_META.find(c => c.key === resp)

@@ -1,7 +1,7 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
+import { SignupForm } from '../../components/SignupForm'
 
 export const Route = createFileRoute('/signup/pro')({
-  beforeLoad: () => {
-    throw redirect({ to: '/signup', search: { trial: 'pro' } })
-  },
+  component: SignupProPage,
 })
+

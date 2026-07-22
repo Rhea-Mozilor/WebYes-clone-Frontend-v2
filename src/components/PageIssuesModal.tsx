@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { X, Loader2 } from 'lucide-react'
 import { PriorityBadge } from './ui/PriorityBadge'
 import { getPageCategoryIssues } from '../api/scans'
+import { FREE_PLAN_VISIBLE_ROWS } from '../lib/planLimits'
 import type { PageCategoryIssue } from '../types'
 
 type Category = 'accessibility' | 'performance' | 'quality' | 'seo'
@@ -63,7 +64,7 @@ export function PageIssuesModal({ scanJobId, scanResultId, pageUrl, category, on
             <p className="text-sm text-gray-400 text-center py-10">No issues found for this page</p>
           ) : (
             <div className="divide-y divide-gray-100">
-              {issues.map(issue => (
+              {issues.slice(0, FREE_PLAN_VISIBLE_ROWS).map(issue => (
                 <div key={issue.issue_id} className="py-3 flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-800 leading-snug">{issue.title}</p>

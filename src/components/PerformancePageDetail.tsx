@@ -5,6 +5,7 @@ import { PriorityBadge } from './ui/PriorityBadge'
 import { getPerformancePageIssues } from '../api/scans'
 import { IssueDetailPanel } from './IssueDetailPanel'
 import { VITAL_THRESHOLDS } from '../lib/vitals'
+import { FREE_PLAN_VISIBLE_ROWS } from '../lib/planLimits'
 import type { PageCategoryIssue, PerformancePageVitals } from '../types'
 
 interface Props {
@@ -166,7 +167,7 @@ export function PerformancePageDetail({ scanJobId, scanResultId, pageUrl, onBack
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(issue => (
+                {filtered.slice(0, FREE_PLAN_VISIBLE_ROWS).map(issue => (
                   <tr key={issue.issue_id}
                     onClick={() => setSelectedIssueId(issue.issue_id)}
                     className="border-t border-gray-100 hover:bg-gray-50/60 cursor-pointer">

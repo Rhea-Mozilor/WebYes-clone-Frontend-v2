@@ -638,6 +638,7 @@ function AddWebsiteToOrgModal({ orgId, onClose }: { orgId: string; onClose: () =
                     url: createdUrl,
                     websiteName: name.trim() || createdUrl,
                     websiteId: createdId,
+                    isNewWebsite: true,
                   })
                 } catch (err) {
                   if ((err as { response?: { status?: number } })?.response?.status === 403) showViewerError()

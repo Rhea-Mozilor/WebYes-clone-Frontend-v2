@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { getScanJob, cancelScan } from '../../api/scans'
+import { deleteWebsite } from '../../api/websites'
 import ScanModalGif from '../../components/svgicons/scanmodal.gif'
 import { useSiteStore } from '../../store/siteStore'
 
@@ -55,7 +56,7 @@ function ScanningPage() {
   const [cancelling, setCancelling] = useState(false)
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
   const [showComplete, setShowComplete] = useState(false)
-  const { websiteId, setScanForWebsite, setActiveScanJob } = useSiteStore()
+  const { websiteId, setWebsiteId, setScanForWebsite, setActiveScanJob } = useSiteStore()
 
   const { data: job } = useQuery({
     queryKey: ['onboarding-scan', jobId],
@@ -72,12 +73,28 @@ function ScanningPage() {
   const currentUrl = job?.current_url ?? null
   const name = siteName(url)
 
+  const deletedRef = useRef(false)
   useEffect(() => {
-    if ((job?.status === 'completed' || job?.status === 'failed') && jobId && websiteId) {
+    if (!jobId || !websiteId) return
+    if (job?.status === 'completed') {
       setScanForWebsite(websiteId, jobId)
       setShowComplete(true)
+    } else if (job?.status === 'failed') {
+      setShowComplete(true)
+      if (!deletedRef.current) {
+        deletedRef.current = true
+        // A first scan failed — this website was only ever a scan target, so
+        // don't leave a broken, never-scanned entry in the website/org lists.
+        deleteWebsite(websiteId)
+          .catch(() => {})
+          .finally(() => {
+            setWebsiteId(null)
+            void qc.invalidateQueries({ queryKey: ['websites'] })
+            void qc.invalidateQueries({ queryKey: ['organisations'] })
+          })
+      }
     }
-  }, [job?.status, jobId, websiteId, setScanForWebsite])
+  }, [job?.status, jobId, websiteId, setScanForWebsite, setWebsiteId, qc])
 
   // Leaving this page (via sidebar/header nav, browser back, etc. — not just the
   // dedicated "X"/"Back to dashboard" buttons) unmounts this component and kills its

@@ -38,7 +38,7 @@ import toast from 'react-hot-toast'
 import { cn } from '../lib/utils'
 import { getMe, logout } from '../api/auth'
 import { getBillingCredits } from '../api/billing'
-import { listWebsites } from '../api/websites'
+import { listWebsites, deleteWebsite } from '../api/websites'
 import { listOrganisations } from '../api/organisations'
 import { AddNewWebsiteModal } from '../components/AddNewWebsiteModal'
 import { useIsBasicPlan } from '../components/UpgradeLock'
@@ -65,6 +65,7 @@ function ScanProgressModal({
   websiteUrl,
   websiteName,
   websiteId,
+  isNewWebsite,
   visible,
   onHide,
   onCancel,
@@ -75,6 +76,7 @@ function ScanProgressModal({
   websiteUrl: string
   websiteName: string
   websiteId: string
+  isNewWebsite: boolean
   visible: boolean
   onHide: () => void
   onCancel: () => void
@@ -83,6 +85,7 @@ function ScanProgressModal({
   const navigate = useNavigate()
   const qc = useQueryClient()
   const setScanForWebsite = useSiteStore((s) => s.setScanForWebsite)
+  const setWebsiteId = useSiteStore((s) => s.setWebsiteId)
   const [cancelling, setCancelling] = useState(false)
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
 
@@ -133,8 +136,19 @@ function ScanProgressModal({
       const scanId = desktopJobId ?? mobileJobId
       const failed = desktopJob?.status === 'failed' || mobileJob?.status === 'failed'
       if (scanId) onComplete(scanId, failed)
+      if (failed && isNewWebsite) {
+        // First scan for a brand-new website failed — don't leave a broken,
+        // never-scanned entry in the website/org lists.
+        deleteWebsite(websiteId)
+          .catch(() => {})
+          .finally(() => {
+            setWebsiteId(null)
+            void qc.invalidateQueries({ queryKey: ['websites'] })
+            void qc.invalidateQueries({ queryKey: ['organisations'] })
+          })
+      }
     }
-  }, [bothComplete, desktopJobId, mobileJobId, onComplete, desktopJob?.status, mobileJob?.status])
+  }, [bothComplete, desktopJobId, mobileJobId, onComplete, desktopJob?.status, mobileJob?.status, isNewWebsite, websiteId, qc, setWebsiteId])
 
   const pagesScanned = Math.max(
     desktopJob?.pages_scanned ?? 0,
@@ -659,7 +673,7 @@ function AppLayout() {
   const [addWebsiteModalOpen, setAddWebsiteModalOpen] = useState(false)
   const [strategyDrop, setStrategyDrop] = useState(false)
   const [userMenu, setUserMenu] = useState(false)
-  const [scanJobs, setScanJobs] = useState<{ desktopJobId: string | null; mobileJobId: string | null; url: string; websiteName: string; websiteId: string } | null>(null)
+  const [scanJobs, setScanJobs] = useState<ScanArgs | null>(null)
   const [scanModalVisible, setScanModalVisible] = useState(false)
   const [scanJobsDone, setScanJobsDone] = useState(false)
   const [scanJobsFailed, setScanJobsFailed] = useState(false)
@@ -848,6 +862,7 @@ function AppLayout() {
           websiteUrl={scanJobs.url}
           websiteName={scanJobs.websiteName}
           websiteId={scanJobs.websiteId}
+          isNewWebsite={!!scanJobs.isNewWebsite}
           visible={scanModalVisible}
           onHide={() => setScanModalVisible(false)}
           onCancel={() => { setScanJobs(null); setScanModalVisible(false); setScanJobsDone(false); setScanJobsFailed(false) }}

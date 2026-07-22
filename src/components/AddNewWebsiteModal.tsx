@@ -89,6 +89,7 @@ export function AddNewWebsiteModal({
                     url: createdUrl,
                     websiteName: name.trim() || createdUrl,
                     websiteId: createdId,
+                    isNewWebsite: true,
                   })
                 } catch (err) {
                   if ((err as { response?: { status?: number } })?.response?.status === 403) showViewerError()

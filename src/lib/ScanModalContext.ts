@@ -6,6 +6,10 @@ export interface ScanArgs {
   url: string
   websiteName: string
   websiteId: string
+  // True when this website was just created for this scan (not an existing
+  // website being rescanned) — if the scan fails, it should be deleted rather
+  // than left as a broken, never-scanned entry.
+  isNewWebsite?: boolean
 }
 
 export const ScanModalContext = createContext<{

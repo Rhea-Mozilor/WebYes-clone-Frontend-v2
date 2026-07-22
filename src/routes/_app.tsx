@@ -41,6 +41,7 @@ import { getBillingCredits } from '../api/billing'
 import { listWebsites } from '../api/websites'
 import { listOrganisations } from '../api/organisations'
 import { AddNewWebsiteModal } from '../components/AddNewWebsiteModal'
+import { useIsBasicPlan } from '../components/UpgradeLock'
 import { triggerScan, getScanJob, cancelScan, getActiveScan } from '../api/scans'
 import { useAuthStore } from '../store/authStore'
 import { useSiteStore } from '../store/siteStore'
@@ -645,6 +646,7 @@ function AppLayout() {
   const { data: orgs = [] } = useQuery({ queryKey: ['organisations'], queryFn: listOrganisations })
   const { websiteId, setWebsiteId, strategy, setStrategy, setScanForWebsite, activeScanJob, setActiveScanJob } = useSiteStore()
   const location = useRouterState({ select: (s) => s.location.pathname })
+  const isBasicPlan = useIsBasicPlan()
 
   const [websiteDrop, setWebsiteDrop] = useState(false)
   const [addWebsiteModalOpen, setAddWebsiteModalOpen] = useState(false)
@@ -966,8 +968,15 @@ function AppLayout() {
                     </div>
                     {/* Add new website */}
                     <button
+                      disabled={isBasicPlan}
+                      title={isBasicPlan ? 'Upgrade your plan to add more websites' : undefined}
                       onClick={() => { setWebsiteDrop(false); setAddWebsiteModalOpen(true) }}
-                      className="flex items-center gap-1.5 px-3 py-2 text-blue-600 text-sm font-semibold hover:bg-blue-50 rounded-sm transition-colors whitespace-nowrap shrink-0"
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-sm transition-colors whitespace-nowrap shrink-0',
+                        isBasicPlan
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-blue-600 hover:bg-blue-50'
+                      )}
                     >
                       <Plus className="w-4 h-4" />
                       Add new website

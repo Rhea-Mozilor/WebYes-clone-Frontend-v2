@@ -275,10 +275,13 @@ function UpgradePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-10">
           {plans.map((plan) => {
             // A trial hasn't actually been paid for yet — let the user check out on their
-            // trialed plan instead of locking it behind a disabled "Current plan" button.
+            // trialed plan instead of locking it behind a disabled "Current plan" button,
+            // and let them freely pick ANY plan (no "downgrade" blocking) while trialing,
+            // since nothing has been charged yet.
             const isCurrent = plan.key === currentPlan && !summary?.is_trial
             const isDowngrade =
               !isCurrent &&
+              !summary?.is_trial &&
               plan.key !== 'SCALE' &&
               (PLAN_RANK[plan.key] ?? 0) < (PLAN_RANK[currentPlan] ?? 0)
             const price = billing === 'monthly' ? plan.monthlyPrice : plan.annualPrice

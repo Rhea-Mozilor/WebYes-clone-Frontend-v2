@@ -817,6 +817,11 @@ function AppLayout() {
     try { await logout() } catch { /* ok */ }
     clearAuth()
     useSiteStore.getState().reset()
+    // Clear cached queries (websites, billing, etc.) too — otherwise the
+    // still-cached websites list immediately re-triggers the "auto-select
+    // first website" effect right after reset() clears websiteId, and stale
+    // data from this account could flash when a different user logs in next.
+    qc.clear()
     navigate({ to: '/login' })
   }
 

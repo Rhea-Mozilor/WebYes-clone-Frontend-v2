@@ -125,12 +125,16 @@ function UpgradePage() {
     SCALE_PLAN,
   ]
 
+  const [loadingPlanKey, setLoadingPlanKey] = useState<string | null>(null)
+  const [checkoutConfirmPlan, setCheckoutConfirmPlan] = useState<typeof plans[number] | null>(null)
+
   const checkoutMutation = useMutation({
     mutationFn: (planId: BillingPlanId) => createCheckout(planId),
     onSuccess: (data) => { window.location.href = data.checkout_url },
     onError: (err: unknown) => {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Unable to start checkout'
       toast.error(detail)
+      setLoadingPlanKey(null)
     },
   })
 
@@ -150,7 +154,10 @@ function UpgradePage() {
 
   const startCheckout = (plan: typeof plans[number]) => {
     const planId = billing === 'monthly' ? plan.planIdMonthly : plan.planIdAnnually
-    if (planId) checkoutMutation.mutate(planId as BillingPlanId)
+    if (planId) {
+      setLoadingPlanKey(plan.key)
+      checkoutMutation.mutate(planId as BillingPlanId)
+    }
   }
 
   if (cancelled) {
@@ -360,10 +367,10 @@ function UpgradePage() {
                   ) : plan.ctaVariant === 'primary' ? (
                     <button
                       disabled={checkoutMutation.isPending}
-                      onClick={() => startCheckout(plan)}
+                      onClick={() => setCheckoutConfirmPlan(plan)}
                       className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold transition-colors"
                     >
-                      {checkoutMutation.isPending ? 'Redirecting...' : plan.ctaLabel}
+                      {loadingPlanKey === plan.key ? 'Redirecting...' : plan.ctaLabel}
                     </button>
                   ) : plan.key === 'SCALE' ? (
                     <a
@@ -375,10 +382,10 @@ function UpgradePage() {
                   ) : (
                     <button
                       disabled={checkoutMutation.isPending}
-                      onClick={() => startCheckout(plan)}
+                      onClick={() => setCheckoutConfirmPlan(plan)}
                       className="w-full py-2.5 rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 disabled:opacity-60 text-sm font-semibold transition-colors"
                     >
-                      {checkoutMutation.isPending ? 'Redirecting...' : plan.ctaLabel}
+                      {loadingPlanKey === plan.key ? 'Redirecting...' : plan.ctaLabel}
                     </button>
                   )}
                 </div>
@@ -613,6 +620,49 @@ function UpgradePage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {checkoutConfirmPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setCheckoutConfirmPlan(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-[440px] mx-4 overflow-hidden shadow-2xl px-8 py-8" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-[20px] font-bold text-[#2e3240] mb-2">Confirm your upgrade</h2>
+            <p className="text-[14px] text-gray-500 mb-6 leading-relaxed">
+              You're upgrading to the <span className="font-semibold text-[#2e3240]">{checkoutConfirmPlan.name}</span> plan. You'll be redirected to our secure payment provider to complete this purchase.
+            </p>
+
+            <div className="bg-gray-50 rounded-xl px-5 py-4 mb-6 flex items-center justify-between">
+              <div>
+                <p className="text-[14px] font-semibold text-[#2e3240]">{checkoutConfirmPlan.name} plan</p>
+                <p className="text-[12px] text-gray-500">
+                  {billing === 'monthly' ? 'Billed monthly' : `Billed annually — $${checkoutConfirmPlan.annualBilled ?? 0}/yr`}
+                </p>
+              </div>
+              <p className="text-[20px] font-bold text-[#2e3240] whitespace-nowrap">
+                ${billing === 'monthly' ? checkoutConfirmPlan.monthlyPrice ?? 0 : checkoutConfirmPlan.annualPrice ?? 0}
+                <span className="text-[13px] font-normal text-gray-500">/mo</span>
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setCheckoutConfirmPlan(null)}
+                className="flex-1 py-3 border border-gray-300 text-gray-700 text-[14px] font-medium rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const plan = checkoutConfirmPlan
+                  setCheckoutConfirmPlan(null)
+                  startCheckout(plan)
+                }}
+                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white text-[14px] font-semibold rounded-xl transition-colors"
+              >
+                Continue to payment
+              </button>
+            </div>
           </div>
         </div>
       )}

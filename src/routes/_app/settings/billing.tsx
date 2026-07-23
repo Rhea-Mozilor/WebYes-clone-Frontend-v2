@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Calendar, ChevronDown, Download } from 'lucide-react'
+import { Calendar, ChevronDown, Download, FileWarning } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getBillingSummary, getInvoices, getInvoicePdfUrl } from '../../../api/billing'
 import { useUpgradeModal } from '../../../lib/UpgradeModalContext'
@@ -170,22 +170,6 @@ function BillingPage() {
         </div>
       </div>
 
-      {/* Promo banner */}
-      <div className="bg-white rounded-[10px] border border-[#e5e7eb] border-l-[5px] border-l-[#0b66e4] flex items-center justify-between px-7 py-6 gap-5">
-        <div className="flex items-center gap-5">
-          <div className="w-14 h-14 rounded-full bg-[#eef2ff] flex items-center justify-center shrink-0">
-            <img src={AccessibilitySvg} alt="" className="w-7 h-7" />
-          </div>
-          <div>
-            <p className="text-[18px] font-bold text-[#2e3240]">Want just the Accessibility score?</p>
-            <p className="text-[15px] text-[#73767f]">Build a more inclusive experience for all visitors.</p>
-          </div>
-        </div>
-        <button className="shrink-0 px-7 py-3.5 border border-[#0b66e4] text-[#0b66e4] hover:bg-[#eef2ff] text-[15px] font-semibold rounded-[6px] transition-colors whitespace-nowrap">
-          Try for free
-        </button>
-      </div>
-
       {/* Invoice history */}
       <div className="bg-white rounded-[10px] border border-[#e5e7eb] overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#f3f4f6]">
@@ -230,6 +214,19 @@ function BillingPage() {
             </tr>
           </thead>
           <tbody>
+            {invoicesData && invoicesData.items.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-5 py-16">
+                  <div className="flex flex-col items-center text-center">
+                    <FileWarning className="w-11 h-11 text-[#9ca3af]" strokeWidth={1.5} />
+                    <p className="text-[16px] font-bold text-[#2e3240] mt-4">No invoices yet</p>
+                    <p className="text-[14px] text-[#9ca3af] mt-2 max-w-[360px] leading-relaxed">
+                      You are currently on the Free or Trial plan. Your invoices will be available here after your first payment.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            )}
             {(invoicesData?.items ?? []).map((inv) => {
               const style = STATUS_STYLES[inv.status]
               return (

@@ -1150,7 +1150,7 @@ export function IssueDetailPanel({ issueId, onClose, variant = 'default' }: Prop
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/30" onClick={onClose} />
 
-      <div className="w-full max-w-2xl bg-white h-full flex flex-col shadow-2xl border-l border-gray-200">
+      <div className="w-full max-w-4xl bg-white h-full flex flex-col shadow-2xl border-l border-gray-200">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-gray-100 shrink-0">
           {isLoading

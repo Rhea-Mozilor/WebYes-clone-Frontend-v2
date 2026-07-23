@@ -672,7 +672,7 @@ function AppLayout() {
   // connection. Render a blank page instead of the header/sidebar with placeholder values
   // like a default "BASIC" badge or an empty "Select website" dropdown.
   const shellLoading = userLoading || billingLoading || websitesLoading || orgsLoading
-  const { websiteId, setWebsiteId, strategy, setStrategy, scansByWebsite, setScanForWebsite, activeScanJob, setActiveScanJob } = useSiteStore()
+  const { websiteId, setWebsiteId, strategy, setStrategy, maxPages, scansByWebsite, setScanForWebsite, activeScanJob, setActiveScanJob } = useSiteStore()
   const location = useRouterState({ select: (s) => s.location.pathname })
   const isBasicPlan = useIsBasicPlan()
 
@@ -706,6 +706,20 @@ function AppLayout() {
       const s = query.state.data?.status
       return s === 'completed' || s === 'failed' || s === 'cancelled' ? false : 3_000
     },
+  })
+
+  // Live page-progress for a rescan in progress, for the "Active scans" credit-usage
+  // list below. Shares its query key with ScanProgressModal (mounted whenever scanJobs
+  // is set), so this just reads the same polled cache rather than fetching twice.
+  const { data: rescanDesktopJob } = useQuery({
+    queryKey: ['scan-progress', scanJobs?.desktopJobId],
+    queryFn: () => getScanJob(scanJobs!.desktopJobId!),
+    enabled: !!scanJobs?.desktopJobId,
+  })
+  const { data: rescanMobileJob } = useQuery({
+    queryKey: ['scan-progress', scanJobs?.mobileJobId],
+    queryFn: () => getScanJob(scanJobs!.mobileJobId!),
+    enabled: !!scanJobs?.mobileJobId,
   })
 
   useEffect(() => {
@@ -1229,12 +1243,15 @@ function AppLayout() {
             if (!billingCredits) return null
             const totalCredits = billingCredits.credits_total
             const leftCredits = billingCredits.credits_balance
-            const reservedCredits = Math.max(totalCredits - leftCredits, 0)
+            const usedCredits = Math.max(totalCredits - leftCredits, 0)
+            // Credits held for a scan currently in progress — zero whenever nothing is
+            // actively scanning, regardless of how many credits past scans have used.
+            const reservedCredits = isScanRunning ? usedCredits : 0
             const rawPct = totalCredits > 0 ? (leftCredits / totalCredits) * 100 : 0
             const pct = Math.floor(rawPct)
             // Leave a visible sliver of the unfilled track whenever any credits have been used,
             // even if the used amount is small enough that the rounded percentage still reads ~100%.
-            const barPct = reservedCredits > 0 ? Math.min(rawPct, 97) : 100
+            const barPct = usedCredits > 0 ? Math.min(rawPct, 97) : 100
             const trialDaysLeft = billingCredits.current_period_end
               ? Math.max(Math.ceil((new Date(billingCredits.current_period_end).getTime() - Date.now()) / 86400000), 0)
               : null
@@ -1303,9 +1320,21 @@ function AppLayout() {
                       </div>
                       <p className="text-[12px] text-gray-400 mb-4">Active scans</p>
                       {(() => {
+                        // 1 page scanned consumes 2 credits (matches the tooltip above).
+                        const CREDITS_PER_PAGE = 2
                         const activeScans = [
-                          ...(activeScanJob ? [{ key: 'onboarding', url: activeScanJob.url, onView: () => { setCreditsOpen(false); setScanDetailOpen(true) } }] : []),
-                          ...(scanJobs && !scanJobsDone ? [{ key: 'rescan', url: scanJobs.url, onView: () => { setCreditsOpen(false); setScanModalVisible(true) } }] : []),
+                          ...(activeScanJob ? [{
+                            key: 'onboarding',
+                            url: activeScanJob.url,
+                            pagesScanned: onboardingJob?.pages_scanned ?? 0,
+                            onView: () => { setCreditsOpen(false); setScanDetailOpen(true) },
+                          }] : []),
+                          ...(scanJobs && !scanJobsDone ? [{
+                            key: 'rescan',
+                            url: scanJobs.url,
+                            pagesScanned: Math.max(rescanDesktopJob?.pages_scanned ?? 0, rescanMobileJob?.pages_scanned ?? 0),
+                            onView: () => { setCreditsOpen(false); setScanModalVisible(true) },
+                          }] : []),
                         ]
                         if (activeScans.length === 0) {
                           return (
@@ -1321,24 +1350,33 @@ function AppLayout() {
                           )
                         }
                         return (
-                          <div className="flex flex-col gap-2">
+                          <div className="flex flex-col gap-3">
                             {activeScans.map((s) => {
                               let host = s.url
                               try { host = new URL(s.url).hostname.replace(/^www\./, '') } catch { /* keep raw url */ }
+                              const creditsTotal = maxPages * CREDITS_PER_PAGE
+                              const creditsUsed = Math.min(s.pagesScanned * CREDITS_PER_PAGE, creditsTotal)
+                              const barPct = creditsTotal > 0 ? Math.min((creditsUsed / creditsTotal) * 100, 100) : 0
                               return (
                                 <button
                                   key={s.key}
                                   onClick={s.onView}
-                                  className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-left"
+                                  className="w-full text-left px-4 py-3.5 border border-gray-200 rounded-xl hover:border-gray-300 transition-colors"
                                 >
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 animate-spin">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="shrink-0 animate-spin">
                                       <circle cx="8" cy="8" r="7" stroke="#bfdbfe" strokeWidth="1.5" />
                                       <path d="M8 1a7 7 0 0 1 7 7" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" />
                                     </svg>
-                                    <span className="text-[13px] text-gray-700 truncate">{host}</span>
+                                    <span className="text-[15px] text-gray-900 truncate">{host}</span>
                                   </div>
-                                  <span className="text-[12px] text-blue-600 font-medium shrink-0">View</span>
+                                  <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden mb-3">
+                                    <div className="h-full bg-gray-400 rounded-full transition-all" style={{ width: `${barPct}%` }} />
+                                  </div>
+                                  <div className="flex items-center justify-between text-[13px] text-gray-500">
+                                    <span>{creditsUsed}/{creditsTotal} credits used</span>
+                                    <span>{s.pagesScanned} pages scanned</span>
+                                  </div>
                                 </button>
                               )
                             })}

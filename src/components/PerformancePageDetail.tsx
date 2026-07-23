@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, Loader2, Search, Download } from 'lucide-react'
+import { ChevronLeft, Loader2, Search } from 'lucide-react'
 import { PriorityBadge } from './ui/PriorityBadge'
 import { getPerformancePageIssues } from '../api/scans'
 import { IssueDetailPanel } from './IssueDetailPanel'
@@ -55,7 +55,7 @@ export function PerformancePageDetail({ scanJobId, scanResultId, pageUrl, onBack
       </div>
 
       {/* Page header */}
-      <div className="bg-white px-6 py-5 flex items-start justify-between gap-4">
+      <div className="bg-white px-6 py-5">
         <div className="min-w-0">
           <h2 className="text-[22px] font-bold text-[#2e3240] tracking-[-0.44px] leading-tight">
             {data?.page_title || pageName(pageUrl)}
@@ -65,10 +65,6 @@ export function PerformancePageDetail({ scanJobId, scanResultId, pageUrl, onBack
             {pageUrl}
           </a>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-sm font-medium rounded-[6px] text-[#2e3240] bg-white hover:bg-gray-50 shrink-0 transition-colors">
-          <Download className="w-4 h-4" />
-          Export
-        </button>
       </div>
 
       {/* Vitals */}

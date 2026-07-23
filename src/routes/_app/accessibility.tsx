@@ -415,14 +415,6 @@ function AccessibilityPage() {
             <div className="flex-1 bg-white rounded-lg border border-[#dfe4f3] p-5 min-w-0">
               <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Accessibility over time</h3>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button className="border border-[#0b66e4] rounded-[6px] px-3 py-1.5 text-[12px] font-medium text-[#0b66e4] bg-white">Overall score</button>
-                  <button className="border border-[#e0e2e7] rounded-[6px] px-3 py-1.5 text-[12px] font-medium text-[#1a1a1a]">Level A</button>
-                  <div className="w-px h-5 bg-[#e0e2e7] mx-1" />
-                  <button className="border border-[#e0e2e7] rounded-[24px] px-3 py-1.5 text-[10px] text-[#242424]">Today</button>
-                  <button className="border border-[#e0e2e7] rounded-[24px] px-3 py-1.5 text-[10px] text-[#242424]">Yesterday</button>
-                  <button className="border border-[#e0e2e7] rounded-[24px] px-3 py-1.5 text-[10px] text-[#242424]">Last week</button>
-                </div>
               </div>
               <div className="relative">
                 {isBasicPlan && <LockedOverlay label="Upgrade to see accessibility trends over time" />}
@@ -921,10 +913,6 @@ function AccessibilityPage() {
               Accessibility checklist{checklistData?.wcag_version ? ` (WCAG ${checklistData.wcag_version})` : ''}
             </h2>
             <div className="flex items-center gap-2 flex-wrap">
-              <button className="flex items-center gap-1.5 h-9 px-3 border border-[#e0e3eb] rounded-[6px] bg-white text-[13px] text-[#374151] hover:bg-gray-50 transition-colors">
-                Filter by
-                <ChevronDown className="w-4 h-4 text-[#9ca3af]" />
-              </button>
               <div className="relative flex items-center border border-[#e0e3eb] rounded-[6px] h-9 w-56">
                 <Search className="absolute left-3 w-4 h-4 text-[#9ca3af]" />
                 <input

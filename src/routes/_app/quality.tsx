@@ -5,7 +5,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts'
-import { AlertTriangle, AlertCircle, Loader2, Search, ChevronLeft, ChevronRight, SlidersHorizontal, Download } from 'lucide-react'
+import { AlertTriangle, AlertCircle, Loader2, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import UrlSvg from '../../components/svgicons/url.svg'
 import { cn } from '../../lib/utils'
 import { scoreColor } from '../../lib/score'
@@ -234,11 +234,6 @@ function QualityPage() {
             <div className="flex-1 bg-white rounded-[8px] border border-[#dfe4f3] p-5 min-w-0">
               <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Quality over time</h3>
-                <div className="flex items-center gap-2">
-                  <button className="border border-[#e0e2e7] rounded-[24px] px-3 py-1.5 text-[10px] text-[#242424]">Today</button>
-                  <button className="border border-[#e0e2e7] rounded-[24px] px-3 py-1.5 text-[10px] text-[#242424]">Yesterday</button>
-                  <button className="border border-[#e0e2e7] rounded-[24px] px-3 py-1.5 text-[10px] text-[#242424]">Last week</button>
-                </div>
               </div>
               <div className="relative">
                 {isBasicPlan && <LockedOverlay label="Upgrade to see quality trends over time" />}
@@ -444,12 +439,6 @@ function QualityPage() {
                     className="text-[13px] text-[#2e3240] placeholder-[#9f9f9f] outline-none flex-1 bg-transparent"
                   />
                 </div>
-                <button className="w-[43px] h-[43px] flex items-center justify-center rounded-[4px] border border-[#e0e2e7] hover:bg-gray-50 text-[#73767f]">
-                  <SlidersHorizontal className="w-4 h-4" />
-                </button>
-                <button className="w-[43px] h-[43px] flex items-center justify-center rounded-[4px] border border-[#e0e2e7] hover:bg-gray-50 text-[#73767f]">
-                  <Download className="w-4 h-4" />
-                </button>
               </div>
             </div>
             {!affectedPages ? (

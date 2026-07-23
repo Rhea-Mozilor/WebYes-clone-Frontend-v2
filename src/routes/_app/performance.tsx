@@ -13,8 +13,6 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  SlidersHorizontal,
-  Download,
 } from 'lucide-react'
 import UrlSvg from '../../components/svgicons/url.svg'
 import AvgResponseTimeSvg from '../../components/svgicons/avgresponsetime.svg'
@@ -49,7 +47,6 @@ export const Route = createFileRoute('/_app/performance')({
 })
 
 const TABS = ['Dashboard', 'Affected pages', 'Issues list']
-const TIME_FILTERS = ['Today', 'Yesterday', 'Last week'] as const
 
 function avg(vals: (number | null | undefined)[]): number | null {
   const nums = vals.filter((v): v is number => v != null)
@@ -79,7 +76,6 @@ function PerformancePage() {
   const { tab: activeTab, issueId: preselectedIssueId } = Route.useSearch()
   const navigate = useNavigate({ from: '/performance' })
   const setActiveTab = (tab: string) => navigate({ search: (s) => ({ ...s, tab }), replace: true })
-  const [timeFilter, setTimeFilter] = useState<typeof TIME_FILTERS[number]>('Last week')
   const [affectedPage, setAffectedPage] = useState(1)
   const [issueListPage, setIssueListPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -164,17 +160,11 @@ function PerformancePage() {
 
   const chartData = useMemo(() => {
     const pts = scoreOverTime?.data_points ?? []
-    const now = Date.now()
-    const cutoff =
-      timeFilter === 'Today' ? now - 86_400_000
-      : timeFilter === 'Yesterday' ? now - 2 * 86_400_000
-      : now - 7 * 86_400_000
-    const source = timeFilter === 'Last week' ? pts : pts.filter((p) => new Date(p.scanned_at).getTime() >= cutoff)
-    return (source.length ? source : pts).map((p) => ({
+    return pts.map((p) => ({
       date: new Date(p.scanned_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       score: p.score != null ? Math.round(p.score) : null,
     }))
-  }, [scoreOverTime, timeFilter])
+  }, [scoreOverTime])
 
   if (!websiteId) return <EmptyState msg="Select a website from the top bar." />
   if (!scanId) return <EmptyState msg="No completed scans yet. Run a scan to see performance data." />
@@ -331,15 +321,6 @@ function PerformancePage() {
           <div className="bg-white rounded-[8px] border border-[#dfe4f3] p-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <h3 className="text-[18px] font-semibold text-[#2e3240] tracking-[-0.36px]">Performance over time</h3>
-              <div className="flex items-center gap-2 flex-wrap">
-                {TIME_FILTERS.map((f) => (
-                  <button key={f} onClick={() => setTimeFilter(f)}
-                    className={cn('border rounded-[24px] px-3 py-1.5 text-[10px] transition-colors',
-                      timeFilter === f ? 'bg-[#0b66e4] text-white border-[#0b66e4]' : 'border-[#e0e2e7] text-[#242424]')}>
-                    {f}
-                  </button>
-                ))}
-              </div>
             </div>
             <div className="relative">
               {isBasicPlan && <LockedOverlay label="Upgrade to see performance trends over time" />}
@@ -584,12 +565,6 @@ function PerformancePage() {
                     className="text-[13px] text-[#2e3240] placeholder-[#9f9f9f] outline-none flex-1 bg-transparent"
                   />
                 </div>
-                <button className="w-[43px] h-[43px] flex items-center justify-center rounded-[4px] border border-[#e0e2e7] hover:bg-gray-50 text-[#73767f]">
-                  <SlidersHorizontal className="w-4 h-4" />
-                </button>
-                <button className="w-[43px] h-[43px] flex items-center justify-center rounded-[4px] border border-[#e0e2e7] hover:bg-gray-50 text-[#73767f]">
-                  <Download className="w-4 h-4" />
-                </button>
               </div>
             </div>
             {!affectedPages ? (

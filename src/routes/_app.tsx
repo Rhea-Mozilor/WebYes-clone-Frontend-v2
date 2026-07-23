@@ -763,7 +763,11 @@ function AppLayout() {
     restoredScanRef.current = websiteId
     getScanHistory(websiteId)
       .then((history) => {
-        if (history[0]) setScanForWebsite(websiteId, history[0].scan_job_id)
+        // Skip cancelled/failed runs — they have no scan data, so restoring one
+        // as the "current" scan would show a 0/blank dashboard instead of the
+        // proper "run a scan" empty state.
+        const latestCompleted = history.find((h) => h.status === 'completed')
+        if (latestCompleted) setScanForWebsite(websiteId, latestCompleted.scan_job_id)
       })
       .catch(() => {})
   }, [websiteId, scansByWebsite, setScanForWebsite])

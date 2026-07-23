@@ -136,6 +136,7 @@ function ScanProgressModal({
       const scanId = desktopJobId ?? mobileJobId
       const failed = desktopJob?.status === 'failed' || mobileJob?.status === 'failed'
       if (scanId) onComplete(scanId, failed)
+      void qc.invalidateQueries({ queryKey: ['billing-credits'] })
       if (failed && isNewWebsite) {
         // First scan for a brand-new website failed — don't leave a broken,
         // never-scanned entry in the website/org lists.
@@ -713,7 +714,8 @@ function AppLayout() {
     }
     setActiveScanJob(null)
     setScanDetailOpen(false)
-  }, [onboardingJob?.status, activeScanJob?.jobId, websiteId, setScanForWebsite, setActiveScanJob])
+    void qc.invalidateQueries({ queryKey: ['billing-credits'] })
+  }, [onboardingJob?.status, activeScanJob?.jobId, websiteId, setScanForWebsite, setActiveScanJob, qc])
 
   // Website dropdown state
   const [siteSearch, setSiteSearch] = useState('')
@@ -827,15 +829,19 @@ function AppLayout() {
 
   const initials = user?.username?.slice(0, 2).toUpperCase() ?? '??'
 
-  const sideLinks = [
+  // No scan has ever completed for this website yet, and one is currently
+  // running — the category pages have nothing to show until it finishes.
+  const firstScanOngoing = isScanRunning && (!websiteId || !scansByWebsite[websiteId])
+
+  const sideLinks: { to: string | null; icon: React.ElementType; label: string; disabled?: boolean }[] = [
     { to: '/dashboard', icon: LayoutGrid, label: 'Dashboard' },
   ]
 
-  const categoryLinks: { to: string | null; icon: React.ElementType; label: string }[] = [
-    { to: '/accessibility', icon: AccIcon, label: 'Accessibility' },
-    { to: '/performance', icon: PerfIcon, label: 'Performance' },
-    { to: '/quality', icon: QualIcon, label: 'Quality' },
-    { to: '/seo', icon: SeoIcon, label: 'SEO' },
+  const categoryLinks: { to: string | null; icon: React.ElementType; label: string; disabled?: boolean }[] = [
+    { to: '/accessibility', icon: AccIcon, label: 'Accessibility', disabled: firstScanOngoing },
+    { to: '/performance', icon: PerfIcon, label: 'Performance', disabled: firstScanOngoing },
+    { to: '/quality', icon: QualIcon, label: 'Quality', disabled: firstScanOngoing },
+    { to: '/seo', icon: SeoIcon, label: 'SEO', disabled: firstScanOngoing },
   ]
 
   return (
@@ -1271,15 +1277,49 @@ function AppLayout() {
                         </span>
                       </div>
                       <p className="text-[12px] text-gray-400 mb-4">Active scans</p>
-                      <div className="flex flex-col items-center py-6 gap-2">
-                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="text-gray-300">
-                          <rect x="4" y="4" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
-                          <rect x="23" y="4" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
-                          <rect x="4" y="23" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
-                          <rect x="23" y="23" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
-                        </svg>
-                        <p className="text-[13px] text-gray-400">You don't have any active scans.</p>
-                      </div>
+                      {(() => {
+                        const activeScans = [
+                          ...(activeScanJob ? [{ key: 'onboarding', url: activeScanJob.url, onView: () => { setCreditsOpen(false); setScanDetailOpen(true) } }] : []),
+                          ...(scanJobs && !scanJobsDone ? [{ key: 'rescan', url: scanJobs.url, onView: () => { setCreditsOpen(false); setScanModalVisible(true) } }] : []),
+                        ]
+                        if (activeScans.length === 0) {
+                          return (
+                            <div className="flex flex-col items-center py-6 gap-2">
+                              <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="text-gray-300">
+                                <rect x="4" y="4" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
+                                <rect x="23" y="4" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
+                                <rect x="4" y="23" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
+                                <rect x="23" y="23" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
+                              </svg>
+                              <p className="text-[13px] text-gray-400">You don't have any active scans.</p>
+                            </div>
+                          )
+                        }
+                        return (
+                          <div className="flex flex-col gap-2">
+                            {activeScans.map((s) => {
+                              let host = s.url
+                              try { host = new URL(s.url).hostname.replace(/^www\./, '') } catch { /* keep raw url */ }
+                              return (
+                                <button
+                                  key={s.key}
+                                  onClick={s.onView}
+                                  className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-left"
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 animate-spin">
+                                      <circle cx="8" cy="8" r="7" stroke="#bfdbfe" strokeWidth="1.5" />
+                                      <path d="M8 1a7 7 0 0 1 7 7" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" />
+                                    </svg>
+                                    <span className="text-[13px] text-gray-700 truncate">{host}</span>
+                                  </div>
+                                  <span className="text-[12px] text-blue-600 font-medium shrink-0">View</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
                 )}
@@ -1383,7 +1423,7 @@ function AppLayout() {
         {/* Icon sidebar — hidden on mobile, hidden on /upgrade */}
         {location !== '/upgrade' && <aside className="hidden md:flex w-[62px] shrink-0 bg-white border-r border-[#d8dde9] flex-col items-center py-3 z-30 overflow-y-auto">
           <nav className="flex flex-col items-center w-full flex-1">
-            {[...sideLinks, ...categoryLinks].map(({ to, icon: Icon, label }) => {
+            {[...sideLinks, ...categoryLinks].map(({ to, icon: Icon, label, disabled }) => {
               const isActive = to ? location.startsWith(to) : false
               const inner = (
                 <div className={cn(
@@ -1393,13 +1433,13 @@ function AppLayout() {
                   <Icon className="w-[18px] h-[18px]" />
                 </div>
               )
-              return to ? (
+              return to && !disabled ? (
                 <Link key={label} to={to} title={label}
                   className="flex items-center justify-center py-[5px] w-full group">
                   {inner}
                 </Link>
               ) : (
-                <button key={label} disabled title={label}
+                <button key={label} disabled title={disabled ? `${label} — available once your first scan finishes` : label}
                   className="flex items-center justify-center py-[5px] w-full group opacity-35 cursor-not-allowed">
                   {inner}
                 </button>

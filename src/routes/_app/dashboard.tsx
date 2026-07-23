@@ -1,5 +1,4 @@
 import { createFileRoute, Link, redirect } from '@tanstack/react-router'
-import toast from 'react-hot-toast'
 import { useQuery } from '@tanstack/react-query'
 import { useState, useMemo, useRef, useEffect } from 'react'
 import {
@@ -13,7 +12,6 @@ import {
 import {
   Globe,
   LayoutGrid,
-  Plus,
   Loader2,
   X,
   Search,
@@ -22,16 +20,9 @@ import { cn } from '../../lib/utils'
 import { PriorityBadge } from '../../components/ui/PriorityBadge'
 import { AccessibilityIcon, PerformanceIcon, QualityIcon, SeoIcon } from '../../components/ui/CategoryIcons'
 import { useSiteStore } from '../../store/siteStore'
-import { listWebsites, createWebsite } from '../../api/websites'
+import { listWebsites } from '../../api/websites'
 import { useIsBasicPlan, LockedRowsOverlay } from '../../components/UpgradeLock'
 import { getScanDashboard, getScanIssues, getScanPages, getPageScores } from '../../api/scans'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '../../components/ui/dialog'
 import type { DashboardScores, IssueCategory } from '../../types'
 
 export const Route = createFileRoute('/_app/dashboard')({
@@ -184,20 +175,16 @@ function ScannedPagesModal({ scanJobId, onClose }: { scanJobId: string; onClose:
 
 function DashboardPage() {
   const isBasicPlan = useIsBasicPlan()
-  const { websiteId, setWebsiteId, strategy, scansByWebsite } = useSiteStore()
+  const { websiteId, strategy, scansByWebsite } = useSiteStore()
   const scanInfo = websiteId ? scansByWebsite[websiteId] : undefined
   const scanId = scanInfo?.scanId ?? null
   const prevScanId = scanInfo?.prevScanId ?? null
   const [activeTab, setActiveTab] = useState<IssueCategory | 'all'>('all')
-  const [addOpen, setAddOpen] = useState(false)
   const [pagesOpen, setPagesOpen] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newUrl, setNewUrl] = useState('')
-  const [adding, setAdding] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(5)
 
-  const { data: websites = [], refetch: refetchWebsites } = useQuery({
+  const { data: websites = [] } = useQuery({
     queryKey: ['websites'],
     queryFn: listWebsites,
     staleTime: Infinity,
@@ -289,74 +276,6 @@ function DashboardPage() {
   const maxIssueCount = Math.max(...issuesPerPage.map((p) => p.count), 1)
 
   useEffect(() => { setCurrentPage(1) }, [activeTab, itemsPerPage])
-
-  async function handleAddWebsite(e: React.FormEvent) {
-    e.preventDefault()
-    setAdding(true)
-    try {
-      const w = await createWebsite(newName, newUrl)
-      await refetchWebsites()
-      setWebsiteId(w.id)
-      setAddOpen(false)
-      setNewName('')
-      setNewUrl('')
-      toast.success('Website added!')
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      toast.error(msg ?? 'Could not add website')
-    } finally {
-      setAdding(false)
-    }
-  }
-
-  // ── No websites yet ────────────────────────────────────────────────
-  if (websites.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full py-32 text-center">
-        <div className="w-16 h-16 bg-blue-50 rounded-sm flex items-center justify-center mb-4">
-          <Globe className="w-8 h-8 text-blue-400" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-1">No websites yet</h3>
-        <p className="text-sm text-gray-500 mb-5">Add your first website to start auditing</p>
-        <button
-          onClick={() => setAddOpen(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-sm hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Add Website
-        </button>
-
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Website</DialogTitle>
-              <DialogDescription>Enter the details of the website you want to audit.</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAddWebsite} className="flex flex-col gap-4 mt-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input type="text" placeholder="My Website" value={newName} onChange={(e) => setNewName(e.target.value)} required
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">URL</label>
-                <input type="url" placeholder="https://example.com" value={newUrl} onChange={(e) => setNewUrl(e.target.value)} required
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div className="flex justify-end gap-2 pt-1">
-                <button type="button" onClick={() => setAddOpen(false)}
-                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 rounded-sm hover:bg-gray-100">Cancel</button>
-                <button type="submit" disabled={adding}
-                  className="px-4 py-2 text-sm bg-blue-600 text-white font-semibold rounded-sm hover:bg-blue-700 disabled:opacity-50">
-                  {adding ? 'Adding…' : 'Add Website'}
-                </button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-    )
-  }
 
   // ── No scan yet for selected website ──────────────────────────────
   if (!scanId) return (

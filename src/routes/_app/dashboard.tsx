@@ -23,7 +23,7 @@ import { PriorityBadge } from '../../components/ui/PriorityBadge'
 import { AccessibilityIcon, PerformanceIcon, QualityIcon, SeoIcon } from '../../components/ui/CategoryIcons'
 import { useSiteStore } from '../../store/siteStore'
 import { listWebsites, createWebsite } from '../../api/websites'
-import { useIsBasicPlan, LimitedListUpgradeFooter } from '../../components/UpgradeLock'
+import { useIsBasicPlan, LockedRowsOverlay } from '../../components/UpgradeLock'
 import { getScanDashboard, getScanIssues, getScanPages, getPageScores } from '../../api/scans'
 import {
   Dialog,
@@ -633,58 +633,59 @@ function DashboardPage() {
           {/* Table */}
           {pagedIssues.length === 0 ? (
             <div className="text-sm text-gray-400 text-center py-12">No issues in this category</div>
-          ) : (
-            <table className="w-full mt-2">
-              <thead>
-                <tr className="bg-[#f2f3f8] rounded-[10px]">
-                  <th className="text-left text-[13px] font-medium text-[#2e3240] px-4 py-[15px] tracking-[-0.13px]">Name</th>
-                  <th className="text-left text-[13px] font-medium text-[#2e3240] px-4 py-[15px] w-32 tracking-[-0.13px]">Priority</th>
-                  <th className="text-left text-[13px] font-medium text-[#21242d] px-4 py-[15px] w-28 tracking-[-0.13px]">Category</th>
-                  <th className="text-right text-[13px] font-medium text-[#2e3240] px-4 py-[15px] w-28 tracking-[-0.13px]">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedIssues.map((issue) => {
-                  return (
-                    <tr key={issue.id} className="border-t border-[#eaebec] hover:bg-gray-50/60 transition-colors">
-                      <td className="px-4 py-[26px] text-[14px] text-[#2e3240] leading-[1.4] tracking-[-0.14px] overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px]">{issue.title}</td>
-                      <td className="px-4 py-[26px]">
-                        <PriorityBadge priority={issue.priority} />
-                      </td>
-                      <td className="px-4 py-[26px]">{categoryIcon(issue.category)}</td>
-                      <td className="px-4 py-[26px] text-right">
-                        {issue.category === 'performance' ? (
-                          <Link to="/performance" search={{ tab: 'Issues list', issueId: issue.id }} className="text-[12px] text-[#0b66e4] underline font-medium tracking-[-0.24px]">View more</Link>
-                        ) : issue.category === 'seo' ? (
-                          <Link to="/seo" search={{ tab: 'Issues list', issueId: issue.id }} className="text-[12px] text-[#0b66e4] underline font-medium tracking-[-0.24px]">View more</Link>
-                        ) : (issue.category === 'best_practices' || issue.category === 'quality') ? (
-                          <Link to="/quality" search={{ tab: 'Issues list', issueId: issue.id }} className="text-[12px] text-[#0b66e4] underline font-medium tracking-[-0.24px]">View more</Link>
-                        ) : (
-                          <Link to="/accessibility" search={{ tab: 'Issues list', issueId: issue.id }} className="text-[12px] text-[#0b66e4] underline font-medium tracking-[-0.24px]">View more</Link>
-                        )}
-                      </td>
+          ) : (() => {
+            const renderRow = (issue: typeof pagedIssues[number], locked: boolean) => (
+              <tr key={issue.id} className={cn('border-t border-[#eaebec] transition-colors', locked ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60')}>
+                <td className="px-4 py-[26px] text-[14px] text-[#2e3240] leading-[1.4] tracking-[-0.14px] overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px]">{issue.title}</td>
+                <td className="px-4 py-[26px]">
+                  <PriorityBadge priority={issue.priority} />
+                </td>
+                <td className="px-4 py-[26px]">{categoryIcon(issue.category)}</td>
+                <td className="px-4 py-[26px] text-right">
+                  {locked ? (
+                    <span className="text-[12px] text-[#0b66e4] underline font-medium tracking-[-0.24px]">View more</span>
+                  ) : issue.category === 'performance' ? (
+                    <Link to="/performance" search={{ tab: 'Issues list', issueId: issue.id }} className="text-[12px] text-[#0b66e4] underline font-medium tracking-[-0.24px]">View more</Link>
+                  ) : issue.category === 'seo' ? (
+                    <Link to="/seo" search={{ tab: 'Issues list', issueId: issue.id }} className="text-[12px] text-[#0b66e4] underline font-medium tracking-[-0.24px]">View more</Link>
+                  ) : (issue.category === 'best_practices' || issue.category === 'quality') ? (
+                    <Link to="/quality" search={{ tab: 'Issues list', issueId: issue.id }} className="text-[12px] text-[#0b66e4] underline font-medium tracking-[-0.24px]">View more</Link>
+                  ) : (
+                    <Link to="/accessibility" search={{ tab: 'Issues list', issueId: issue.id }} className="text-[12px] text-[#0b66e4] underline font-medium tracking-[-0.24px]">View more</Link>
+                  )}
+                </td>
+              </tr>
+            )
+            return (
+              <>
+                <table className="w-full mt-2">
+                  <thead>
+                    <tr className="bg-[#f2f3f8] rounded-[10px]">
+                      <th className="text-left text-[13px] font-medium text-[#2e3240] px-4 py-[15px] tracking-[-0.13px]">Name</th>
+                      <th className="text-left text-[13px] font-medium text-[#2e3240] px-4 py-[15px] w-32 tracking-[-0.13px]">Priority</th>
+                      <th className="text-left text-[13px] font-medium text-[#21242d] px-4 py-[15px] w-28 tracking-[-0.13px]">Category</th>
+                      <th className="text-right text-[13px] font-medium text-[#2e3240] px-4 py-[15px] w-28 tracking-[-0.13px]">Action</th>
                     </tr>
-                  )
-                })}
-                {teaserIssues.map((issue) => (
-                  <tr key={issue.id} className="border-t border-[#eaebec] blur-sm select-none pointer-events-none">
-                    <td className="px-4 py-[26px] text-[14px] text-[#2e3240] leading-[1.4] tracking-[-0.14px] overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px]">{issue.title}</td>
-                    <td className="px-4 py-[26px]">
-                      <PriorityBadge priority={issue.priority} />
-                    </td>
-                    <td className="px-4 py-[26px]">{categoryIcon(issue.category)}</td>
-                    <td className="px-4 py-[26px] text-right">
-                      <span className="text-[12px] text-[#0b66e4] underline font-medium tracking-[-0.24px]">View more</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                  </thead>
+                  <tbody>
+                    {pagedIssues.map((issue) => renderRow(issue, false))}
+                  </tbody>
+                </table>
+                {teaserIssues.length > 0 && (
+                  <div className="relative overflow-hidden">
+                    <table className="w-full table-fixed">
+                      <tbody>
+                        {teaserIssues.map((issue) => renderRow(issue, true))}
+                      </tbody>
+                    </table>
+                    <LockedRowsOverlay totalCount={scanIssues?.total ?? pagedIssues.length} shown={5} />
+                  </div>
+                )}
+              </>
+            )
+          })()}
 
-          {isBasicPlan ? (
-            <LimitedListUpgradeFooter totalCount={scanIssues?.total ?? pagedIssues.length} shown={5} />
-          ) : (
+          {!isBasicPlan && (
             <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-500">Items per page</span>

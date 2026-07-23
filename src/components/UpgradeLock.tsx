@@ -30,12 +30,13 @@ export function LockedOverlay({ label }: { label: string }) {
   )
 }
 
-// Footer shown below a list that's been truncated for Basic plans.
-export function LimitedListUpgradeFooter({ totalCount, shown = FREE_PLAN_VISIBLE_ROWS }: { totalCount: number; shown?: number }) {
+// Overlay shown centered on top of a list's blurred/locked rows, in place of a footer below the list.
+// Parent wrapping the locked rows must be `relative` (and typically `overflow-hidden`) for this to sit correctly.
+export function LockedRowsOverlay({ totalCount, shown = FREE_PLAN_VISIBLE_ROWS }: { totalCount: number; shown?: number }) {
   if (totalCount <= shown) return null
   return (
-    <div className="text-center py-6 border-t border-gray-100 mt-2">
-      <p className="text-[14px] text-[#2e3240] mb-4">
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/50 backdrop-blur-[1px] z-10 px-6">
+      <p className="text-[14px] text-[#2e3240] text-center">
         Your free plan shows only {shown} of {totalCount} issues. Upgrade to see the full list.
       </p>
       <UpgradeButton className="inline-block bg-[#2563eb] text-white text-[14px] font-medium px-8 py-2.5 rounded-[6px] hover:bg-blue-700 transition-colors">

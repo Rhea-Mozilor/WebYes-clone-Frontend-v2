@@ -13,7 +13,7 @@ import {
 import AccessibilitySvg from '../../components/svgicons/Accessibility.svg'
 import UrlSvg from '../../components/svgicons/url.svg'
 import { cn } from '../../lib/utils'
-import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS, isRowLocked } from '../../lib/planLimits'
+import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS } from '../../lib/planLimits'
 import { PriorityBadge } from '../../components/ui/PriorityBadge'
 import { useSiteStore } from '../../store/siteStore'
 import { IssueDetailPanel } from '../../components/IssueDetailPanel'
@@ -29,7 +29,7 @@ import {
   getAccessibilityChecklist,
 } from '../../api/scans'
 import { AccessibilityPageDetail } from '../../components/AccessibilityPageDetail'
-import { useIsBasicPlan, LockedOverlay, LimitedListUpgradeFooter, UpgradeButton } from '../../components/UpgradeLock'
+import { useIsBasicPlan, LockedOverlay, LockedRowsOverlay, UpgradeButton } from '../../components/UpgradeLock'
 
 export const Route = createFileRoute('/_app/accessibility')({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -130,7 +130,7 @@ function AccessibilityPage() {
 
   const { data: dashIssues } = useQuery({
     queryKey: ['accessibility-dash-issues', scanId, strategy],
-    queryFn: () => getAccessibilityIssuesLog(scanId!, 1, 5, strategy),
+    queryFn: () => getAccessibilityIssuesLog(scanId!, 1, FREE_PLAN_PREVIEW_ROWS, strategy),
     enabled: !!scanId,
   })
 
@@ -503,56 +503,65 @@ function AccessibilityPage() {
 
             {!dashIssues || dashIssues.items.length === 0 ? (
               <p className="text-sm text-gray-400 py-8 text-center">No issues found</p>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-[#f2f3f8]">
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 rounded-l-[10px]">Name</th>
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-44">Page URL</th>
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-28">Level</th>
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-28">Priority</th>
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-28 rounded-r-[10px]">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dashIssues.items.slice(0, FREE_PLAN_PREVIEW_ROWS).map((item, idx) => {
-                        const priority = item.priority ?? ''
-                        const rawLevel = item.conformance_level ?? item.wcag_level ?? 'AA'
-                        const level = rawLevel.startsWith('Level ') ? rawLevel : `Level ${rawLevel}`
-                        return (
-                          <tr key={item.issue_id} className={cn('border-t border-[#eaebec] transition-colors', isRowLocked(idx, isBasicPlan) ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60')}>
-                            <td className="px-4 py-[18px] text-[14px] text-[#252833] tracking-[-0.14px] leading-snug">{item.title}</td>
-                            <td className="px-4 py-[18px]">
-                              {item.page_url ? (
-                                <a href={item.page_url} target="_blank" rel="noopener noreferrer"
-                                  className="text-[14px] text-[#0a5dcf] underline truncate block max-w-[160px]">
-                                  {item.page_url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                                </a>
-                              ) : <span className="text-[14px] text-[#9fa1a7]">—</span>}
-                            </td>
-                            <td className="px-4 py-[18px] text-[14px] text-[#252833] tracking-[-0.14px]">{level}</td>
-                            <td className="px-4 py-[18px]">
-                              <PriorityBadge priority={priority} />
-                            </td>
-                            <td className="px-4 py-[18px]">
-                              <Link to="/accessibility" search={{ tab: 'Issues list', issueId: undefined }} className="text-[14px] font-medium text-[#0a5dcf] underline">View more</Link>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {isBasicPlan && dashIssues.items.length > FREE_PLAN_VISIBLE_ROWS && (
-                  <div className="text-center py-6 border-t border-gray-100 mt-2">
-                    <p className="text-[14px] text-[#2e3240] mb-4">Your free plan shows only {FREE_PLAN_VISIBLE_ROWS} issues. Upgrade to unlock all issues and get the full picture of your website's health.</p>
-                    <Link to="/upgrade" className="inline-block bg-[#2563eb] text-white text-[14px] font-medium px-8 py-2.5 rounded-[6px] hover:bg-blue-700 transition-colors">Unlock all issues</Link>
+            ) : (() => {
+              const renderRow = (item: typeof dashIssues.items[number], locked: boolean) => {
+                const priority = item.priority ?? ''
+                const rawLevel = item.conformance_level ?? item.wcag_level ?? 'AA'
+                const level = rawLevel.startsWith('Level ') ? rawLevel : `Level ${rawLevel}`
+                return (
+                  <tr key={item.issue_id} className={cn('border-t border-[#eaebec] transition-colors', locked ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60')}>
+                    <td className="px-4 py-[18px] text-[14px] text-[#252833] tracking-[-0.14px] leading-snug">{item.title}</td>
+                    <td className="px-4 py-[18px]">
+                      {item.page_url ? (
+                        <a href={item.page_url} target="_blank" rel="noopener noreferrer"
+                          className="text-[14px] text-[#0a5dcf] underline truncate block max-w-[160px]">
+                          {item.page_url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                        </a>
+                      ) : <span className="text-[14px] text-[#9fa1a7]">—</span>}
+                    </td>
+                    <td className="px-4 py-[18px] text-[14px] text-[#252833] tracking-[-0.14px]">{level}</td>
+                    <td className="px-4 py-[18px]">
+                      <PriorityBadge priority={priority} />
+                    </td>
+                    <td className="px-4 py-[18px]">
+                      <Link to="/accessibility" search={{ tab: 'Issues list', issueId: undefined }} className="text-[14px] font-medium text-[#0a5dcf] underline">View more</Link>
+                    </td>
+                  </tr>
+                )
+              }
+              const visible = dashIssues.items.slice(0, FREE_PLAN_VISIBLE_ROWS)
+              const locked = isBasicPlan ? dashIssues.items.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
+              return (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full table-fixed">
+                      <thead>
+                        <tr className="bg-[#f2f3f8]">
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 rounded-l-[10px]">Name</th>
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-44">Page URL</th>
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-28">Level</th>
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-28">Priority</th>
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-28 rounded-r-[10px]">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visible.map((item) => renderRow(item, false))}
+                      </tbody>
+                    </table>
                   </div>
-                )}
-              </>
-            )}
+                  {locked.length > 0 && (
+                    <div className="relative overflow-hidden">
+                      <table className="w-full table-fixed">
+                        <tbody>
+                          {locked.map((item) => renderRow(item, true))}
+                        </tbody>
+                      </table>
+                      <LockedRowsOverlay totalCount={totalIssues} />
+                    </div>
+                  )}
+                </>
+              )
+            })()}
           </div>
         </div>
       )}
@@ -669,73 +678,89 @@ function AccessibilityPage() {
               <p className="text-xs text-gray-400 text-center py-12">No affected pages found</p>
             ) : (
               <>
-                <div className="overflow-x-auto px-6">
-                  <table className="w-full">
-                    <thead>
-                      <tr>
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 bg-[#f2f3f8] rounded-l-[8px]">
-                          Pages
-                        </th>
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 bg-[#f2f3f8] w-24">
-                          Score
-                        </th>
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 bg-[#f2f3f8] w-36">
-                          Critical issues
-                        </th>
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 bg-[#f2f3f8] rounded-r-[8px] w-28">
-                          Total issues
-                        </th>
+                {(() => {
+                  const renderRow = (item: typeof affectedPages.items[number], i: number, locked: boolean) => {
+                    const s = item.page_score ?? 0
+                    const shortUrl = item.page_url.replace(/^https?:\/\//, '')
+                    return (
+                      <tr key={i}
+                        onClick={() => !locked && item.scan_result_id && item.total_issues > 0 && setPageDetailView({ scanResultId: item.scan_result_id, pageUrl: item.page_url })}
+                        className={cn('border-b border-[#ebebeb] transition-colors', locked ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60', !locked && item.scan_result_id && item.total_issues > 0 && 'cursor-pointer')}>
+                        <td className="px-4 py-[18px]">
+                          <div className="text-[14px] font-medium text-[#2e3240] tracking-[-0.14px] leading-[1.4]">
+                            {pageName(item.page_url)}
+                          </div>
+                          <div className="text-[12px] text-[#73767f] mt-0.5">
+                            <span>URL : </span>
+                            <a href={item.page_url} target="_blank" rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="underline hover:text-blue-600">
+                              {shortUrl}
+                            </a>
+                          </div>
+                        </td>
+                        <td className="px-4 py-[18px]">
+                          <span className="text-[13px] font-medium text-[#2e3240]">{s}%</span>
+                        </td>
+                        <td className="px-4 py-[18px]">
+                          <span className="text-[13px] font-medium text-[#2e3240]">{item.critical_issues}</span>
+                        </td>
+                        <td className="px-4 py-[18px]">
+                          <span className="text-[13px] font-medium text-[#2e3240]">{item.total_issues}</span>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {(isBasicPlan ? affectedPages.items.slice(0, FREE_PLAN_PREVIEW_ROWS) : affectedPages.items).map((item, i) => {
-                        const s = item.page_score ?? 0
-                        const shortUrl = item.page_url.replace(/^https?:\/\//, '')
-                        const locked = isRowLocked(i, isBasicPlan)
-                        return (
-                          <tr key={i}
-                            onClick={() => !locked && item.scan_result_id && item.total_issues > 0 && setPageDetailView({ scanResultId: item.scan_result_id, pageUrl: item.page_url })}
-                            className={cn('border-b border-[#ebebeb] transition-colors', locked ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60', item.scan_result_id && item.total_issues > 0 && 'cursor-pointer')}>
-                            <td className="px-4 py-[18px]">
-                              <div className="text-[14px] font-medium text-[#2e3240] tracking-[-0.14px] leading-[1.4]">
-                                {pageName(item.page_url)}
-                              </div>
-                              <div className="text-[12px] text-[#73767f] mt-0.5">
-                                <span>URL : </span>
-                                <a href={item.page_url} target="_blank" rel="noopener noreferrer"
-                                  onClick={e => e.stopPropagation()}
-                                  className="underline hover:text-blue-600">
-                                  {shortUrl}
-                                </a>
-                              </div>
-                            </td>
-                            <td className="px-4 py-[18px]">
-                              <span className="text-[13px] font-medium text-[#2e3240]">{s}%</span>
-                            </td>
-                            <td className="px-4 py-[18px]">
-                              <span className="text-[13px] font-medium text-[#2e3240]">{item.critical_issues}</span>
-                            </td>
-                            <td className="px-4 py-[18px]">
-                              <span className="text-[13px] font-medium text-[#2e3240]">{item.total_issues}</span>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {isBasicPlan ? (
-                  <LimitedListUpgradeFooter totalCount={affectedPages.total} />
-                ) : (
-                  <div className="px-6 pb-6">
-                    <IssuesLogPagination
-                      page={affectedPagesPage}
-                      total={affectedPages.total}
-                      pageSize={20}
-                      onPage={setAffectedPagesPage}
-                    />
-                  </div>
-                )}
+                    )
+                  }
+                  const visible = isBasicPlan ? affectedPages.items.slice(0, FREE_PLAN_VISIBLE_ROWS) : affectedPages.items
+                  const locked = isBasicPlan ? affectedPages.items.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
+                  return (
+                    <>
+                      <div className="overflow-x-auto px-6">
+                        <table className="w-full table-fixed">
+                          <thead>
+                            <tr>
+                              <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 bg-[#f2f3f8] rounded-l-[8px]">
+                                Pages
+                              </th>
+                              <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 bg-[#f2f3f8] w-24">
+                                Score
+                              </th>
+                              <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 bg-[#f2f3f8] w-36">
+                                Critical issues
+                              </th>
+                              <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 bg-[#f2f3f8] rounded-r-[8px] w-28">
+                                Total issues
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {visible.map((item, i) => renderRow(item, i, false))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {locked.length > 0 && (
+                        <div className="relative overflow-hidden mx-6">
+                          <table className="w-full table-fixed">
+                            <tbody>
+                              {locked.map((item, i) => renderRow(item, FREE_PLAN_VISIBLE_ROWS + i, true))}
+                            </tbody>
+                          </table>
+                          <LockedRowsOverlay totalCount={affectedPages.total} />
+                        </div>
+                      )}
+                      {!isBasicPlan && (
+                        <div className="px-6 pb-6">
+                          <IssuesLogPagination
+                            page={affectedPagesPage}
+                            total={affectedPages.total}
+                            pageSize={20}
+                            onPage={setAffectedPagesPage}
+                          />
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
               </>
             )}
           </div>
@@ -806,72 +831,83 @@ function AccessibilityPage() {
               if (catFilter && item.responsibility?.toLowerCase() !== catFilter) return false
               return true
             })
-            const displayed = isBasicPlan ? filtered.slice(0, FREE_PLAN_PREVIEW_ROWS) : filtered
+            const renderRow = (item: typeof filtered[number], locked: boolean) => {
+              const priority = item.priority ?? 'low'
+              const resp = item.responsibility?.toLowerCase()
+              return (
+                <tr key={item.id} onClick={() => !locked && setSelectedIssueId(item.id)} className={cn('border-t border-[#f0f1f5] transition-colors', locked ? 'blur-sm select-none pointer-events-none' : 'hover:bg-[#fafbfd] cursor-pointer')}>
+                  <td className="px-5 py-4">
+                    <div className="flex flex-wrap items-baseline gap-x-2">
+                      <span className="text-sm text-[#0b66e4] font-medium leading-snug">{item.title}</span>
+                      {item.wcag_version && (
+                        <span className="text-xs text-[#9ca3af] whitespace-nowrap">
+                          WCAG {item.wcag_version}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-[#374151]">{item.pages_affected}</td>
+                  <td className="px-4 py-4">
+                    <PriorityBadge priority={priority} />
+                  </td>
+                  <td className="px-4 py-4">
+                    {resp === 'development' ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-xs font-medium bg-[#f0fdf4] text-[#16a34a] border border-[#bbf7d0]">
+                        <Code2 className="w-3.5 h-3.5" /> Development
+                      </span>
+                    ) : resp === 'design' ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-xs font-medium bg-[#faf5ff] text-[#7c3aed] border border-[#e9d5ff]">
+                        <Pen className="w-3.5 h-3.5" /> Design
+                      </span>
+                    ) : resp === 'content' ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-xs font-medium bg-[#ecfeff] text-[#0891b2] border border-[#a5f3fc]">
+                        <AlignLeft className="w-3.5 h-3.5" /> Content
+                      </span>
+                    ) : (
+                      <span className="text-sm text-[#9ca3af]">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-4 text-sm text-[#374151]">
+                    {item.conformance_level ?? item.wcag_level ?? '—'}
+                  </td>
+                </tr>
+              )
+            }
+            const visible = isBasicPlan ? filtered.slice(0, FREE_PLAN_VISIBLE_ROWS) : filtered
+            const locked = isBasicPlan ? filtered.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
             return (
-              <div className="bg-white rounded-[10px] border border-[#e8eaf0] overflow-x-auto">
-                <table className="w-full min-w-[700px]">
-                  <thead>
-                    <tr className="bg-[#f2f4f8] border-b border-[#e8eaf0]">
-                      <th className="text-left text-xs font-semibold text-[#6b7280] px-5 py-3">Issues</th>
-                      <th className="text-left text-xs font-semibold text-[#6b7280] px-4 py-3 w-28">Pages<br/>affected</th>
-                      <th className="text-left text-xs font-semibold text-[#6b7280] px-4 py-3 w-32">
-                        Priority
-                      </th>
-                      <th className="text-left text-xs font-semibold text-[#6b7280] px-4 py-3 w-40">Category</th>
-                      <th className="text-left text-xs font-semibold text-[#6b7280] px-4 py-3 w-32">Conformance<br/>level</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {displayed.length === 0 ? (
-                      <tr><td colSpan={5} className="py-14 text-center text-sm text-[#9ca3af]">No issues found.</td></tr>
-                    ) : displayed.map((item, idx) => {
-                      const priority = item.priority ?? 'low'
-                      const resp = item.responsibility?.toLowerCase()
-                      const locked = isRowLocked(idx, isBasicPlan)
-                      return (
-                        <tr key={item.id} onClick={() => !locked && setSelectedIssueId(item.id)} className={cn('border-t border-[#f0f1f5] transition-colors', locked ? 'blur-sm select-none pointer-events-none' : 'hover:bg-[#fafbfd] cursor-pointer')}>
-                          <td className="px-5 py-4">
-                            <div className="flex flex-wrap items-baseline gap-x-2">
-                              <span className="text-sm text-[#0b66e4] font-medium leading-snug">{item.title}</span>
-                              {item.wcag_version && (
-                                <span className="text-xs text-[#9ca3af] whitespace-nowrap">
-                                  WCAG {item.wcag_version}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 text-sm text-[#374151]">{item.pages_affected}</td>
-                          <td className="px-4 py-4">
-                            <PriorityBadge priority={priority} />
-                          </td>
-                          <td className="px-4 py-4">
-                            {resp === 'development' ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-xs font-medium bg-[#f0fdf4] text-[#16a34a] border border-[#bbf7d0]">
-                                <Code2 className="w-3.5 h-3.5" /> Development
-                              </span>
-                            ) : resp === 'design' ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-xs font-medium bg-[#faf5ff] text-[#7c3aed] border border-[#e9d5ff]">
-                                <Pen className="w-3.5 h-3.5" /> Design
-                              </span>
-                            ) : resp === 'content' ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-xs font-medium bg-[#ecfeff] text-[#0891b2] border border-[#a5f3fc]">
-                                <AlignLeft className="w-3.5 h-3.5" /> Content
-                              </span>
-                            ) : (
-                              <span className="text-sm text-[#9ca3af]">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-[#374151]">
-                            {item.conformance_level ?? item.wcag_level ?? '—'}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-                {isBasicPlan ? (
-                  <LimitedListUpgradeFooter totalCount={issueList.total} />
-                ) : (
+              <div className={cn('bg-white rounded-[10px] border border-[#e8eaf0]', locked.length === 0 && 'overflow-x-auto')}>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[700px] table-fixed">
+                    <thead>
+                      <tr className="bg-[#f2f4f8] border-b border-[#e8eaf0]">
+                        <th className="text-left text-xs font-semibold text-[#6b7280] px-5 py-3">Issues</th>
+                        <th className="text-left text-xs font-semibold text-[#6b7280] px-4 py-3 w-28">Pages<br/>affected</th>
+                        <th className="text-left text-xs font-semibold text-[#6b7280] px-4 py-3 w-32">
+                          Priority
+                        </th>
+                        <th className="text-left text-xs font-semibold text-[#6b7280] px-4 py-3 w-40">Category</th>
+                        <th className="text-left text-xs font-semibold text-[#6b7280] px-4 py-3 w-32">Conformance<br/>level</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.length === 0 ? (
+                        <tr><td colSpan={5} className="py-14 text-center text-sm text-[#9ca3af]">No issues found.</td></tr>
+                      ) : visible.map((item) => renderRow(item, false))}
+                    </tbody>
+                  </table>
+                </div>
+                {locked.length > 0 && (
+                  <div className="relative overflow-hidden">
+                    <table className="w-full min-w-[700px] table-fixed">
+                      <tbody>
+                        {locked.map((item) => renderRow(item, true))}
+                      </tbody>
+                    </table>
+                    <LockedRowsOverlay totalCount={issueList.total} />
+                  </div>
+                )}
+                {!isBasicPlan && filtered.length > 0 && (
                   <div className="px-5 py-3 border-t border-[#f0f1f5]">
                     <IssuesLogPagination page={issueListPage} total={issueList.total} pageSize={20} onPage={setIssueListPage} />
                   </div>

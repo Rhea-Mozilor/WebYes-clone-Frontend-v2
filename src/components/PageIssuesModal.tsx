@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { X, Loader2 } from 'lucide-react'
 import { PriorityBadge } from './ui/PriorityBadge'
 import { getPageCategoryIssues } from '../api/scans'
-import { FREE_PLAN_VISIBLE_ROWS } from '../lib/planLimits'
+import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS } from '../lib/planLimits'
+import { useIsBasicPlan, LockedRowsOverlay } from './UpgradeLock'
 import type { PageCategoryIssue } from '../types'
 
 type Category = 'accessibility' | 'performance' | 'quality' | 'seo'
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export function PageIssuesModal({ scanJobId, scanResultId, pageUrl, category, onClose }: Props) {
+  const isBasicPlan = useIsBasicPlan()
   const { data, isLoading } = useQuery({
     queryKey: ['page-category-issues', scanJobId, category, scanResultId],
     queryFn: () => getPageCategoryIssues(scanJobId, category, scanResultId),
@@ -62,21 +64,32 @@ export function PageIssuesModal({ scanJobId, scanResultId, pageUrl, category, on
             </div>
           ) : issues.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-10">No issues found for this page</p>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {issues.slice(0, FREE_PLAN_VISIBLE_ROWS).map(issue => (
-                <div key={issue.issue_id} className="py-3 flex items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-800 leading-snug">{issue.title}</p>
-                    {issue.display_value && (
-                      <p className="text-xs text-gray-400 mt-0.5">{issue.display_value}</p>
-                    )}
-                  </div>
-                  <PriorityBadge priority={issue.priority} />
+          ) : (() => {
+            const renderRow = (issue: PageCategoryIssue, locked: boolean) => (
+              <div key={issue.issue_id} className={locked ? 'py-3 flex items-start gap-3 blur-sm select-none pointer-events-none' : 'py-3 flex items-start gap-3'}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-800 leading-snug">{issue.title}</p>
+                  {issue.display_value && (
+                    <p className="text-xs text-gray-400 mt-0.5">{issue.display_value}</p>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
+                <PriorityBadge priority={issue.priority} />
+              </div>
+            )
+            const visible = isBasicPlan ? issues.slice(0, FREE_PLAN_VISIBLE_ROWS) : issues
+            const locked = isBasicPlan ? issues.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
+            return (
+              <div className="divide-y divide-gray-100">
+                {visible.map(issue => renderRow(issue, false))}
+                {locked.length > 0 && (
+                  <div className="relative overflow-hidden">
+                    {locked.map(issue => renderRow(issue, true))}
+                    <LockedRowsOverlay totalCount={issues.length} />
+                  </div>
+                )}
+              </div>
+            )
+          })()}
         </div>
 
         {/* Footer */}

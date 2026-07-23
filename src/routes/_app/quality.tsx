@@ -9,12 +9,12 @@ import { AlertTriangle, AlertCircle, Loader2, Search, ChevronLeft, ChevronRight,
 import UrlSvg from '../../components/svgicons/url.svg'
 import { cn } from '../../lib/utils'
 import { scoreColor } from '../../lib/score'
-import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS, isRowLocked } from '../../lib/planLimits'
+import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS } from '../../lib/planLimits'
 import { PriorityBadge } from '../../components/ui/PriorityBadge'
 import { useSiteStore } from '../../store/siteStore'
 import { IssueDetailPanel } from '../../components/IssueDetailPanel'
 import { CategoryPageDetail } from '../../components/CategoryPageDetail'
-import { useIsBasicPlan, LockedOverlay, LimitedListUpgradeFooter } from '../../components/UpgradeLock'
+import { useIsBasicPlan, LockedOverlay, LockedRowsOverlay } from '../../components/UpgradeLock'
 import {
   getQualityScore,
   getQualityCriticalIssues,
@@ -99,7 +99,7 @@ function QualityPage() {
 
   const { data: dashIssues } = useQuery({
     queryKey: ['quality-dash-issues-log', scanId, strategy],
-    queryFn: () => getQualityIssuesLog(scanId!, 5, strategy),
+    queryFn: () => getQualityIssuesLog(scanId!, FREE_PLAN_PREVIEW_ROWS, strategy),
     enabled: !!scanId,
   })
 
@@ -307,52 +307,61 @@ function QualityPage() {
             </div>
             {!dashIssues || dashIssues.items.length === 0 ? (
               <p className="text-sm text-gray-400 py-8 text-center">No issues found</p>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-[#f2f3f8]">
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 rounded-l-[8px]">Name</th>
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-44">Page URL</th>
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-28">Priority</th>
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-24 rounded-r-[8px]">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dashIssues.items.slice(0, FREE_PLAN_PREVIEW_ROWS).map((item, idx) => {
-                        const priority = item.priority ?? 'low'
-                        return (
-                          <tr key={item.issue_id} className={cn('border-t border-[#eaebec] transition-colors', isRowLocked(idx, isBasicPlan) ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60')}>
-                            <td className="px-4 py-[18px] text-[14px] text-[#252833] tracking-[-0.14px] leading-snug">{item.title}</td>
-                            <td className="px-4 py-[18px]">
-                              {item.page_url ? (
-                                <a href={item.page_url} target="_blank" rel="noopener noreferrer"
-                                  className="text-[13px] text-[#0a5dcf] underline truncate block max-w-[160px]">
-                                  {item.page_url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                                </a>
-                              ) : <span className="text-[13px] text-[#9fa1a7]">—</span>}
-                            </td>
-                            <td className="px-4 py-[18px]">
-                              <PriorityBadge priority={priority} />
-                            </td>
-                            <td className="px-4 py-[18px]">
-                              <Link to="/quality" search={{ tab: 'Issues list', issueId: undefined }} className="text-[14px] font-medium text-[#0a5dcf] underline">View more</Link>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {isBasicPlan && dashIssues.items.length > FREE_PLAN_VISIBLE_ROWS && (
-                  <div className="text-center py-6 border-t border-gray-100 mt-2">
-                    <p className="text-[14px] text-[#2e3240] mb-4">Your free plan shows only {FREE_PLAN_VISIBLE_ROWS} issues. Upgrade to unlock all issues and get the full picture of your website's health.</p>
-                    <Link to="/upgrade" className="inline-block bg-[#2563eb] text-white text-[14px] font-medium px-8 py-2.5 rounded-[6px] hover:bg-blue-700 transition-colors">Unlock all issues</Link>
+            ) : (() => {
+              const renderRow = (item: typeof dashIssues.items[number], locked: boolean) => {
+                const priority = item.priority ?? 'low'
+                return (
+                  <tr key={item.issue_id} className={cn('border-t border-[#eaebec] transition-colors', locked ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60')}>
+                    <td className="px-4 py-[18px] text-[14px] text-[#252833] tracking-[-0.14px] leading-snug">{item.title}</td>
+                    <td className="px-4 py-[18px]">
+                      {item.page_url ? (
+                        <a href={item.page_url} target="_blank" rel="noopener noreferrer"
+                          className="text-[13px] text-[#0a5dcf] underline truncate block max-w-[160px]">
+                          {item.page_url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                        </a>
+                      ) : <span className="text-[13px] text-[#9fa1a7]">—</span>}
+                    </td>
+                    <td className="px-4 py-[18px]">
+                      <PriorityBadge priority={priority} />
+                    </td>
+                    <td className="px-4 py-[18px]">
+                      <Link to="/quality" search={{ tab: 'Issues list', issueId: undefined }} className="text-[14px] font-medium text-[#0a5dcf] underline">View more</Link>
+                    </td>
+                  </tr>
+                )
+              }
+              const visible = dashIssues.items.slice(0, FREE_PLAN_VISIBLE_ROWS)
+              const locked = isBasicPlan ? dashIssues.items.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
+              return (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full table-fixed">
+                      <thead>
+                        <tr className="bg-[#f2f3f8]">
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 rounded-l-[8px]">Name</th>
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-44">Page URL</th>
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-28">Priority</th>
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-4 py-3 w-24 rounded-r-[8px]">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visible.map((item) => renderRow(item, false))}
+                      </tbody>
+                    </table>
                   </div>
-                )}
-              </>
-            )}
+                  {locked.length > 0 && (
+                    <div className="relative overflow-hidden">
+                      <table className="w-full table-fixed">
+                        <tbody>
+                          {locked.map((item) => renderRow(item, true))}
+                        </tbody>
+                      </table>
+                      <LockedRowsOverlay totalCount={totalIssues} />
+                    </div>
+                  )}
+                </>
+              )
+            })()}
           </div>
         </div>
       )}
@@ -447,57 +456,67 @@ function QualityPage() {
               <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
             ) : affectedPages.items.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-8">No affected pages found</p>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-[#f2f3f8]">
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-5 py-3 rounded-l-[8px]">Pages</th>
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-5 py-3 w-24">Score</th>
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-5 py-3 w-36">Critical issues</th>
-                        <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-5 py-3 w-28 rounded-r-[8px]">Total issues</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(isBasicPlan ? affectedPages.items.slice(0, FREE_PLAN_PREVIEW_ROWS) : affectedPages.items).map((item, i) => {
-                        const s = item.page_score ?? 0
-                        const shortUrl = item.page_url.replace(/^https?:\/\//, '').replace(/\/$/, '')
-                        const locked = isRowLocked(i, isBasicPlan)
-                        return (
-                          <tr key={i}
-                            onClick={() => !locked && item.scan_result_id && item.total_issues > 0 && setPageDetailView({ scanResultId: item.scan_result_id, pageUrl: item.page_url })}
-                            className={cn('border-b border-[#ebebeb] transition-colors', locked ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60', item.scan_result_id && item.total_issues > 0 && 'cursor-pointer')}>
-                            <td className="px-5 py-4">
-                              <div className="text-[14px] font-medium text-[#2e3240]">{pageName(item.page_url)}</div>
-                              <div className="text-[12px] text-[#73767f] mt-0.5">
-                                URL : <a href={item.page_url} target="_blank" rel="noopener noreferrer"
-                                  onClick={e => e.stopPropagation()}
-                                  className="underline text-[#73767f]">{shortUrl}</a>
-                              </div>
-                            </td>
-                            <td className="px-5 py-4">
-                              <span className="text-[14px] font-semibold" style={{ color: scoreColor(s) }}>{s}%</span>
-                            </td>
-                            <td className="px-5 py-4">
-                              <span className="text-[14px] font-semibold text-[#d93025]">{item.critical_issues}</span>
-                            </td>
-                            <td className="px-5 py-4">
-                              <span className="text-[14px] text-[#2e3240]">{item.total_issues}</span>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {isBasicPlan ? (
-                  <LimitedListUpgradeFooter totalCount={affectedPages.total} />
-                ) : (
-                  <Pagination page={affectedPage} totalPages={affectedPages.total_pages} onPage={setAffectedPage} />
-                )}
-              </>
-            )}
+            ) : (() => {
+              const renderRow = (item: typeof affectedPages.items[number], i: number, locked: boolean) => {
+                const s = item.page_score ?? 0
+                const shortUrl = item.page_url.replace(/^https?:\/\//, '').replace(/\/$/, '')
+                return (
+                  <tr key={i}
+                    onClick={() => !locked && item.scan_result_id && item.total_issues > 0 && setPageDetailView({ scanResultId: item.scan_result_id, pageUrl: item.page_url })}
+                    className={cn('border-b border-[#ebebeb] transition-colors', locked ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60', !locked && item.scan_result_id && item.total_issues > 0 && 'cursor-pointer')}>
+                    <td className="px-5 py-4">
+                      <div className="text-[14px] font-medium text-[#2e3240]">{pageName(item.page_url)}</div>
+                      <div className="text-[12px] text-[#73767f] mt-0.5">
+                        URL : <a href={item.page_url} target="_blank" rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="underline text-[#73767f]">{shortUrl}</a>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="text-[14px] font-semibold" style={{ color: scoreColor(s) }}>{s}%</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="text-[14px] font-semibold text-[#d93025]">{item.critical_issues}</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="text-[14px] text-[#2e3240]">{item.total_issues}</span>
+                    </td>
+                  </tr>
+                )
+              }
+              const visible = isBasicPlan ? affectedPages.items.slice(0, FREE_PLAN_VISIBLE_ROWS) : affectedPages.items
+              const locked = isBasicPlan ? affectedPages.items.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
+              return (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full table-fixed">
+                      <thead>
+                        <tr className="bg-[#f2f3f8]">
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-5 py-3 rounded-l-[8px]">Pages</th>
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-5 py-3 w-24">Score</th>
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-5 py-3 w-36">Critical issues</th>
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] tracking-[-0.13px] px-5 py-3 w-28 rounded-r-[8px]">Total issues</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visible.map((item, i) => renderRow(item, i, false))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {locked.length > 0 && (
+                    <div className="relative overflow-hidden">
+                      <table className="w-full table-fixed">
+                        <tbody>
+                          {locked.map((item, i) => renderRow(item, FREE_PLAN_VISIBLE_ROWS + i, true))}
+                        </tbody>
+                      </table>
+                      <LockedRowsOverlay totalCount={affectedPages.total} />
+                    </div>
+                  )}
+                  {!isBasicPlan && <Pagination page={affectedPage} totalPages={affectedPages.total_pages} onPage={setAffectedPage} />}
+                </>
+              )
+            })()}
           </div>
         </div>
       )}
@@ -522,14 +541,28 @@ function QualityPage() {
           ) : (() => {
             const filtered = issueList.items
               .filter(i => !issueSearch || i.title.toLowerCase().includes(issueSearch.toLowerCase()))
-            const displayed = isBasicPlan ? filtered.slice(0, FREE_PLAN_PREVIEW_ROWS) : filtered
             if (filtered.length === 0) return (
               <p className="text-sm text-gray-400 text-center py-16">No issues found</p>
             )
+            const renderRow = (item: typeof filtered[number], locked: boolean) => (
+              <tr key={item.id}
+                onClick={() => !locked && setSelectedIssueId(item.id)}
+                className={cn('border-t border-gray-100 transition-colors', locked ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60 cursor-pointer')}>
+                <td className="px-5 py-4">
+                  <span className="text-sm text-[#0a5dcf] leading-snug">{item.title}</span>
+                </td>
+                <td className="px-5 py-4 text-[14px] text-[#2e3240]">{item.pages_affected}</td>
+                <td className="px-5 py-4">
+                  <PriorityBadge priority={item.priority} />
+                </td>
+              </tr>
+            )
+            const visible = isBasicPlan ? filtered.slice(0, FREE_PLAN_VISIBLE_ROWS) : filtered
+            const locked = isBasicPlan ? filtered.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
             return (
               <>
-                <div className="bg-white border border-gray-200 rounded-[8px] overflow-hidden">
-                  <table className="w-full">
+                <div className={cn('bg-white border border-gray-200 overflow-hidden', locked.length > 0 ? 'rounded-t-[8px] border-b-0' : 'rounded-[8px]')}>
+                  <table className="w-full table-fixed">
                     <thead>
                       <tr className="bg-[#f2f3f8]">
                         <th className="text-left text-[13px] font-medium text-[#2e3240] px-5 py-3">Issues</th>
@@ -540,27 +573,21 @@ function QualityPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {displayed.map((item, idx) => (
-                        <tr key={item.id}
-                          onClick={() => !isRowLocked(idx, isBasicPlan) && setSelectedIssueId(item.id)}
-                          className={cn('border-t border-gray-100 transition-colors', isRowLocked(idx, isBasicPlan) ? 'blur-sm select-none pointer-events-none' : 'hover:bg-gray-50/60 cursor-pointer')}>
-                          <td className="px-5 py-4">
-                            <span className="text-sm text-[#0a5dcf] leading-snug">{item.title}</span>
-                          </td>
-                          <td className="px-5 py-4 text-[14px] text-[#2e3240]">{item.pages_affected}</td>
-                          <td className="px-5 py-4">
-                            <PriorityBadge priority={item.priority} />
-                          </td>
-                        </tr>
-                      ))}
+                      {visible.map((item) => renderRow(item, false))}
                     </tbody>
                   </table>
                 </div>
-                {isBasicPlan ? (
-                  <LimitedListUpgradeFooter totalCount={issueList.total} />
-                ) : (
-                  <Pagination page={issueListPage} totalPages={issueList.total_pages} onPage={setIssueListPage} />
+                {locked.length > 0 && (
+                  <div className="relative overflow-hidden bg-white border border-gray-200 rounded-b-[8px]">
+                    <table className="w-full table-fixed">
+                      <tbody>
+                        {locked.map((item) => renderRow(item, true))}
+                      </tbody>
+                    </table>
+                    <LockedRowsOverlay totalCount={issueList.total} />
+                  </div>
                 )}
+                {!isBasicPlan && <Pagination page={issueListPage} totalPages={issueList.total_pages} onPage={setIssueListPage} />}
               </>
             )
           })()}

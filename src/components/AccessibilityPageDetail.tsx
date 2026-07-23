@@ -8,7 +8,8 @@ import { cn } from '../lib/utils'
 import { PriorityBadge } from './ui/PriorityBadge'
 import { getAccessibilityPageIssues } from '../api/scans'
 import { IssueDetailPanel } from './IssueDetailPanel'
-import { FREE_PLAN_VISIBLE_ROWS } from '../lib/planLimits'
+import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS } from '../lib/planLimits'
+import { useIsBasicPlan, LockedRowsOverlay } from './UpgradeLock'
 import type { AccessibilityPageIssue } from '../types'
 
 interface Props {
@@ -37,6 +38,7 @@ function pageName(url: string): string {
 }
 
 export function AccessibilityPageDetail({ scanJobId, scanResultId, pageUrl, onBack }: Props) {
+  const isBasicPlan = useIsBasicPlan()
   const [search, _setSearch] = useState('')
   const [catFilter, setCatFilter] = useState<string | null>(null)
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
@@ -113,64 +115,81 @@ export function AccessibilityPageDetail({ scanJobId, scanResultId, pageUrl, onBa
               </div>
             ) : filtered.length === 0 ? (
               <p className="text-sm text-gray-400 text-center py-16">No issues found</p>
-            ) : (
-              <div className="bg-white border border-gray-200 rounded-[8px] overflow-hidden">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-[#f2f3f8]">
-                      <th className="text-left text-[13px] font-medium text-[#2e3240] px-5 py-3">Issues</th>
-                      <th className="text-left text-[13px] font-medium text-[#2e3240] px-5 py-3 w-28">Elements</th>
-                      <th className="text-left text-[13px] font-medium text-[#2e3240] px-5 py-3 w-36 flex items-center gap-1">
-                        Priority
-                      </th>
-                      <th className="text-left text-[13px] font-medium text-[#2e3240] px-5 py-3 w-40">Category</th>
-                      <th className="text-left text-[13px] font-medium text-[#2e3240] px-5 py-3 w-44">Conformance level</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.slice(0, FREE_PLAN_VISIBLE_ROWS).map(issue => {
-                      const wcagBadge = issue.wcag_version ? `WCAG ${issue.wcag_version}` : ''
-                      const resp = issue.responsibility?.toLowerCase() ?? ''
-                      const catMeta = CATEGORY_META.find(c => c.key === resp)
-                      return (
-                        <tr key={issue.issue_id}
-                          onClick={() => setSelectedIssueId(issue.issue_id)}
-                          className="border-t border-gray-100 hover:bg-gray-50/60 cursor-pointer">
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm text-[#0a5dcf] leading-snug">{issue.title}</span>
-                              {wcagBadge && (
-                                <span className="text-[11px] text-[#73767f] bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap">
-                                  {wcagBadge}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-5 py-4 text-[14px] text-[#2e3240]">{issue.item_count}</td>
-                          <td className="px-5 py-4">
-                            <PriorityBadge priority={issue.priority} />
-                          </td>
-                          <td className="px-5 py-4">
-                            {catMeta ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-xs font-medium"
-                                style={{ backgroundColor: catMeta.bg, color: catMeta.color, border: `1px solid ${catMeta.border}` }}>
-                                <catMeta.Icon className="w-3.5 h-3.5" />
-                                {catMeta.label}
-                              </span>
-                            ) : issue.responsibility ? (
-                              <span className="text-xs text-[#2e3240]">{issue.responsibility}</span>
-                            ) : null}
-                          </td>
-                          <td className="px-5 py-4 text-[13px] text-[#2e3240]">
-                            {issue.wcag_level || '—'}
-                          </td>
+            ) : (() => {
+              const renderRow = (issue: AccessibilityPageIssue, locked: boolean) => {
+                const wcagBadge = issue.wcag_version ? `WCAG ${issue.wcag_version}` : ''
+                const resp = issue.responsibility?.toLowerCase() ?? ''
+                const catMeta = CATEGORY_META.find(c => c.key === resp)
+                return (
+                  <tr key={issue.issue_id}
+                    onClick={() => !locked && setSelectedIssueId(issue.issue_id)}
+                    className={locked ? 'border-t border-gray-100 blur-sm select-none pointer-events-none' : 'border-t border-gray-100 hover:bg-gray-50/60 cursor-pointer'}>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm text-[#0a5dcf] leading-snug">{issue.title}</span>
+                        {wcagBadge && (
+                          <span className="text-[11px] text-[#73767f] bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            {wcagBadge}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-[14px] text-[#2e3240]">{issue.item_count}</td>
+                    <td className="px-5 py-4">
+                      <PriorityBadge priority={issue.priority} />
+                    </td>
+                    <td className="px-5 py-4">
+                      {catMeta ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-xs font-medium"
+                          style={{ backgroundColor: catMeta.bg, color: catMeta.color, border: `1px solid ${catMeta.border}` }}>
+                          <catMeta.Icon className="w-3.5 h-3.5" />
+                          {catMeta.label}
+                        </span>
+                      ) : issue.responsibility ? (
+                        <span className="text-xs text-[#2e3240]">{issue.responsibility}</span>
+                      ) : null}
+                    </td>
+                    <td className="px-5 py-4 text-[13px] text-[#2e3240]">
+                      {issue.wcag_level || '—'}
+                    </td>
+                  </tr>
+                )
+              }
+              const visible = isBasicPlan ? filtered.slice(0, FREE_PLAN_VISIBLE_ROWS) : filtered
+              const locked = isBasicPlan ? filtered.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
+              return (
+                <>
+                  <div className={locked.length > 0 ? 'bg-white border border-gray-200 rounded-t-[8px] border-b-0 overflow-hidden' : 'bg-white border border-gray-200 rounded-[8px] overflow-hidden'}>
+                    <table className="w-full table-fixed">
+                      <thead>
+                        <tr className="bg-[#f2f3f8]">
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] px-5 py-3">Issues</th>
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] px-5 py-3 w-28">Elements</th>
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] px-5 py-3 w-36 flex items-center gap-1">
+                            Priority
+                          </th>
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] px-5 py-3 w-40">Category</th>
+                          <th className="text-left text-[13px] font-medium text-[#2e3240] px-5 py-3 w-44">Conformance level</th>
                         </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      </thead>
+                      <tbody>
+                        {visible.map(issue => renderRow(issue, false))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {locked.length > 0 && (
+                    <div className="relative overflow-hidden bg-white border border-gray-200 rounded-b-[8px]">
+                      <table className="w-full table-fixed">
+                        <tbody>
+                          {locked.map(issue => renderRow(issue, true))}
+                        </tbody>
+                      </table>
+                      <LockedRowsOverlay totalCount={filtered.length} />
+                    </div>
+                  )}
+                </>
+              )
+            })()}
         </>
       </div>
 

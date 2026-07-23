@@ -2,10 +2,13 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { ArrowLeft, Loader2 } from 'lucide-react'
+import { cn } from '../../../../lib/utils'
 import { listIssues } from '../../../../api/issues'
 import type { IssueCategory, IssueSeverity } from '../../../../types'
 import { AccessibilityIcon, PerformanceIcon, QualityIcon, SeoIcon } from '../../../../components/ui/CategoryIcons'
 import { PriorityBadge } from '../../../../components/ui/PriorityBadge'
+import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS } from '../../../../lib/planLimits'
+import { useIsBasicPlan, LockedRowsOverlay } from '../../../../components/UpgradeLock'
 
 export const Route = createFileRoute('/_app/scans/$scanId/issues')({
   component: IssuesPage,
@@ -34,6 +37,7 @@ function CategoryIcon({ category }: { category: IssueCategory }) {
 
 function IssuesPage() {
   const { scanId } = Route.useParams()
+  const isBasicPlan = useIsBasicPlan()
   const [category, setCategory] = useState<IssueCategory | 'all'>('all')
   const [severity, setSeverity] = useState<IssueSeverity | 'all'>('all')
 
@@ -96,53 +100,74 @@ function IssuesPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-sm border border-gray-100 shadow-sm overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-100">
-              <th className="text-left text-xs font-semibold text-gray-900 px-6 py-3">Issue</th>
-              <th className="text-left text-xs font-semibold text-gray-900 px-4 py-3 w-32">Priority</th>
-              <th className="text-left text-xs font-semibold text-gray-900 px-4 py-3 w-28">Category</th>
-              <th className="text-right text-xs font-semibold text-gray-900 px-6 py-3 w-28">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={4} className="py-16 text-center">
-                <Loader2 className="w-6 h-6 animate-spin text-blue-400 mx-auto" />
-              </td></tr>
-            ) : issues.length === 0 ? (
-              <tr><td colSpan={4} className="py-16 text-center text-sm text-gray-400">No issues found.</td></tr>
-            ) : issues.map((issue) => (
-              <tr key={issue.id} className="border-t border-gray-50 hover:bg-gray-50/60 transition-colors">
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-800 leading-snug">{issue.title}</div>
-                  {issue.display_value && (
-                    <div className="text-xs text-gray-400 mt-0.5">{issue.display_value}</div>
-                  )}
-                </td>
-                <td className="px-4 py-4">
-                  <PriorityBadge priority={issue.priority} />
-                </td>
-                <td className="px-4 py-4">
-                  <CategoryIcon category={issue.category} />
-                </td>
-                <td className="px-6 py-4 text-right">
-                  {issue.category === 'performance' ? (
-                    <Link to="/performance" search={{ tab: 'Issues list', issueId: issue.id }} className="text-xs text-blue-600 hover:underline font-medium">View more</Link>
-                  ) : issue.category === 'seo' ? (
-                    <Link to="/seo" search={{ tab: 'Issues list', issueId: issue.id }} className="text-xs text-blue-600 hover:underline font-medium">View more</Link>
-                  ) : (issue.category === 'best_practices' || issue.category === 'quality') ? (
-                    <Link to="/quality" search={{ tab: 'Issues list', issueId: issue.id }} className="text-xs text-blue-600 hover:underline font-medium">View more</Link>
-                  ) : (
-                    <Link to="/accessibility" search={{ tab: 'Issues list', issueId: issue.id }} className="text-xs text-blue-600 hover:underline font-medium">View more</Link>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {(() => {
+        const renderRow = (issue: typeof issues[number], locked: boolean) => (
+          <tr key={issue.id} className={locked ? 'border-t border-gray-50 blur-sm select-none pointer-events-none' : 'border-t border-gray-50 hover:bg-gray-50/60 transition-colors'}>
+            <td className="px-6 py-4">
+              <div className="text-sm text-gray-800 leading-snug">{issue.title}</div>
+              {issue.display_value && (
+                <div className="text-xs text-gray-400 mt-0.5">{issue.display_value}</div>
+              )}
+            </td>
+            <td className="px-4 py-4">
+              <PriorityBadge priority={issue.priority} />
+            </td>
+            <td className="px-4 py-4">
+              <CategoryIcon category={issue.category} />
+            </td>
+            <td className="px-6 py-4 text-right">
+              {locked ? (
+                <span className="text-xs text-blue-600 font-medium">View more</span>
+              ) : issue.category === 'performance' ? (
+                <Link to="/performance" search={{ tab: 'Issues list', issueId: issue.id }} className="text-xs text-blue-600 hover:underline font-medium">View more</Link>
+              ) : issue.category === 'seo' ? (
+                <Link to="/seo" search={{ tab: 'Issues list', issueId: issue.id }} className="text-xs text-blue-600 hover:underline font-medium">View more</Link>
+              ) : (issue.category === 'best_practices' || issue.category === 'quality') ? (
+                <Link to="/quality" search={{ tab: 'Issues list', issueId: issue.id }} className="text-xs text-blue-600 hover:underline font-medium">View more</Link>
+              ) : (
+                <Link to="/accessibility" search={{ tab: 'Issues list', issueId: issue.id }} className="text-xs text-blue-600 hover:underline font-medium">View more</Link>
+              )}
+            </td>
+          </tr>
+        )
+        const visible = isBasicPlan ? issues.slice(0, FREE_PLAN_VISIBLE_ROWS) : issues
+        const locked = isBasicPlan ? issues.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
+        return (
+          <>
+            <div className={cn('bg-white border border-gray-100 shadow-sm overflow-hidden', locked.length > 0 ? 'rounded-t-sm border-b-0' : 'rounded-sm')}>
+              <table className="w-full table-fixed">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    <th className="text-left text-xs font-semibold text-gray-900 px-6 py-3">Issue</th>
+                    <th className="text-left text-xs font-semibold text-gray-900 px-4 py-3 w-32">Priority</th>
+                    <th className="text-left text-xs font-semibold text-gray-900 px-4 py-3 w-28">Category</th>
+                    <th className="text-right text-xs font-semibold text-gray-900 px-6 py-3 w-28">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    <tr><td colSpan={4} className="py-16 text-center">
+                      <Loader2 className="w-6 h-6 animate-spin text-blue-400 mx-auto" />
+                    </td></tr>
+                  ) : issues.length === 0 ? (
+                    <tr><td colSpan={4} className="py-16 text-center text-sm text-gray-400">No issues found.</td></tr>
+                  ) : visible.map((issue) => renderRow(issue, false))}
+                </tbody>
+              </table>
+            </div>
+            {locked.length > 0 && (
+              <div className="relative overflow-hidden bg-white border border-gray-100 shadow-sm rounded-b-sm">
+                <table className="w-full table-fixed">
+                  <tbody>
+                    {locked.map((issue) => renderRow(issue, true))}
+                  </tbody>
+                </table>
+                <LockedRowsOverlay totalCount={issues.length} />
+              </div>
+            )}
+          </>
+        )
+      })()}
 
       {!isLoading && issues.length > 0 && (
         <p className="text-xs text-gray-400 mt-3 text-right">{critical.length} critical · {nonCritical.length} non-critical · {issues.length} total</p>

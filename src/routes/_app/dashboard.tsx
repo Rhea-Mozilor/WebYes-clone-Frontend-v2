@@ -374,6 +374,15 @@ function DashboardPage() {
     )
   }
 
+  // ── Scan was cancelled ─────────────────────────────────────────────
+  if (dashboard.status === 'cancelled') {
+    return (
+      <div className="flex items-center justify-center h-full py-32">
+        <p className="text-sm text-gray-400">Run scan to see dashboard details</p>
+      </div>
+    )
+  }
+
   const scanDateTime = dashboard?.scanned_at
     ? new Date(dashboard.scanned_at).toLocaleString('en-US', {
         month: '2-digit', day: '2-digit', year: 'numeric',

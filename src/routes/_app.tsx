@@ -780,8 +780,13 @@ function AppLayout() {
     // recoveredJobRef ensures we only set activeScanJob once per job per session
     if (recoveredJobRef.current === activeScanData.scan_job_id) return
     recoveredJobRef.current = activeScanData.scan_job_id
+    // Already tracked by the foreground scan-progress banner (e.g. a scan just
+    // triggered via "Add new website", which also switches the selected
+    // website and re-fires this recovery query) — don't show a second
+    // "Scanning..." pill for the same job.
+    if (scanJobs && (scanJobs.desktopJobId === activeScanData.scan_job_id || scanJobs.mobileJobId === activeScanData.scan_job_id)) return
     setActiveScanJob({ jobId: activeScanData.scan_job_id, url: selectedWebsite?.url ?? '' })
-  }, [activeScanData, selectedWebsite, setActiveScanJob])
+  }, [activeScanData, selectedWebsite, setActiveScanJob, scanJobs])
 
   const openScanModal = useCallback((args: ScanArgs) => {
     setScanJobs(args)

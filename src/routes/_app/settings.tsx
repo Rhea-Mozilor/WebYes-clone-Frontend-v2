@@ -7,7 +7,7 @@ export const Route = createFileRoute('/_app/settings')({
 })
 
 const ACTIVE_LINKS = [
-  { label: 'General settings', to: '/settings' as const, exact: true },
+  // 'General settings' (/settings index) is hidden for now — not ready to ship.
   { label: 'Organisations & websites', to: '/settings/organisation' as const, exact: false },
   { label: 'Team', to: '/settings/team' as const, exact: false },
   { label: 'Billing and invoices', to: '/settings/billing' as const, exact: false },

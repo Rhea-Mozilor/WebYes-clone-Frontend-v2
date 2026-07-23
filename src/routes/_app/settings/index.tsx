@@ -1,10 +1,15 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Info, Wifi, ChevronDown } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { useUpgradeModal } from '../../../lib/UpgradeModalContext'
 
 export const Route = createFileRoute('/_app/settings/')({
+  // General settings is hidden for now — not ready to ship. Send anyone landing
+  // here (e.g. the sidebar Settings icon) to the first visible settings tab.
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/organisation' })
+  },
   component: SettingsIndexPage,
 })
 

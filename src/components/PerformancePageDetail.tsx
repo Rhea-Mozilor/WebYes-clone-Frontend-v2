@@ -74,7 +74,7 @@ export function PerformancePageDetail({ scanJobId, scanResultId, pageUrl, onBack
       {/* Vitals */}
       {vitals && (
         <div className="bg-white border-b border-gray-100 px-6 py-6">
-          <VitalsGrid metrics={vitals} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6" />
+          <VitalsGrid metrics={vitals} />
         </div>
       )}
 

@@ -17,15 +17,14 @@ export type VitalKey = keyof typeof VITAL_THRESHOLDS
 export const VITALS_META: { key: VitalKey; abbr: string; label: string; unit: 's' | 'ms' | ''; good: number; needs: number }[] = [
   { key: 'fcp_ms', abbr: 'FCP', label: 'First Contentful Paint', unit: 's', ...VITAL_THRESHOLDS.fcp_ms },
   { key: 'lcp_ms', abbr: 'LCP', label: 'Largest Contentful Paint', unit: 's', ...VITAL_THRESHOLDS.lcp_ms },
-  { key: 'tbt_ms', abbr: 'TBT', label: 'Total Blocking Time', unit: 's', ...VITAL_THRESHOLDS.tbt_ms },
+  { key: 'tbt_ms', abbr: 'TBT', label: 'Total Blocking Time', unit: 'ms', ...VITAL_THRESHOLDS.tbt_ms },
   { key: 'cls', abbr: 'CLS', label: 'Cumulative Layout Shift', unit: '', ...VITAL_THRESHOLDS.cls },
-  { key: 'speed_index_ms', abbr: 'SI', label: 'Speed Index', unit: 'ms', ...VITAL_THRESHOLDS.speed_index_ms },
+  { key: 'speed_index_ms', abbr: 'SI', label: 'Speed Index', unit: 's', ...VITAL_THRESHOLDS.speed_index_ms },
 ]
 
 export function formatVital(key: VitalKey, value: number | null | undefined, unit: string): string {
   if (value == null) return '—'
   if (key === 'cls') return value.toFixed(2)
-  if (unit === 's') return `${(value / 1000).toFixed(1)} s`
-  if (unit === 'ms') return value > 0 ? `${Math.round(value)} ms` : '0ms'
-  return `${value}`
+  if (unit === 's') return `${(value / 1000).toFixed(2)}s`
+  return `${value.toFixed(2)}ms`
 }

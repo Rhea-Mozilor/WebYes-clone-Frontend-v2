@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Calendar, ChevronDown, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getBillingSummary, getInvoices, getInvoicePdfUrl } from '../../../api/billing'
+import { useUpgradeModal } from '../../../lib/UpgradeModalContext'
 import type { InvoiceDateRange, InvoiceStatus } from '../../../types'
 import AccessibilitySvg from '../../../components/svgicons/AccessibilityBlue.svg'
 import PerformanceSvg from '../../../components/svgicons/PerformanceBlue.svg'
@@ -32,6 +33,7 @@ function formatDate(iso: string) {
 }
 
 function BillingPage() {
+  const { openUpgradeModal } = useUpgradeModal()
   const [dateRange, setDateRange] = useState<InvoiceDateRange>('30d')
   const [page, setPage] = useState(1)
   const pageSize = 20
@@ -146,16 +148,25 @@ function BillingPage() {
 
           <div className="flex-1" />
 
-          <Link
-            to="/upgrade"
-            className={
-              isCancelled
-                ? 'shrink-0 px-5 py-2.5 bg-[#f97316] hover:bg-[#ea580c] text-white text-[13px] font-semibold rounded-[6px] transition-colors whitespace-nowrap'
-                : 'shrink-0 px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[13px] font-semibold rounded-[6px] transition-colors whitespace-nowrap'
-            }
-          >
-            {isCancelled || planName === 'free' ? 'Upgrade' : 'Manage Subscription'}
-          </Link>
+          {isCancelled || planName === 'free' ? (
+            <button
+              onClick={openUpgradeModal}
+              className={
+                isCancelled
+                  ? 'shrink-0 px-5 py-2.5 bg-[#f97316] hover:bg-[#ea580c] text-white text-[13px] font-semibold rounded-[6px] transition-colors whitespace-nowrap'
+                  : 'shrink-0 px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[13px] font-semibold rounded-[6px] transition-colors whitespace-nowrap'
+              }
+            >
+              Upgrade
+            </button>
+          ) : (
+            <Link
+              to="/upgrade"
+              className="shrink-0 px-5 py-2.5 bg-[#0b66e4] hover:bg-[#0952c6] text-white text-[13px] font-semibold rounded-[6px] transition-colors whitespace-nowrap"
+            >
+              Manage Subscription
+            </Link>
+          )}
         </div>
       </div>
 

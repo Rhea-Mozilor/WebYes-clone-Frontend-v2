@@ -30,6 +30,7 @@ import {
 } from '../../api/scans'
 import { AccessibilityPageDetail } from '../../components/AccessibilityPageDetail'
 import { useIsBasicPlan, LockedOverlay, LockedRowsOverlay, UpgradeButton } from '../../components/UpgradeLock'
+import { useUpgradeModal } from '../../lib/UpgradeModalContext'
 
 export const Route = createFileRoute('/_app/accessibility')({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -72,6 +73,7 @@ function pageName(url: string): string {
 
 function AccessibilityPage() {
   const isBasicPlan = useIsBasicPlan()
+  const { openUpgradeModal } = useUpgradeModal()
   const { websiteId, strategy, scansByWebsite } = useSiteStore()
   const scanId = websiteId ? scansByWebsite[websiteId]?.scanId ?? null : null
   const { tab: activeTab, issueId: preselectedIssueId } = Route.useSearch()
@@ -280,9 +282,9 @@ function AccessibilityPage() {
                     <p className="text-[12px] font-medium text-black text-center leading-tight px-2 absolute left-0 right-0 top-[48px]">
                       Want to see Level AAA?
                     </p>
-                    <Link to="/upgrade" className="absolute left-[9px] right-[9px] bottom-[44px] bg-[#ff9500] text-[#2e1401] text-[10.5px] font-semibold py-1.5 rounded-[3.5px] text-center">
+                    <button onClick={openUpgradeModal} className="absolute left-[9px] right-[9px] bottom-[44px] bg-[#ff9500] text-[#2e1401] text-[10.5px] font-semibold py-1.5 rounded-[3.5px] text-center">
                       Upgrade Now
-                    </Link>
+                    </button>
                     <div className="absolute bottom-3 left-4 blur-md pointer-events-none select-none">
                       <div className="text-[13px] font-medium text-[rgba(43,28,80,0.7)]">Level AAA</div>
                       <div className="text-[28px] font-semibold text-[#2b1c50] leading-none">6%</div>

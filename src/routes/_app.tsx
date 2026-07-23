@@ -42,11 +42,13 @@ import { listWebsites, deleteWebsite } from '../api/websites'
 import { listOrganisations } from '../api/organisations'
 import { AddNewWebsiteModal } from '../components/AddNewWebsiteModal'
 import { useIsBasicPlan } from '../components/UpgradeLock'
+import { UpgradeModal } from '../components/UpgradeModal'
 import { triggerScan, getScanJob, cancelScan, getActiveScan, getScanHistory } from '../api/scans'
 import { useAuthStore } from '../store/authStore'
 import { useSiteStore } from '../store/siteStore'
 import { BgScanContext } from '../lib/BgScanContext'
 import { ScanModalContext, type ScanArgs } from '../lib/ScanModalContext'
+import { UpgradeModalContext } from '../lib/UpgradeModalContext'
 
 export const Route = createFileRoute('/_app')({
   beforeLoad: () => {
@@ -658,14 +660,18 @@ function AppLayout() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { clearAuth } = useAuthStore()
-  const { data: user } = useQuery({ queryKey: ['me'], queryFn: getMe })
-  const { data: billingCredits } = useQuery({
+  const { data: user, isLoading: userLoading } = useQuery({ queryKey: ['me'], queryFn: getMe })
+  const { data: billingCredits, isLoading: billingLoading } = useQuery({
     queryKey: ['billing-credits'],
     queryFn: getBillingCredits,
     refetchInterval: 60 * 60 * 1000,
   })
-  const { data: websites = [] } = useQuery({ queryKey: ['websites'], queryFn: listWebsites })
-  const { data: orgs = [] } = useQuery({ queryKey: ['organisations'], queryFn: listOrganisations })
+  const { data: websites = [], isLoading: websitesLoading } = useQuery({ queryKey: ['websites'], queryFn: listWebsites })
+  const { data: orgs = [], isLoading: orgsLoading } = useQuery({ queryKey: ['organisations'], queryFn: listOrganisations })
+  // Shell data (user/plan/websites/orgs) hasn't loaded yet — e.g. a hard reload or slow
+  // connection. Render a blank page instead of the header/sidebar with placeholder values
+  // like a default "BASIC" badge or an empty "Select website" dropdown.
+  const shellLoading = userLoading || billingLoading || websitesLoading || orgsLoading
   const { websiteId, setWebsiteId, strategy, setStrategy, scansByWebsite, setScanForWebsite, activeScanJob, setActiveScanJob } = useSiteStore()
   const location = useRouterState({ select: (s) => s.location.pathname })
   const isBasicPlan = useIsBasicPlan()
@@ -682,6 +688,7 @@ function AppLayout() {
   const [scanDetailOpen, setScanDetailOpen] = useState(false)
   const [onboardingComplete, setOnboardingComplete] = useState<{ failed: boolean; message?: string } | null>(null)
   const [viewerErrorOpen, setViewerErrorOpen] = useState(false)
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
   const websiteRef = useRef<HTMLDivElement>(null)
   const strategyRef = useRef<HTMLDivElement>(null)
   const userRef = useRef<HTMLDivElement>(null)
@@ -844,7 +851,12 @@ function AppLayout() {
     { to: '/seo', icon: SeoIcon, label: 'SEO', disabled: firstScanOngoing },
   ]
 
+  if (shellLoading) {
+    return <div className="h-screen bg-gray-50" />
+  }
+
   return (
+    <UpgradeModalContext.Provider value={{ openUpgradeModal: () => setUpgradeModalOpen(true) }}>
     <ScanModalContext.Provider value={{ openScanModal, showViewerError }}>
     <BgScanContext.Provider value={{ bgScan: activeScanJob, setBgScan: setActiveScanJob }}>
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
@@ -1335,13 +1347,13 @@ function AppLayout() {
 
           {/* Upgrade — hidden on mobile, hidden once the user has purchased a plan */}
           {isBasicPlan && (
-            <Link
-              to="/upgrade"
+            <button
+              onClick={() => setUpgradeModalOpen(true)}
               className="hidden sm:flex items-center gap-1 px-4 py-3.5 rounded-sm text-sm font-semibold text-orange-950 bg-amber-500 hover:bg-amber-400 transition-colors mx-2"
             >
               <img src={UpgradeSvg} alt="" className="w-4 h-4" />
               Upgrade
-            </Link>
+            </button>
           )}
 
           {/* Help — hidden on mobile */}
@@ -1389,14 +1401,13 @@ function AppLayout() {
 
                 {/* Upgrade button — hidden once the user has purchased a plan */}
                 {isBasicPlan && (
-                  <Link
-                    to="/upgrade"
-                    onClick={() => setUserMenu(false)}
+                  <button
+                    onClick={() => { setUserMenu(false); setUpgradeModalOpen(true) }}
                     className="w-full flex items-center justify-center gap-2 py-3 bg-amber-500 hover:bg-amber-400 rounded-lg text-sm font-semibold text-orange-950 transition-colors"
                   >
                     <img src={UpgradeSvg} alt="" className="w-4 h-4" />
                     Upgrade
-                  </Link>
+                  </button>
                 )}
 
                 {/* Organisation settings */}
@@ -1526,7 +1537,10 @@ function AppLayout() {
         </div>
       </div>
     )}
+
+    <UpgradeModal open={upgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} />
     </BgScanContext.Provider>
     </ScanModalContext.Provider>
+    </UpgradeModalContext.Provider>
   )
 }

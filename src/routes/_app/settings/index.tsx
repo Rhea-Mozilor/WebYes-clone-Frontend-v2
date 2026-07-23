@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Info, Wifi, ChevronDown } from 'lucide-react'
 import { cn } from '../../../lib/utils'
+import { useUpgradeModal } from '../../../lib/UpgradeModalContext'
 
 export const Route = createFileRoute('/_app/settings/')({
   component: SettingsIndexPage,
@@ -179,6 +180,7 @@ function GeneralSetting() {
 }
 
 function AccessibilitySetting() {
+  const { openUpgradeModal } = useUpgradeModal()
   return (
     <div className="space-y-4">
       <div className="bg-[#fffbeb] border border-[#fcd34d] rounded-[8px] p-4 flex items-center justify-between gap-4">
@@ -193,7 +195,10 @@ function AccessibilitySetting() {
             <div className="text-[13px] text-[#78350f] mt-0.5">Upgrade to unlock this feature</div>
           </div>
         </div>
-        <button className="shrink-0 px-4 py-2 bg-[#f59e0b] hover:bg-[#d97706] text-white text-[13px] font-semibold rounded-[6px] transition-colors whitespace-nowrap">
+        <button
+          onClick={openUpgradeModal}
+          className="shrink-0 px-4 py-2 bg-[#f59e0b] hover:bg-[#d97706] text-white text-[13px] font-semibold rounded-[6px] transition-colors whitespace-nowrap"
+        >
           Upgrade now
         </button>
       </div>

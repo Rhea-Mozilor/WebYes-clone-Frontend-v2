@@ -1,7 +1,7 @@
-import { Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { getBillingCredits } from '../api/billing'
 import { FREE_PLAN_VISIBLE_ROWS } from '../lib/planLimits'
+import { useUpgradeModal } from '../lib/UpgradeModalContext'
 
 export function useIsBasicPlan() {
   const { data: billingCredits } = useQuery({ queryKey: ['billing-credits'], queryFn: getBillingCredits })
@@ -9,13 +9,14 @@ export function useIsBasicPlan() {
 }
 
 export function UpgradeButton({ className, children = 'Upgrade' }: { className?: string; children?: React.ReactNode }) {
+  const { openUpgradeModal } = useUpgradeModal()
   return (
-    <Link
-      to="/upgrade"
+    <button
+      onClick={openUpgradeModal}
       className={className ?? 'inline-block bg-[#2563eb] text-white text-[13px] font-medium px-6 py-2 rounded-[6px] hover:bg-blue-700 transition-colors'}
     >
       {children}
-    </Link>
+    </button>
   )
 }
 

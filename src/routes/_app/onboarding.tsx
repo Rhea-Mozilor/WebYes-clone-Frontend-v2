@@ -14,7 +14,7 @@ export const Route = createFileRoute('/_app/onboarding')({
 function OnboardingPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { setWebsiteId } = useSiteStore()
+  const { setWebsiteId, setActiveScanJob } = useSiteStore()
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: getMe })
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
@@ -41,6 +41,10 @@ function OnboardingPage() {
           : job.scan_job_id
           ? String(job.scan_job_id)
           : null
+
+      // Mark the scan as running the instant it's triggered, not when the /scanning
+      // page later unmounts — otherwise sidebar nav stays enabled during that window.
+      if (jobId) setActiveScanJob({ jobId, url: website.url })
 
       navigate({
         to: '/scanning',

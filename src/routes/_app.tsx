@@ -1255,10 +1255,18 @@ function AppLayout() {
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-[15px] font-semibold text-gray-900 whitespace-nowrap">{leftCredits}/{totalCredits} ({pct}%) credits left</span>
-                    <svg width="15" height="15" viewBox="0 0 14 14" fill="none" className="shrink-0 text-blue-600">
-                      <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
-                      <path d="M7 6.5v4M7 4.5v.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                    </svg>
+                    <span className="relative group/info shrink-0 flex">
+                      <svg width="15" height="15" viewBox="0 0 14 14" fill="none" className="shrink-0 text-blue-600">
+                        <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
+                        <path d="M7 6.5v4M7 4.5v.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                      </svg>
+                      <span
+                        role="tooltip"
+                        className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-[#241b3d] px-3.5 py-2 text-[13px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover/info:opacity-100"
+                      >
+                        Scanning 1 page consumes 2 credits.
+                      </span>
+                    </span>
                   </div>
                 </button>
 

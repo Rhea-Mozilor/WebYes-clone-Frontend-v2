@@ -30,11 +30,15 @@ export const useSiteStore = create<SiteStore>()(
       setStrategy: (s) => set({ strategy: s }),
       setMaxPages: (n) => set({ maxPages: n }),
       setScanForWebsite: (websiteId, newScanId) => {
-        const prev = get().scansByWebsite[websiteId]?.scanId
+        const existing = get().scansByWebsite[websiteId]
+        // Same scan already recorded (e.g. both the /scanning page and the background
+        // poller independently observed the same job complete) — a repeat call must not
+        // shift prevScanId to equal scanId, which would fabricate a false "0%" trend.
+        if (existing?.scanId === newScanId) return
         set((s) => ({
           scansByWebsite: {
             ...s.scansByWebsite,
-            [websiteId]: { scanId: newScanId, prevScanId: prev },
+            [websiteId]: { scanId: newScanId, prevScanId: existing?.scanId },
           },
         }))
       },

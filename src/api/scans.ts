@@ -40,11 +40,12 @@ export const getScanDashboard = (id: string, strategy?: ScanStrategy) =>
 export const cancelScan = (id: string) =>
   client.post<CancelScanResponse>(`/scans/${id}/cancel`);
 
-export const getScanIssues = (id: string, page = 1, pageSize = 5, category?: string, strategy?: ScanStrategy) =>
+export const getScanIssues = (id: string, page = 1, pageSize = 5, category?: string, strategy?: ScanStrategy, severity?: string) =>
   client.get<ScanIssuesResponse>(`/scans/${id}/issues`, {
     page: String(page),
     page_size: String(pageSize),
     ...(category ? { category } : {}),
+    ...(severity ? { severity } : {}),
     ...strat(strategy),
   });
 

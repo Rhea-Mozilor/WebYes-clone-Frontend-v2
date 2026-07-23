@@ -216,7 +216,7 @@ function AccessibilityPage() {
                   </p>
                 </div>
                 <Link to="/accessibility" search={{ tab: 'Issues list', issueId: undefined }}
-                  className="inline-flex items-center justify-center bg-[#0b66e4] text-white text-[14px] font-medium rounded-[4px] px-8 py-3.5 self-start">
+                  className="inline-flex items-center justify-center bg-[#0b66e4] text-white text-[15px] font-medium rounded-[4px] px-9 py-4 self-start -mt-2">
                   View all issues
                 </Link>
               </div>
@@ -515,8 +515,8 @@ function AccessibilityPage() {
                   </tr>
                 )
               }
-              const visible = dashIssues.items.slice(0, FREE_PLAN_VISIBLE_ROWS)
-              const locked = isBasicPlan ? dashIssues.items.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
+              const visible = dashIssues.items.filter((item) => !item.is_restricted)
+              const locked = dashIssues.items.filter((item) => item.is_restricted)
               return (
                 <>
                   <div className="overflow-x-auto">
@@ -542,7 +542,7 @@ function AccessibilityPage() {
                           {locked.map((item) => renderRow(item, true))}
                         </tbody>
                       </table>
-                      <LockedRowsOverlay totalCount={totalIssues} />
+                      <LockedRowsOverlay totalCount={totalIssues} shown={visible.length} />
                     </div>
                   )}
                 </>
@@ -859,8 +859,8 @@ function AccessibilityPage() {
                 </tr>
               )
             }
-            const visible = isBasicPlan ? filtered.slice(0, FREE_PLAN_VISIBLE_ROWS) : filtered
-            const locked = isBasicPlan ? filtered.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
+            const visible = filtered.filter((item) => !item.is_restricted)
+            const locked = filtered.filter((item) => item.is_restricted)
             return (
               <div className={cn('bg-white rounded-[10px] border border-[#e8eaf0]', locked.length === 0 && 'overflow-x-auto')}>
                 <div className="overflow-x-auto">
@@ -890,7 +890,7 @@ function AccessibilityPage() {
                         {locked.map((item) => renderRow(item, true))}
                       </tbody>
                     </table>
-                    <LockedRowsOverlay totalCount={issueList.total} />
+                    <LockedRowsOverlay totalCount={issueList.total} shown={visible.length} />
                   </div>
                 )}
                 {!isBasicPlan && filtered.length > 0 && (

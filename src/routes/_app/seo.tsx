@@ -164,7 +164,7 @@ function SeoPage() {
                   <p className="text-[13px] text-[#73767f] mb-6">Presenting your website's SEO score.</p>
                 </div>
                 <Link to="/seo" search={{ tab: 'Issues list', issueId: undefined }}
-                  className="inline-flex items-center justify-center bg-[#0b66e4] text-white text-[14px] font-medium rounded-[4px] px-8 py-3.5 self-start">
+                  className="inline-flex items-center justify-center bg-[#0b66e4] text-white text-[15px] font-medium rounded-[4px] px-9 py-4 self-start -mt-2">
                   View all issues
                 </Link>
               </div>
@@ -325,8 +325,8 @@ function SeoPage() {
                   </tr>
                 )
               }
-              const visible = dashIssues.items.slice(0, FREE_PLAN_VISIBLE_ROWS)
-              const locked = isBasicPlan ? dashIssues.items.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
+              const visible = dashIssues.items.filter((item) => !item.is_restricted)
+              const locked = dashIssues.items.filter((item) => item.is_restricted)
               return (
                 <>
                   <div className="overflow-x-auto">
@@ -351,7 +351,7 @@ function SeoPage() {
                           {locked.map((item) => renderRow(item, true))}
                         </tbody>
                       </table>
-                      <LockedRowsOverlay totalCount={totalIssues} />
+                      <LockedRowsOverlay totalCount={totalIssues} shown={visible.length} />
                     </div>
                   )}
                 </>
@@ -559,8 +559,8 @@ function SeoPage() {
                 </td>
               </tr>
             )
-            const visible = isBasicPlan ? filtered.slice(0, FREE_PLAN_VISIBLE_ROWS) : filtered
-            const locked = isBasicPlan ? filtered.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
+            const visible = filtered.filter((item) => !item.is_restricted)
+            const locked = filtered.filter((item) => item.is_restricted)
             return (
               <>
                 <div className={cn('bg-white border border-gray-200 overflow-hidden', locked.length > 0 ? 'rounded-t-[8px] border-b-0' : 'rounded-[8px]')}>
@@ -586,7 +586,7 @@ function SeoPage() {
                         {locked.map((item) => renderRow(item, true))}
                       </tbody>
                     </table>
-                    <LockedRowsOverlay totalCount={issueList.total} />
+                    <LockedRowsOverlay totalCount={issueList.total} shown={visible.length} />
                   </div>
                 )}
                 {!isBasicPlan && <Pagination page={issueListPage} totalPages={issueList.total_pages} onPage={setIssueListPage} />}

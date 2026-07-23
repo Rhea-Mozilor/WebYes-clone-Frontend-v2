@@ -4,8 +4,7 @@ import { ChevronLeft, Loader2, Search } from 'lucide-react'
 import { PriorityBadge } from './ui/PriorityBadge'
 import { getPageCategoryIssues } from '../api/scans'
 import { IssueDetailPanel } from './IssueDetailPanel'
-import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS } from '../lib/planLimits'
-import { useIsBasicPlan, LockedRowsOverlay } from './UpgradeLock'
+import { LockedRowsOverlay } from './UpgradeLock'
 import type { PageCategoryIssue } from '../types'
 
 type Category = 'quality' | 'seo'
@@ -31,7 +30,6 @@ function pageName(url: string): string {
 }
 
 export function CategoryPageDetail({ scanJobId, scanResultId, pageUrl, category, onBack }: Props) {
-  const isBasicPlan = useIsBasicPlan()
   const [search, setSearch] = useState('')
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
 
@@ -117,8 +115,8 @@ export function CategoryPageDetail({ scanJobId, scanResultId, pageUrl, category,
               </td>
             </tr>
           )
-          const visible = isBasicPlan ? filtered.slice(0, FREE_PLAN_VISIBLE_ROWS) : filtered
-          const locked = isBasicPlan ? filtered.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
+          const visible = filtered.filter((issue) => !issue.is_restricted)
+          const locked = filtered.filter((issue) => issue.is_restricted)
           return (
             <>
               <div className={locked.length > 0 ? 'bg-white border border-gray-200 rounded-t-[8px] border-b-0 overflow-hidden' : 'bg-white border border-gray-200 rounded-[8px] overflow-hidden'}>
@@ -144,7 +142,7 @@ export function CategoryPageDetail({ scanJobId, scanResultId, pageUrl, category,
                       {locked.map(issue => renderRow(issue, true))}
                     </tbody>
                   </table>
-                  <LockedRowsOverlay totalCount={filtered.length} />
+                  <LockedRowsOverlay totalCount={filtered.length} shown={visible.length} />
                 </div>
               )}
             </>

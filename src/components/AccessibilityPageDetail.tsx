@@ -8,8 +8,7 @@ import { cn } from '../lib/utils'
 import { PriorityBadge } from './ui/PriorityBadge'
 import { getAccessibilityPageIssues } from '../api/scans'
 import { IssueDetailPanel } from './IssueDetailPanel'
-import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS } from '../lib/planLimits'
-import { useIsBasicPlan, LockedRowsOverlay } from './UpgradeLock'
+import { LockedRowsOverlay } from './UpgradeLock'
 import type { AccessibilityPageIssue } from '../types'
 
 interface Props {
@@ -38,7 +37,6 @@ function pageName(url: string): string {
 }
 
 export function AccessibilityPageDetail({ scanJobId, scanResultId, pageUrl, onBack }: Props) {
-  const isBasicPlan = useIsBasicPlan()
   const [search, _setSearch] = useState('')
   const [catFilter, setCatFilter] = useState<string | null>(null)
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
@@ -155,8 +153,8 @@ export function AccessibilityPageDetail({ scanJobId, scanResultId, pageUrl, onBa
                   </tr>
                 )
               }
-              const visible = isBasicPlan ? filtered.slice(0, FREE_PLAN_VISIBLE_ROWS) : filtered
-              const locked = isBasicPlan ? filtered.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
+              const visible = filtered.filter((issue) => !issue.is_restricted)
+              const locked = filtered.filter((issue) => issue.is_restricted)
               return (
                 <>
                   <div className={locked.length > 0 ? 'bg-white border border-gray-200 rounded-t-[8px] border-b-0 overflow-hidden' : 'bg-white border border-gray-200 rounded-[8px] overflow-hidden'}>
@@ -184,7 +182,7 @@ export function AccessibilityPageDetail({ scanJobId, scanResultId, pageUrl, onBa
                           {locked.map(issue => renderRow(issue, true))}
                         </tbody>
                       </table>
-                      <LockedRowsOverlay totalCount={filtered.length} />
+                      <LockedRowsOverlay totalCount={filtered.length} shown={visible.length} />
                     </div>
                   )}
                 </>

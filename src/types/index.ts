@@ -267,6 +267,7 @@ export interface ScanIssueItem {
   category: IssueCategory;
   description: string | null;
   page_url?: string | null;
+  is_restricted?: boolean;
 }
 
 export interface ScanIssuesResponse {
@@ -384,6 +385,7 @@ export interface PerformanceIssueListItem {
   pages_affected: number;
   priority: string;
   page_url?: string | null;
+  is_restricted?: boolean;
 }
 
 export interface PerformanceIssueListResponse {
@@ -400,6 +402,7 @@ export interface PerformanceIssuesLogItem {
   page_url: string | null;
   priority: string;
   description?: string | null;
+  is_restricted?: boolean;
 }
 
 export interface PerformanceIssuesLogResponse {
@@ -472,6 +475,7 @@ export interface CategoryIssueListItem {
   pages_affected: number;
   priority: string;
   page_url?: string | null;
+  is_restricted?: boolean;
 }
 
 export interface CategoryIssueListResponse {
@@ -488,6 +492,7 @@ export interface CategoryIssuesLogItem {
   page_url: string | null;
   priority: string;
   description?: string | null;
+  is_restricted?: boolean;
 }
 
 export interface CategoryIssuesLogResponse {
@@ -538,6 +543,7 @@ export interface AccessibilityIssuesLogItem {
   wcag_level: string | null;
   conformance_level?: string | null;
   priority: string;
+  is_restricted?: boolean;
 }
 
 export interface AccessibilityIssuesLogResponse {
@@ -558,6 +564,7 @@ export interface AccessibilityIssueListItem {
   wcag_criterion?: string | null;
   wcag_level?: string | null;
   conformance_level?: string | null;
+  is_restricted?: boolean;
 }
 
 export interface AccessibilityIssueListResponse {
@@ -597,6 +604,7 @@ export interface PageCategoryIssue {
   priority: string;
   item_count: number;
   display_value: string | null;
+  is_restricted?: boolean;
 }
 
 export interface PageCategoryIssuesResponse {
@@ -634,6 +642,7 @@ export interface AccessibilityPageIssue {
   priority: string;
   responsibility: string | null;
   item_count: number;
+  is_restricted?: boolean;
 }
 
 export interface AccessibilityPageIssuesResponse {

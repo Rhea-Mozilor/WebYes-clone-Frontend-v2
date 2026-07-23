@@ -1,18 +1,19 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { cn } from '../../../../lib/utils'
-import { listIssues } from '../../../../api/issues'
+import { getScanIssues } from '../../../../api/scans'
 import type { IssueCategory, IssueSeverity } from '../../../../types'
 import { AccessibilityIcon, PerformanceIcon, QualityIcon, SeoIcon } from '../../../../components/ui/CategoryIcons'
 import { PriorityBadge } from '../../../../components/ui/PriorityBadge'
-import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS } from '../../../../lib/planLimits'
-import { useIsBasicPlan, LockedRowsOverlay } from '../../../../components/UpgradeLock'
+import { LockedRowsOverlay } from '../../../../components/UpgradeLock'
 
 export const Route = createFileRoute('/_app/scans/$scanId/issues')({
   component: IssuesPage,
 })
+
+const PAGE_SIZE = 20
 
 const CATEGORIES: { value: IssueCategory | 'all'; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -37,22 +38,24 @@ function CategoryIcon({ category }: { category: IssueCategory }) {
 
 function IssuesPage() {
   const { scanId } = Route.useParams()
-  const isBasicPlan = useIsBasicPlan()
   const [category, setCategory] = useState<IssueCategory | 'all'>('all')
   const [severity, setSeverity] = useState<IssueSeverity | 'all'>('all')
+  const [page, setPage] = useState(1)
 
-  const { data: issues = [], isLoading } = useQuery({
-    queryKey: ['issues', scanId, category, severity],
+  const { data, isLoading } = useQuery({
+    queryKey: ['issues', scanId, category, severity, page],
     queryFn: () =>
-      listIssues({
-        scan_job_id: scanId,
-        ...(category !== 'all' && { category }),
-        ...(severity !== 'all' && { severity }),
-      }),
+      getScanIssues(
+        scanId,
+        page,
+        PAGE_SIZE,
+        category !== 'all' ? category : undefined,
+        undefined,
+        severity !== 'all' ? severity : undefined,
+      ),
   })
 
-  const critical = issues.filter((i) => i.severity === 'critical')
-  const nonCritical = issues.filter((i) => i.severity === 'non_critical')
+  const issues = data?.items ?? []
 
   return (
     <div className="p-6 sm:p-8">
@@ -72,7 +75,7 @@ function IssuesPage() {
         {CATEGORIES.map((c) => (
           <button
             key={c.value}
-            onClick={() => setCategory(c.value as IssueCategory | 'all')}
+            onClick={() => { setCategory(c.value as IssueCategory | 'all'); setPage(1) }}
             className={`px-4 py-1.5 rounded-full text-xs font-medium border transition-colors ${
               category === c.value
                 ? 'bg-gray-900 text-white border-gray-900'
@@ -86,7 +89,7 @@ function IssuesPage() {
           {(['all', 'critical', 'non_critical'] as const).map((s) => (
             <button
               key={s}
-              onClick={() => setSeverity(s)}
+              onClick={() => { setSeverity(s); setPage(1) }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                 severity === s
                   ? 'bg-gray-900 text-white border-gray-900'
@@ -105,9 +108,6 @@ function IssuesPage() {
           <tr key={issue.id} className={locked ? 'border-t border-gray-50 blur-sm select-none pointer-events-none' : 'border-t border-gray-50 hover:bg-gray-50/60 transition-colors'}>
             <td className="px-6 py-4">
               <div className="text-sm text-gray-800 leading-snug">{issue.title}</div>
-              {issue.display_value && (
-                <div className="text-xs text-gray-400 mt-0.5">{issue.display_value}</div>
-              )}
             </td>
             <td className="px-4 py-4">
               <PriorityBadge priority={issue.priority} />
@@ -130,8 +130,8 @@ function IssuesPage() {
             </td>
           </tr>
         )
-        const visible = isBasicPlan ? issues.slice(0, FREE_PLAN_VISIBLE_ROWS) : issues
-        const locked = isBasicPlan ? issues.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
+        const visible = issues.filter((issue) => !issue.is_restricted)
+        const locked = issues.filter((issue) => issue.is_restricted)
         return (
           <>
             <div className={cn('bg-white border border-gray-100 shadow-sm overflow-hidden', locked.length > 0 ? 'rounded-t-sm border-b-0' : 'rounded-sm')}>
@@ -156,21 +156,37 @@ function IssuesPage() {
               </table>
             </div>
             {locked.length > 0 && (
-              <div className="relative overflow-hidden bg-white border border-gray-100 shadow-sm rounded-b-sm">
+              <div className="relative overflow-hidden bg-white border border-gray-200 rounded-b-[8px]">
                 <table className="w-full table-fixed">
                   <tbody>
                     {locked.map((issue) => renderRow(issue, true))}
                   </tbody>
                 </table>
-                <LockedRowsOverlay totalCount={issues.length} />
+                <LockedRowsOverlay totalCount={data?.total ?? issues.length} shown={visible.length} />
               </div>
             )}
           </>
         )
       })()}
 
-      {!isLoading && issues.length > 0 && (
-        <p className="text-xs text-gray-400 mt-3 text-right">{critical.length} critical · {nonCritical.length} non-critical · {issues.length} total</p>
+      {!isLoading && data && data.total_pages > 1 && (
+        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+          <span className="text-xs text-gray-400">Page {data.page} of {data.total_pages} · {data.total} total</span>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+              className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30">
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={() => setPage((p) => Math.min(data.total_pages, p + 1))} disabled={page === data.total_pages}
+              className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30">
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!isLoading && data && data.total_pages <= 1 && issues.length > 0 && (
+        <p className="text-xs text-gray-400 mt-3 text-right">{data.total} total</p>
       )}
     </div>
   )

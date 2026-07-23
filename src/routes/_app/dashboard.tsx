@@ -224,8 +224,8 @@ function DashboardPage() {
   const selectedWebsite = websites.find((w) => w.id === websiteId)
 
   const allScanIssues = scanIssues?.items ?? []
-  const pagedIssues = isBasicPlan ? allScanIssues.slice(0, 5) : allScanIssues
-  const teaserIssues = isBasicPlan ? allScanIssues.slice(5, 8) : []
+  const pagedIssues = allScanIssues.filter((i) => !i.is_restricted)
+  const teaserIssues = allScanIssues.filter((i) => i.is_restricted)
   const totalPages = scanIssues?.total_pages ?? 1
 
   function buildPageNums(current: number, total: number): (number | '...')[] {
@@ -597,7 +597,7 @@ function DashboardPage() {
                         {teaserIssues.map((issue) => renderRow(issue, true))}
                       </tbody>
                     </table>
-                    <LockedRowsOverlay totalCount={scanIssues?.total ?? pagedIssues.length} shown={5} />
+                    <LockedRowsOverlay totalCount={scanIssues?.total ?? pagedIssues.length} shown={pagedIssues.length} />
                   </div>
                 )}
               </>

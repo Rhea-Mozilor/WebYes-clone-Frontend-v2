@@ -224,8 +224,9 @@ function DashboardPage() {
   const selectedWebsite = websites.find((w) => w.id === websiteId)
 
   const allScanIssues = scanIssues?.items ?? []
-  const pagedIssues = allScanIssues.filter((i) => !i.is_restricted)
-  const teaserIssues = allScanIssues.filter((i) => i.is_restricted)
+  const isRestricted = !!scanIssues?.is_restricted
+  const pagedIssues = isRestricted ? allScanIssues.slice(0, 5) : allScanIssues
+  const teaserIssues = isRestricted ? allScanIssues.slice(5, 8) : []
   const totalPages = scanIssues?.total_pages ?? 1
 
   function buildPageNums(current: number, total: number): (number | '...')[] {
@@ -532,21 +533,28 @@ function DashboardPage() {
             )}
           </div>
 
-          {/* Category tabs */}
+          {/* Category tabs — Basic plan can only view "All", not filter by category */}
           <div className="flex items-end justify-between mt-[52px] border-b border-gray-100 overflow-x-auto">
-            {TABS.map(({ key, label, Icon }) => (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                className={cn(
-                  'flex flex-col items-center gap-1.5 pb-3 border-b-2 transition-colors text-xs font-medium whitespace-nowrap shrink-0',
-                  activeTab === key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-600'
-                )}
-              >
-                <Icon className="w-5 h-5" />
-                {label}
-              </button>
-            ))}
+            {TABS.map(({ key, label, Icon }) => {
+              const disabled = isBasicPlan && key !== 'all'
+              return (
+                <button
+                  key={key}
+                  onClick={() => !disabled && setActiveTab(key)}
+                  disabled={disabled}
+                  title={disabled ? 'Upgrade to filter the issues log by category' : undefined}
+                  className={cn(
+                    'flex flex-col items-center gap-1.5 pb-3 border-b-2 transition-colors text-xs font-medium whitespace-nowrap shrink-0',
+                    disabled
+                      ? 'border-transparent text-gray-300 cursor-not-allowed'
+                      : activeTab === key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-600'
+                  )}
+                >
+                  <Icon className="w-5 h-5" />
+                  {label}
+                </button>
+              )
+            })}
           </div>
 
           {/* Table */}
@@ -590,14 +598,14 @@ function DashboardPage() {
                     {pagedIssues.map((issue) => renderRow(issue, false))}
                   </tbody>
                 </table>
-                {teaserIssues.length > 0 && (
-                  <div className="relative overflow-hidden">
+                {(teaserIssues.length > 0 || isRestricted) && (
+                  <div className="relative overflow-hidden min-h-[120px]">
                     <table className="w-full table-fixed">
                       <tbody>
                         {teaserIssues.map((issue) => renderRow(issue, true))}
                       </tbody>
                     </table>
-                    <LockedRowsOverlay totalCount={scanIssues?.total ?? pagedIssues.length} shown={pagedIssues.length} />
+                    <LockedRowsOverlay totalCount={scanIssues?.total ?? pagedIssues.length} shown={pagedIssues.length} force={isRestricted} />
                   </div>
                 )}
               </>

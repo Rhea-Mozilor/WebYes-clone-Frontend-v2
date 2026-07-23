@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { X, Loader2 } from 'lucide-react'
 import { PriorityBadge } from './ui/PriorityBadge'
 import { getPageCategoryIssues } from '../api/scans'
+import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS } from '../lib/planLimits'
 import { LockedRowsOverlay } from './UpgradeLock'
 import type { PageCategoryIssue } from '../types'
 
@@ -74,15 +75,16 @@ export function PageIssuesModal({ scanJobId, scanResultId, pageUrl, category, on
                 <PriorityBadge priority={issue.priority} />
               </div>
             )
-            const visible = issues.filter((issue) => !issue.is_restricted)
-            const locked = issues.filter((issue) => issue.is_restricted)
+            const isRestricted = !!data?.is_restricted
+            const visible = isRestricted ? issues.slice(0, FREE_PLAN_VISIBLE_ROWS) : issues
+            const locked = isRestricted ? issues.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
             return (
               <div className="divide-y divide-gray-100">
                 {visible.map(issue => renderRow(issue, false))}
-                {locked.length > 0 && (
-                  <div className="relative overflow-hidden">
+                {(locked.length > 0 || isRestricted) && (
+                  <div className="relative overflow-hidden min-h-[120px]">
                     {locked.map(issue => renderRow(issue, true))}
-                    <LockedRowsOverlay totalCount={issues.length} shown={visible.length} />
+                    <LockedRowsOverlay totalCount={issues.length} shown={visible.length} force={isRestricted} />
                   </div>
                 )}
               </div>

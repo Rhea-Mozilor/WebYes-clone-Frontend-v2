@@ -8,6 +8,7 @@ import { cn } from '../lib/utils'
 import { PriorityBadge } from './ui/PriorityBadge'
 import { getAccessibilityPageIssues } from '../api/scans'
 import { IssueDetailPanel } from './IssueDetailPanel'
+import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS } from '../lib/planLimits'
 import { LockedRowsOverlay } from './UpgradeLock'
 import type { AccessibilityPageIssue } from '../types'
 
@@ -153,8 +154,9 @@ export function AccessibilityPageDetail({ scanJobId, scanResultId, pageUrl, onBa
                   </tr>
                 )
               }
-              const visible = filtered.filter((issue) => !issue.is_restricted)
-              const locked = filtered.filter((issue) => issue.is_restricted)
+              const isRestricted = !!data?.is_restricted
+              const visible = isRestricted ? filtered.slice(0, FREE_PLAN_VISIBLE_ROWS) : filtered
+              const locked = isRestricted ? filtered.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
               return (
                 <>
                   <div className={locked.length > 0 ? 'bg-white border border-gray-200 rounded-t-[8px] border-b-0 overflow-hidden' : 'bg-white border border-gray-200 rounded-[8px] overflow-hidden'}>
@@ -175,14 +177,14 @@ export function AccessibilityPageDetail({ scanJobId, scanResultId, pageUrl, onBa
                       </tbody>
                     </table>
                   </div>
-                  {locked.length > 0 && (
-                    <div className="relative overflow-hidden bg-white border border-gray-200 rounded-b-[8px]">
+                  {(locked.length > 0 || isRestricted) && (
+                    <div className="relative overflow-hidden bg-white border border-gray-200 rounded-b-[8px] min-h-[120px]">
                       <table className="w-full table-fixed">
                         <tbody>
                           {locked.map(issue => renderRow(issue, true))}
                         </tbody>
                       </table>
-                      <LockedRowsOverlay totalCount={filtered.length} shown={visible.length} />
+                      <LockedRowsOverlay totalCount={filtered.length} shown={visible.length} force={isRestricted} />
                     </div>
                   )}
                 </>

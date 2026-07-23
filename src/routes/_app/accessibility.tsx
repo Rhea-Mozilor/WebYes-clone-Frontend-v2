@@ -515,8 +515,9 @@ function AccessibilityPage() {
                   </tr>
                 )
               }
-              const visible = dashIssues.items.filter((item) => !item.is_restricted)
-              const locked = dashIssues.items.filter((item) => item.is_restricted)
+              const dashRestricted = !!dashIssues.is_restricted
+              const visible = dashRestricted ? dashIssues.items.slice(0, FREE_PLAN_VISIBLE_ROWS) : dashIssues.items
+              const locked = dashRestricted ? dashIssues.items.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
               return (
                 <>
                   <div className="overflow-x-auto">
@@ -535,14 +536,14 @@ function AccessibilityPage() {
                       </tbody>
                     </table>
                   </div>
-                  {locked.length > 0 && (
-                    <div className="relative overflow-hidden">
+                  {(locked.length > 0 || dashRestricted) && (
+                    <div className="relative overflow-hidden min-h-[120px]">
                       <table className="w-full table-fixed">
                         <tbody>
                           {locked.map((item) => renderRow(item, true))}
                         </tbody>
                       </table>
-                      <LockedRowsOverlay totalCount={totalIssues} shown={visible.length} />
+                      <LockedRowsOverlay totalCount={totalIssues} shown={visible.length} force={dashRestricted} />
                     </div>
                   )}
                 </>
@@ -859,8 +860,9 @@ function AccessibilityPage() {
                 </tr>
               )
             }
-            const visible = filtered.filter((item) => !item.is_restricted)
-            const locked = filtered.filter((item) => item.is_restricted)
+            const issueListRestricted = !!issueList.is_restricted
+            const visible = issueListRestricted ? filtered.slice(0, FREE_PLAN_VISIBLE_ROWS) : filtered
+            const locked = issueListRestricted ? filtered.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
             return (
               <div className={cn('bg-white rounded-[10px] border border-[#e8eaf0]', locked.length === 0 && 'overflow-x-auto')}>
                 <div className="overflow-x-auto">
@@ -883,14 +885,14 @@ function AccessibilityPage() {
                     </tbody>
                   </table>
                 </div>
-                {locked.length > 0 && (
-                  <div className="relative overflow-hidden">
+                {(locked.length > 0 || issueListRestricted) && (
+                  <div className="relative overflow-hidden min-h-[120px]">
                     <table className="w-full min-w-[700px] table-fixed">
                       <tbody>
                         {locked.map((item) => renderRow(item, true))}
                       </tbody>
                     </table>
-                    <LockedRowsOverlay totalCount={issueList.total} shown={visible.length} />
+                    <LockedRowsOverlay totalCount={issueList.total} shown={visible.length} force={issueListRestricted} />
                   </div>
                 )}
                 {!isBasicPlan && filtered.length > 0 && (

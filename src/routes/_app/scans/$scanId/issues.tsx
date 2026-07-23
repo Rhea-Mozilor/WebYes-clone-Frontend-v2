@@ -7,6 +7,7 @@ import { getScanIssues } from '../../../../api/scans'
 import type { IssueCategory, IssueSeverity } from '../../../../types'
 import { AccessibilityIcon, PerformanceIcon, QualityIcon, SeoIcon } from '../../../../components/ui/CategoryIcons'
 import { PriorityBadge } from '../../../../components/ui/PriorityBadge'
+import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS } from '../../../../lib/planLimits'
 import { LockedRowsOverlay } from '../../../../components/UpgradeLock'
 
 export const Route = createFileRoute('/_app/scans/$scanId/issues')({
@@ -130,8 +131,9 @@ function IssuesPage() {
             </td>
           </tr>
         )
-        const visible = issues.filter((issue) => !issue.is_restricted)
-        const locked = issues.filter((issue) => issue.is_restricted)
+        const isRestricted = !!data?.is_restricted
+        const visible = isRestricted ? issues.slice(0, FREE_PLAN_VISIBLE_ROWS) : issues
+        const locked = isRestricted ? issues.slice(FREE_PLAN_VISIBLE_ROWS, FREE_PLAN_PREVIEW_ROWS) : []
         return (
           <>
             <div className={cn('bg-white border border-gray-100 shadow-sm overflow-hidden', locked.length > 0 ? 'rounded-t-sm border-b-0' : 'rounded-sm')}>
@@ -155,14 +157,14 @@ function IssuesPage() {
                 </tbody>
               </table>
             </div>
-            {locked.length > 0 && (
-              <div className="relative overflow-hidden bg-white border border-gray-200 rounded-b-[8px]">
+            {(locked.length > 0 || isRestricted) && (
+              <div className="relative overflow-hidden bg-white border border-gray-200 rounded-b-[8px] min-h-[120px]">
                 <table className="w-full table-fixed">
                   <tbody>
                     {locked.map((issue) => renderRow(issue, true))}
                   </tbody>
                 </table>
-                <LockedRowsOverlay totalCount={data?.total ?? issues.length} shown={visible.length} />
+                <LockedRowsOverlay totalCount={data?.total ?? issues.length} shown={visible.length} force={isRestricted} />
               </div>
             )}
           </>

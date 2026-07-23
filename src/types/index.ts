@@ -276,6 +276,7 @@ export interface ScanIssuesResponse {
   page: number;
   page_size: number;
   total_pages: number;
+  is_restricted?: boolean;
 }
 
 export interface ScanPageItem {
@@ -394,6 +395,7 @@ export interface PerformanceIssueListResponse {
   page_size: number;
   total_pages: number;
   items: PerformanceIssueListItem[];
+  is_restricted?: boolean;
 }
 
 export interface PerformanceIssuesLogItem {
@@ -402,12 +404,12 @@ export interface PerformanceIssuesLogItem {
   page_url: string | null;
   priority: string;
   description?: string | null;
-  is_restricted?: boolean;
 }
 
 export interface PerformanceIssuesLogResponse {
   total: number;
   items: PerformanceIssuesLogItem[];
+  is_restricted?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -484,6 +486,7 @@ export interface CategoryIssueListResponse {
   page_size: number;
   total_pages: number;
   items: CategoryIssueListItem[];
+  is_restricted?: boolean;
 }
 
 export interface CategoryIssuesLogItem {
@@ -498,6 +501,7 @@ export interface CategoryIssuesLogItem {
 export interface CategoryIssuesLogResponse {
   total: number;
   items: CategoryIssuesLogItem[];
+  is_restricted?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -543,12 +547,12 @@ export interface AccessibilityIssuesLogItem {
   wcag_level: string | null;
   conformance_level?: string | null;
   priority: string;
-  is_restricted?: boolean;
 }
 
 export interface AccessibilityIssuesLogResponse {
   total: number;
   items: AccessibilityIssuesLogItem[];
+  is_restricted?: boolean;
 }
 
 export interface AccessibilityIssueListItem {
@@ -564,7 +568,6 @@ export interface AccessibilityIssueListItem {
   wcag_criterion?: string | null;
   wcag_level?: string | null;
   conformance_level?: string | null;
-  is_restricted?: boolean;
 }
 
 export interface AccessibilityIssueListResponse {
@@ -573,6 +576,7 @@ export interface AccessibilityIssueListResponse {
   page_size: number;
   total_pages: number;
   items: AccessibilityIssueListItem[];
+  is_restricted?: boolean;
 }
 
 export interface AccessibilityPagesListItem {
@@ -613,6 +617,7 @@ export interface PageCategoryIssuesResponse {
   page_title: string | null;
   performance_score: number | null;
   issues: PageCategoryIssue[];
+  is_restricted?: boolean;
 }
 
 export interface PerformancePageVitals {
@@ -630,6 +635,7 @@ export interface PerformancePageIssuesResponse {
   performance_score: number | null;
   vitals: PerformancePageVitals | null;
   issues: PageCategoryIssue[];
+  is_restricted?: boolean;
 }
 
 export interface AccessibilityPageIssue {
@@ -651,6 +657,7 @@ export interface AccessibilityPageIssuesResponse {
   page_title: string | null;
   accessibility_score: number | null;
   issues: AccessibilityPageIssue[];
+  is_restricted?: boolean;
 }
 
 export interface AccessibilityAffectedPagesResponse {

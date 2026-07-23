@@ -34,6 +34,9 @@ const AccIcon = ({ className }: { className?: string }) => <img src={Accessibili
 const PerfIcon = ({ className }: { className?: string }) => <img src={PerformanceSvg} className={className} alt="" />
 const QualIcon = ({ className }: { className?: string }) => <img src={QualitySvg} className={className} alt="" />
 const SeoIcon = ({ className }: { className?: string }) => <img src={SeoSvg} className={className} alt="" />
+
+// 1 page scanned consumes 2 credits.
+const CREDITS_PER_PAGE = 2
 import toast from 'react-hot-toast'
 import { cn } from '../lib/utils'
 import { getMe, logout } from '../api/auth'
@@ -1244,9 +1247,10 @@ function AppLayout() {
             const totalCredits = billingCredits.credits_total
             const leftCredits = billingCredits.credits_balance
             const usedCredits = Math.max(totalCredits - leftCredits, 0)
-            // Credits held for a scan currently in progress — zero whenever nothing is
-            // actively scanning, regardless of how many credits past scans have used.
-            const reservedCredits = isScanRunning ? usedCredits : 0
+            // Credits allocated for scan(s) currently in progress (maxPages worth each) —
+            // not lifetime spend. Zero whenever nothing is actively scanning.
+            const activeScanCount = (activeScanJob ? 1 : 0) + (scanJobs && !scanJobsDone ? 1 : 0)
+            const reservedCredits = activeScanCount * maxPages * CREDITS_PER_PAGE
             const rawPct = totalCredits > 0 ? (leftCredits / totalCredits) * 100 : 0
             const pct = Math.floor(rawPct)
             // Leave a visible sliver of the unfilled track whenever any credits have been used,
@@ -1320,8 +1324,6 @@ function AppLayout() {
                       </div>
                       <p className="text-[12px] text-gray-400 mb-4">Active scans</p>
                       {(() => {
-                        // 1 page scanned consumes 2 credits (matches the tooltip above).
-                        const CREDITS_PER_PAGE = 2
                         const activeScans = [
                           ...(activeScanJob ? [{
                             key: 'onboarding',

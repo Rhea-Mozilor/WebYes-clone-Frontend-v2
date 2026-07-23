@@ -20,12 +20,13 @@ import UrlSvg from '../../components/svgicons/url.svg'
 import AvgResponseTimeSvg from '../../components/svgicons/avgresponsetime.svg'
 import { cn } from '../../lib/utils'
 import { scoreColor } from '../../lib/score'
-import { VITAL_THRESHOLDS } from '../../lib/vitals'
+import { VITALS_META, type VitalKey } from '../../lib/vitals'
 import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS } from '../../lib/planLimits'
 import { PriorityBadge } from '../../components/ui/PriorityBadge'
 import { useSiteStore } from '../../store/siteStore'
 import { IssueDetailPanel } from '../../components/IssueDetailPanel'
 import { PerformancePageDetail } from '../../components/PerformancePageDetail'
+import { VitalsGrid } from '../../components/VitalsGrid'
 import { useIsBasicPlan, LockedOverlay, LockedRowsOverlay } from '../../components/UpgradeLock'
 import {
   getPerformanceScore,
@@ -49,25 +50,6 @@ export const Route = createFileRoute('/_app/performance')({
 
 const TABS = ['Dashboard', 'Affected pages', 'Issues list']
 const TIME_FILTERS = ['Today', 'Yesterday', 'Last week'] as const
-
-const VITALS_META = [
-  { key: 'fcp_ms' as const, abbr: 'FCP', label: 'First Contentful Paint', unit: 's', ...VITAL_THRESHOLDS.fcp_ms },
-  { key: 'lcp_ms' as const, abbr: 'LCP', label: 'Largest Contentful Paint', unit: 's', ...VITAL_THRESHOLDS.lcp_ms },
-  { key: 'tbt_ms' as const, abbr: 'TBT', label: 'Total Blocking Time', unit: 's', ...VITAL_THRESHOLDS.tbt_ms },
-  { key: 'cls' as const, abbr: 'CLS', label: 'Cumulative Layout Shift', unit: '', ...VITAL_THRESHOLDS.cls },
-  { key: 'speed_index_ms' as const, abbr: 'SI', label: 'Speed Index', unit: 'ms', ...VITAL_THRESHOLDS.speed_index_ms },
-]
-
-type VitalKey = 'fcp_ms' | 'lcp_ms' | 'tbt_ms' | 'cls' | 'speed_index_ms'
-
-
-function formatVital(key: VitalKey, value: number | null, unit: string) {
-  if (value == null) return '—'
-  if (key === 'cls') return value.toFixed(2)
-  if (unit === 's') return `${(value / 1000).toFixed(1)} s`
-  if (unit === 'ms') return value > 0 ? `${Math.round(value)} ms` : '0ms'
-  return `${value}`
-}
 
 function avg(vals: (number | null | undefined)[]): number | null {
   const nums = vals.filter((v): v is number => v != null)
@@ -341,53 +323,7 @@ function PerformancePage() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-              {VITALS_META.map(({ key, abbr, label, unit, good, needs }) => {
-                const raw = avgMetrics[key]
-                const display = formatVital(key, raw, unit)
-
-                // Scale: 0 → (2·needs − good), splitting into 3 zones
-                const max = needs * 2 - good
-                const pct = raw != null ? Math.min((raw / max) * 100, 100) : 0
-                const gW = (good / max) * 100
-                const yW = ((needs - good) / max) * 100
-                const rW = 100 - gW - yW
-
-                return (
-                  <div key={key} className="flex flex-col gap-1.5">
-                    <div className="text-lg font-bold text-gray-900">{abbr}</div>
-                    <div className="text-xs text-gray-400 flex items-center gap-1">
-                      {label}
-                    </div>
-
-                    {/* Segmented bar with tick */}
-                    <div className="relative pt-3">
-                      {raw != null && (
-                        <div
-                          className="absolute top-0 w-px h-3 bg-gray-800"
-                          style={{ left: `${pct}%`, transform: 'translateX(-50%)' }}
-                        />
-                      )}
-                      <div className="flex h-[5px] gap-0.5">
-                        <div className="rounded-l-sm bg-green-500" style={{ flex: gW }} />
-                        <div className="bg-yellow-400" style={{ flex: yW }} />
-                        <div className="rounded-r-sm bg-red-500" style={{ flex: rW }} />
-                      </div>
-                    </div>
-
-                    {/* Value label anchored to tick position */}
-                    <div className="relative h-5">
-                      <span
-                        className="absolute text-sm font-semibold text-gray-700 whitespace-nowrap -translate-x-1/2"
-                        style={{ left: `${pct}%` }}
-                      >
-                        {display}
-                      </span>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            <VitalsGrid metrics={avgMetrics} />
 
           </div>
 

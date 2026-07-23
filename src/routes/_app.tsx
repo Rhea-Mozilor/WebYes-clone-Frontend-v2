@@ -1132,7 +1132,7 @@ function AppLayout() {
                 {/* Footer */}
                 <div className="border-t border-gray-100 px-4 py-3 text-center">
                   <Link
-                    to="/websites"
+                    to="/settings/organisation"
                     onClick={() => setWebsiteDrop(false)}
                     className="text-sm font-semibold text-blue-600 hover:underline"
                   >

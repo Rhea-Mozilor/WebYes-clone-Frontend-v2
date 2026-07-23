@@ -4,10 +4,10 @@ import { ChevronLeft, Loader2, Search, Download } from 'lucide-react'
 import { PriorityBadge } from './ui/PriorityBadge'
 import { getPerformancePageIssues } from '../api/scans'
 import { IssueDetailPanel } from './IssueDetailPanel'
-import { VITAL_THRESHOLDS } from '../lib/vitals'
 import { FREE_PLAN_PREVIEW_ROWS, FREE_PLAN_VISIBLE_ROWS } from '../lib/planLimits'
 import { useIsBasicPlan, LockedRowsOverlay } from './UpgradeLock'
-import type { PageCategoryIssue, PerformancePageVitals } from '../types'
+import { VitalsGrid } from './VitalsGrid'
+import type { PageCategoryIssue } from '../types'
 
 interface Props {
   scanJobId: string
@@ -15,30 +15,6 @@ interface Props {
   pageUrl: string
   onBack: () => void
 }
-
-type VitalKey = keyof Omit<PerformancePageVitals, never>
-
-const VITALS = [
-  { key: 'fcp_ms' as VitalKey,        abbr: 'FCP', label: 'First Contentful Paint',   unit: 's',  ...VITAL_THRESHOLDS.fcp_ms },
-  { key: 'lcp_ms' as VitalKey,        abbr: 'LCP', label: 'Largest Contentful Paint',  unit: 's',  ...VITAL_THRESHOLDS.lcp_ms },
-  { key: 'tbt_ms' as VitalKey,        abbr: 'TBT', label: 'Total Blocking Time',       unit: 'ms', ...VITAL_THRESHOLDS.tbt_ms },
-  { key: 'cls' as VitalKey,           abbr: 'CLS', label: 'Cumulative Layout Shift',   unit: '',   ...VITAL_THRESHOLDS.cls },
-  { key: 'speed_index_ms' as VitalKey, abbr: 'SI', label: 'Speed Index',              unit: 's',  ...VITAL_THRESHOLDS.speed_index_ms },
-]
-
-function formatVital(key: VitalKey, value: number, unit: string): string {
-  if (key === 'cls') return value.toFixed(2)
-  if (unit === 's') return `${(value / 1000).toFixed(2)}s`
-  return `${value.toFixed(2)}ms`
-}
-
-function tickPct(_key: VitalKey, value: number, good: number, needs: number): number {
-  const max = needs * 1.67
-  if (value <= good)  return (value / good) * 33
-  if (value <= needs) return 33 + ((value - good) / (needs - good)) * 33
-  return Math.min(66 + ((value - needs) / (max - needs)) * 34, 99)
-}
-
 
 function pageName(url: string): string {
   try {
@@ -98,29 +74,7 @@ export function PerformancePageDetail({ scanJobId, scanResultId, pageUrl, onBack
       {/* Vitals */}
       {vitals && (
         <div className="bg-white border-b border-gray-100 px-6 py-6">
-          <div className="flex gap-8 justify-between">
-            {VITALS.map(({ key, abbr, label, good, needs, unit }) => {
-              const raw = vitals[key]
-              if (raw == null) return null
-              const pct = tickPct(key, raw, good, needs)
-              return (
-                <div key={key} className="flex-1 min-w-0 text-center">
-                  <div className="text-[28px] font-bold text-[#2e3240] leading-none tracking-tight">{abbr}</div>
-                  <div className="text-[12px] text-[#73767f] mt-1 leading-tight">{label}</div>
-                  {/* Gauge bar */}
-                  <div className="relative mt-3 mx-auto" style={{ maxWidth: 160 }}>
-                    <div className="h-[6px] rounded-full overflow-hidden"
-                      style={{ background: 'linear-gradient(to right, #22c55e 0%, #22c55e 33%, #f59e0b 33%, #f59e0b 66%, #ef4444 66%, #ef4444 100%)' }} />
-                    <div className="absolute top-1/2 -translate-y-1/2 w-[2px] h-[10px] bg-gray-800 rounded-full"
-                      style={{ left: `${pct}%` }} />
-                  </div>
-                  <div className="text-[14px] font-semibold text-[#2e3240] mt-2">
-                    {formatVital(key, raw, unit)}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          <VitalsGrid metrics={vitals} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6" />
         </div>
       )}
 

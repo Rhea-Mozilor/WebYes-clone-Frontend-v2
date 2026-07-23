@@ -131,6 +131,7 @@ export function AddNewWebsiteModal({
               <select
                 value={orgId}
                 onChange={(e) => setOrgId(e.target.value)}
+                autoFocus
                 className="w-full px-4 py-3.5 border border-[#d1d5db] rounded-[10px] text-[14px] text-[#2e3240] bg-white appearance-none focus:outline-none focus:border-[#0b66e4] focus:ring-1 focus:ring-[#0b66e4]"
               >
                 <option value="">Please select</option>
@@ -162,7 +163,6 @@ export function AddNewWebsiteModal({
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="www.example.com"
-                autoFocus
                 className="w-full px-4 py-3.5 border border-[#d1d5db] rounded-[10px] text-[14px] text-[#2e3240] placeholder-[#9fa1a7] focus:outline-none focus:border-[#0b66e4] focus:ring-1 focus:ring-[#0b66e4]"
               />
             </div>

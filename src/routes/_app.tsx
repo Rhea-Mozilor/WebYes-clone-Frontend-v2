@@ -1333,14 +1333,16 @@ function AppLayout() {
             <History className="w-6 h-6" />
           </Link>
 
-          {/* Upgrade — hidden on mobile */}
-          <Link
-            to="/upgrade"
-            className="hidden sm:flex items-center gap-1 px-4 py-3.5 rounded-sm text-sm font-semibold text-orange-950 bg-amber-500 hover:bg-amber-400 transition-colors mx-2"
-          >
-            <img src={UpgradeSvg} alt="" className="w-4 h-4" />
-            Upgrade
-          </Link>
+          {/* Upgrade — hidden on mobile, hidden once the user has purchased a plan */}
+          {isBasicPlan && (
+            <Link
+              to="/upgrade"
+              className="hidden sm:flex items-center gap-1 px-4 py-3.5 rounded-sm text-sm font-semibold text-orange-950 bg-amber-500 hover:bg-amber-400 transition-colors mx-2"
+            >
+              <img src={UpgradeSvg} alt="" className="w-4 h-4" />
+              Upgrade
+            </Link>
+          )}
 
           {/* Help — hidden on mobile */}
           {/* <button className="hidden sm:flex w-8 h-8 items-center justify-center text-blue-600 hover:text-blue-700 rounded-full hover:bg-gray-50 transition-colors">
@@ -1385,15 +1387,17 @@ function AppLayout() {
                   </div>
                 </div>
 
-                {/* Upgrade button */}
-                <Link
-                  to="/upgrade"
-                  onClick={() => setUserMenu(false)}
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-amber-500 hover:bg-amber-400 rounded-lg text-sm font-semibold text-orange-950 transition-colors"
-                >
-                  <img src={UpgradeSvg} alt="" className="w-4 h-4" />
-                  Upgrade
-                </Link>
+                {/* Upgrade button — hidden once the user has purchased a plan */}
+                {isBasicPlan && (
+                  <Link
+                    to="/upgrade"
+                    onClick={() => setUserMenu(false)}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-amber-500 hover:bg-amber-400 rounded-lg text-sm font-semibold text-orange-950 transition-colors"
+                  >
+                    <img src={UpgradeSvg} alt="" className="w-4 h-4" />
+                    Upgrade
+                  </Link>
+                )}
 
                 {/* Organisation settings */}
                 <Link

@@ -51,6 +51,24 @@ export function LoginHeroArt({ className }: { className?: string }) {
         clipPath="url(#loginHeroCard3Clip)"
         style={{ filter: 'drop-shadow(-3.5px 2.6px 12px rgba(16,6,57,0.12))' }}
       />
+
+      {/* Bottom text — embedded here too so it scales with the rest instead of
+          drifting/overlapping the cards above as a separately-positioned overlay. */}
+      <foreignObject x={240} y={663} width={276} height={181}>
+        <div {...{ xmlns: 'http://www.w3.org/1999/xhtml' }} className="text-center">
+          <p className="text-white font-medium text-[28px] leading-[41px] m-0">
+            Get ready to explore our intuitive dashboard
+          </p>
+          <p className="text-white text-[14px] leading-[21px] mt-[10px] mb-[8px]">
+            Unlock the full potential of your website with our comprehensive audits.
+          </p>
+          <div className="flex items-center justify-center gap-[8px] mt-[4px]">
+            <div className="h-[7px] w-[20px] rounded-[16px] bg-[#0b66e4]" />
+            <div className="size-[7px] rounded-full bg-[#d9d9d9]" />
+            <div className="size-[7px] rounded-full bg-[#d9d9d9]" />
+          </div>
+        </div>
+      </foreignObject>
     </svg>
   )
 }

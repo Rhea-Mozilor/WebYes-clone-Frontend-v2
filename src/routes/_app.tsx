@@ -8,7 +8,6 @@ import {
 } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
 import {
   LayoutGrid,
   Globe,
@@ -867,19 +866,20 @@ function AppLayout() {
 
   async function handleLogout() {
     try { await logout() } catch { /* ok */ }
-    // flushSync forces the re-render triggered by clearAuth() (token -> null) to
-    // commit immediately, so the me/billing-credits/websites/organisations queries
-    // above (enabled: !!token) are actually disabled before qc.clear() runs below —
-    // without this, clear() could still trigger one last refetch on the not-yet-
-    // re-rendered observers, which is what previously caused a burst of 401s.
-    flushSync(() => clearAuth())
+    // Navigate away FIRST and await it — this is what actually unmounts AppLayout
+    // and everything inside it (dashboard/category pages, the always-mounted
+    // UpgradeModal, etc.), which is the only reliable way to guarantee there are
+    // no active query observers left. Previously qc.clear() ran while still on the
+    // same route, so every query anywhere in that mounted tree (not just the 4
+    // defined directly in AppLayout) saw its cache entry disappear and refetched
+    // immediately — but the token was already gone, so each came back 401.
+    await navigate({ to: '/login' })
+    clearAuth()
     useSiteStore.getState().reset()
-    // Clear cached queries (websites, billing, etc.) too — otherwise the
-    // still-cached websites list immediately re-triggers the "auto-select
-    // first website" effect right after reset() clears websiteId, and stale
-    // data from this account could flash when a different user logs in next.
+    // Clear cached queries (websites, billing, etc.) too, now that nothing is left
+    // mounted to react to it — otherwise stale data from this account could flash
+    // when a different user logs in next.
     qc.clear()
-    navigate({ to: '/login' })
     // Wipe storage last, once both stores above (siteStore's persist middleware
     // included) have already written whatever they were going to write — otherwise
     // that write would silently repopulate storage right after this clears it.

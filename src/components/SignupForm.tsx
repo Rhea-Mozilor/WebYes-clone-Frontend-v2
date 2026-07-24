@@ -64,24 +64,6 @@ export function SignupForm({
             together as a single rigid image instead of drifting apart from each
             other when the panel's own aspect ratio changes. */}
         <LoginHeroArt className="absolute inset-0 w-full h-full object-cover" />
-
-        {/* Bottom text */}
-        <div
-          className="absolute text-center"
-          style={{ left: '31.05%', top: '71.37%', width: '35.71%' }}
-        >
-          <p className="text-white font-medium text-[28px] leading-[41px]">
-            Get ready to explore our intuitive dashboard
-          </p>
-          <p className="text-white text-[14px] leading-[21px] mt-[10px] mb-[8px]">
-            Unlock the full potential of your website with our comprehensive audits.
-          </p>
-          <div className="flex items-center justify-center gap-[8px] mt-[4px]">
-            <div className="h-[7px] w-[20px] rounded-[16px] bg-[#0b66e4]" />
-            <div className="size-[7px] rounded-full bg-[#d9d9d9]" />
-            <div className="size-[7px] rounded-full bg-[#d9d9d9]" />
-          </div>
-        </div>
       </div>
 
       {/* ── Right panel ────────────────────────────────────────────────── */}

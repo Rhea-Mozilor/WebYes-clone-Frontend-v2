@@ -48,27 +48,6 @@ function LoginPage() {
             together as a single rigid image instead of drifting apart from each
             other when the panel's own aspect ratio changes. */}
         <LoginHeroArt className="absolute inset-0 w-full h-full object-cover" />
-
-        {/* Bottom text  (left=240, top=663, w=276, h=181 in 773×929) */}
-        <div
-          className="absolute text-center"
-          style={{ left: '31.05%', top: '71.37%', width: '35.71%' }}
-        >
-          {/* Heading — font 28px, medium, line-height 41px */}
-          <p className="text-white font-medium text-[28px] leading-[41px] mb-0">
-            Get ready to explore our intuitive dashboard
-          </p>
-          {/* Subtitle — font 14px, regular, line-height 21px */}
-          <p className="text-white text-[14px] leading-[21px] mt-[10px] mb-[8px]">
-            Unlock the full potential of your website with our comprehensive audits.
-          </p>
-          {/* Pagination dots */}
-          <div className="flex items-center justify-center gap-[8px] mt-[4px]">
-            <div className="h-[7px] w-[20px] rounded-[16px] bg-[#0b66e4]" />
-            <div className="size-[7px] rounded-full bg-[#d9d9d9]" />
-            <div className="size-[7px] rounded-full bg-[#d9d9d9]" />
-          </div>
-        </div>
       </div>
 
       {/* ── Right panel ────────────────────────────────────────────────── */}

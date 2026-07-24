@@ -142,6 +142,9 @@ function ScanProgressModal({
       const failed = desktopJob?.status === 'failed' || mobileJob?.status === 'failed'
       if (scanId) onComplete(scanId, failed)
       void qc.invalidateQueries({ queryKey: ['billing-credits'] })
+      // Refresh last_scanned_at so the sidebar's "first scan still running" lock
+      // (which reads it off the websites list) clears the instant this finishes.
+      void qc.invalidateQueries({ queryKey: ['websites'] })
       if (failed && isNewWebsite) {
         // First scan for a brand-new website failed — don't leave a broken,
         // never-scanned entry in the website/org lists.
@@ -744,6 +747,9 @@ function AppLayout() {
     setActiveScanJob(null)
     setScanDetailOpen(false)
     void qc.invalidateQueries({ queryKey: ['billing-credits'] })
+    // Refresh last_scanned_at so the sidebar's "first scan still running" lock
+    // (which reads it off the websites list) clears the instant this finishes.
+    void qc.invalidateQueries({ queryKey: ['websites'] })
   }, [onboardingJob?.status, activeScanJob?.jobId, websiteId, setScanForWebsite, setActiveScanJob, qc])
 
   // Auto-reopen the rescan progress modal once its scan finishes, but only once the
@@ -888,9 +894,13 @@ function AppLayout() {
 
   const initials = user?.username?.slice(0, 2).toUpperCase() ?? '??'
 
-  // No scan has ever completed for this website yet, and one is currently
-  // running — the category pages have nothing to show until it finishes.
-  const firstScanOngoing = isScanRunning && (!websiteId || !scansByWebsite[websiteId])
+  // No scan has ever completed for this website yet, and one is currently running
+  // — the category pages have nothing to show until it finishes. Driven by the
+  // backend's last_scanned_at (only ever set once a scan actually completes)
+  // rather than scansByWebsite, since "Explore dashboard" deliberately populates
+  // scansByWebsite with the in-progress scan's id so live data can be previewed
+  // while it's still running — that would otherwise make this flip false early.
+  const firstScanOngoing = isScanRunning && !!websiteId && !selectedWebsite?.last_scanned_at
 
   const sideLinks: { to: string | null; icon: React.ElementType; label: string; disabled?: boolean }[] = [
     { to: '/dashboard', icon: LayoutGrid, label: 'Dashboard' },
@@ -1225,8 +1235,9 @@ function AppLayout() {
 
           <div className="flex-1" />
 
-          {/* Onboarding scan in-progress banner */}
-          {activeScanJob && (
+          {/* Onboarding scan in-progress banner — hidden while on /scanning itself,
+              since that page already shows the same progress; redundant otherwise. */}
+          {activeScanJob && location !== '/scanning' && (
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 border border-[#bdd0f8] bg-[#eef4ff] rounded-full mr-3 whitespace-nowrap">
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="shrink-0 animate-spin">
                 <circle cx="8" cy="8" r="7" stroke="#bfdbfe" strokeWidth="1.5" />

@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import {
   LayoutGrid,
   Globe,
@@ -662,15 +663,19 @@ function OnboardingScanModal({
 function AppLayout() {
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const { clearAuth } = useAuthStore()
-  const { data: user, isLoading: userLoading } = useQuery({ queryKey: ['me'], queryFn: getMe })
+  const { clearAuth, token } = useAuthStore()
+  // Gated on `token` (not just mount) so logging out — which nulls token synchronously —
+  // immediately disables these instead of letting them refetch (and 401) when the cache
+  // is cleared while this component is still mounted mid-navigation.
+  const { data: user, isLoading: userLoading } = useQuery({ queryKey: ['me'], queryFn: getMe, enabled: !!token })
   const { data: billingCredits, isLoading: billingLoading } = useQuery({
     queryKey: ['billing-credits'],
     queryFn: getBillingCredits,
     refetchInterval: 60 * 60 * 1000,
+    enabled: !!token,
   })
-  const { data: websites = [], isLoading: websitesLoading } = useQuery({ queryKey: ['websites'], queryFn: listWebsites })
-  const { data: orgs = [], isLoading: orgsLoading } = useQuery({ queryKey: ['organisations'], queryFn: listOrganisations })
+  const { data: websites = [], isLoading: websitesLoading } = useQuery({ queryKey: ['websites'], queryFn: listWebsites, enabled: !!token })
+  const { data: orgs = [], isLoading: orgsLoading } = useQuery({ queryKey: ['organisations'], queryFn: listOrganisations, enabled: !!token })
   // Shell data (user/plan/websites/orgs) hasn't loaded yet — e.g. a hard reload or slow
   // connection. Render a blank page instead of the header/sidebar with placeholder values
   // like a default "BASIC" badge or an empty "Select website" dropdown.
@@ -862,7 +867,12 @@ function AppLayout() {
 
   async function handleLogout() {
     try { await logout() } catch { /* ok */ }
-    clearAuth()
+    // flushSync forces the re-render triggered by clearAuth() (token -> null) to
+    // commit immediately, so the me/billing-credits/websites/organisations queries
+    // above (enabled: !!token) are actually disabled before qc.clear() runs below —
+    // without this, clear() could still trigger one last refetch on the not-yet-
+    // re-rendered observers, which is what previously caused a burst of 401s.
+    flushSync(() => clearAuth())
     useSiteStore.getState().reset()
     // Clear cached queries (websites, billing, etc.) too — otherwise the
     // still-cached websites list immediately re-triggers the "auto-select
@@ -870,6 +880,10 @@ function AppLayout() {
     // data from this account could flash when a different user logs in next.
     qc.clear()
     navigate({ to: '/login' })
+    // Wipe storage last, once both stores above (siteStore's persist middleware
+    // included) have already written whatever they were going to write — otherwise
+    // that write would silently repopulate storage right after this clears it.
+    localStorage.clear()
   }
 
   const initials = user?.username?.slice(0, 2).toUpperCase() ?? '??'

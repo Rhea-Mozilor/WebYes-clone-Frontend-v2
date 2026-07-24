@@ -5,10 +5,7 @@ import toast from 'react-hot-toast'
 import { signup, login, getMe } from '../api/auth'
 import { startTrial } from '../api/billing'
 import { useAuthStore } from '../store/authStore'
-import Login1 from './svgicons/login/login1.png'
-import Login2 from './svgicons/login/login2.png'
-import Login3 from './svgicons/login/login3.png'
-import Login4 from './svgicons/login/login4.png'
+import { LoginHeroArt } from './LoginHeroArt'
 import WebYesLogo from './svgicons/Webyes-logo.svg'
 
 export function SignupForm({
@@ -63,31 +60,10 @@ export function SignupForm({
 
       {/* ── Left panel — identical to login ────────────────────────────── */}
       <div className="hidden lg:block relative overflow-hidden flex-none" style={{ width: '53.68%' }}>
-        <img src={Login4} alt="" className="absolute inset-0 w-full h-full object-cover" />
-
-        {/* Issues-per-page card */}
-        <img
-          src={Login1}
-          alt=""
-          className="absolute rounded-[12px] shadow-[0px_0px_20px_0px_rgba(0,0,0,0.35)]"
-          style={{ left: '10.87%', top: '22.28%', width: '46.83%' }}
-        />
-
-        {/* Level-A/AA/AAA card */}
-        <img
-          src={Login2}
-          alt=""
-          className="absolute shadow-[-3px_0px_16px_0px_rgba(22,43,149,0.1)]"
-          style={{ left: '39.46%', top: '38.21%', width: '36.35%' }}
-        />
-
-        {/* Toast card */}
-        <img
-          src={Login3}
-          alt=""
-          className="absolute rounded-[7px] shadow-[-3.5px_2.6px_12px_0px_rgba(16,6,57,0.12)]"
-          style={{ left: '48.25%', top: '18.51%', width: '36.74%' }}
-        />
+        {/* Background photo + floating cards, composited into one SVG so they scale
+            together as a single rigid image instead of drifting apart from each
+            other when the panel's own aspect ratio changes. */}
+        <LoginHeroArt className="absolute inset-0 w-full h-full object-cover" />
 
         {/* Bottom text */}
         <div

@@ -3,10 +3,7 @@ import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { login, getMe } from '../api/auth'
 import { useAuthStore } from '../store/authStore'
-import Login1 from '../components/svgicons/login/login1.png'
-import Login2 from '../components/svgicons/login/login2.png'
-import Login3 from '../components/svgicons/login/login3.png'
-import Login4 from '../components/svgicons/login/login4.png'
+import { LoginHeroArt } from '../components/LoginHeroArt'
 import WebYesLogo from '../components/svgicons/Webyes-logo.svg'
 
 export const Route = createFileRoute('/login')({
@@ -47,32 +44,10 @@ function LoginPage() {
       {/* Figma: 773px of 1440px frame = 53.68% */}
       <div className="hidden lg:block relative overflow-hidden flex-none" style={{ width: '53.68%' }}>
 
-        {/* Background image */}
-        <img src={Login4} alt="" className="absolute inset-0 w-full h-full object-cover" />
-
-        {/* Issues-per-page card  (imgImage1: left=84, top=207, w=362, h=344 in 773×929) */}
-        <img
-          src={Login1}
-          alt=""
-          className="absolute rounded-[12px] shadow-[0px_0px_20px_0px_rgba(0,0,0,0.35)]"
-          style={{ left: '10.87%', top: '22.28%', width: '46.83%' }}
-        />
-
-        {/* Level-A/AA/AAA card  (imgImage2: left=305, top=355, w=281, h=258) */}
-        <img
-          src={Login2}
-          alt=""
-          className="absolute shadow-[-3px_0px_16px_0px_rgba(22,43,149,0.1)]"
-          style={{ left: '39.46%', top: '38.21%', width: '36.35%' }}
-        />
-
-        {/* Toast card  (left=373, top=172, w=284) */}
-        <img
-          src={Login3}
-          alt=""
-          className="absolute rounded-[7px] shadow-[-3.5px_2.6px_12px_0px_rgba(16,6,57,0.12)]"
-          style={{ left: '48.25%', top: '18.51%', width: '36.74%' }}
-        />
+        {/* Background photo + floating cards, composited into one SVG so they scale
+            together as a single rigid image instead of drifting apart from each
+            other when the panel's own aspect ratio changes. */}
+        <LoginHeroArt className="absolute inset-0 w-full h-full object-cover" />
 
         {/* Bottom text  (left=240, top=663, w=276, h=181 in 773×929) */}
         <div

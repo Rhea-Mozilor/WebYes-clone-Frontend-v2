@@ -894,13 +894,23 @@ function AppLayout() {
 
   const initials = user?.username?.slice(0, 2).toUpperCase() ?? '??'
 
-  // No scan has ever completed for this website yet, and one is currently running
-  // — the category pages have nothing to show until it finishes. Driven by the
-  // backend's last_scanned_at (only ever set once a scan actually completes)
-  // rather than scansByWebsite, since "Explore dashboard" deliberately populates
-  // scansByWebsite with the in-progress scan's id so live data can be previewed
-  // while it's still running — that would otherwise make this flip false early.
-  const firstScanOngoing = isScanRunning && !!websiteId && !selectedWebsite?.last_scanned_at
+  // Live page-progress for whichever scan is currently running, from the same
+  // polled queries already used elsewhere (onboardingJob / rescanDesktopJob /
+  // rescanMobileJob) — no extra fetch.
+  const activeScanPagesScanned = Math.max(
+    onboardingJob?.pages_scanned ?? 0,
+    rescanDesktopJob?.pages_scanned ?? 0,
+    rescanMobileJob?.pages_scanned ?? 0,
+  )
+  // Locked whenever there's nothing to show: no scan has ever completed for this
+  // website (last_scanned_at unset — covers "Scan later" and a website that's
+  // never been scanned at all) AND the current attempt, if any, hasn't finished
+  // even a single page yet. Unlocks the moment either becomes true: a prior
+  // completed scan exists, OR the in-progress first scan has at least one page
+  // done (so there's something to preview via "Explore dashboard"). If that first
+  // scan gets cancelled before finishing any page, isScanRunning drops back to
+  // false and this correctly re-locks rather than staying unlocked.
+  const firstScanOngoing = !!websiteId && !selectedWebsite?.last_scanned_at && !(isScanRunning && activeScanPagesScanned >= 1)
 
   const sideLinks: { to: string | null; icon: React.ElementType; label: string; disabled?: boolean }[] = [
     { to: '/dashboard', icon: LayoutGrid, label: 'Dashboard' },

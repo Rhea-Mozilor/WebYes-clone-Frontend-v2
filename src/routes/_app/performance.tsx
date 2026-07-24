@@ -88,25 +88,25 @@ function PerformancePage() {
     if (preselectedIssueId) setSelectedIssueId(preselectedIssueId)
   }, [preselectedIssueId])
 
-  const { data: scoreData } = useQuery({
+  const { data: scoreData, isLoading: scoreLoading } = useQuery({
     queryKey: ['perf-score', scanId, strategy],
     queryFn: () => getPerformanceScore(scanId!, strategy),
     enabled: !!scanId,
   })
 
-  const { data: vitalsData } = useQuery({
+  const { data: vitalsData, isLoading: vitalsLoading } = useQuery({
     queryKey: ['perf-vitals', scanId, strategy],
     queryFn: () => getPerformanceVitals(scanId!, strategy),
     enabled: !!scanId,
   })
 
-  const { data: criticalData } = useQuery({
+  const { data: criticalData, isLoading: criticalLoading } = useQuery({
     queryKey: ['perf-critical', scanId, strategy],
     queryFn: () => getPerformanceCriticalIssues(scanId!, strategy),
     enabled: !!scanId,
   })
 
-  const { data: scoreOverTime } = useQuery({
+  const { data: scoreOverTime, isLoading: overTimeLoading } = useQuery({
     queryKey: ['perf-over-time', scanId, strategy],
     queryFn: () => getPerformanceScoreOverTime(scanId!, strategy),
     enabled: !!scanId,
@@ -216,82 +216,90 @@ function PerformancePage() {
                 </Link>
               </div>
 
-              {/* Center: score gauge */}
-              <div className="flex-1 flex flex-col items-center justify-center py-2">
-                <div className="relative overflow-hidden" style={{ width: 220, height: 175 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={[{ value: score }, { value: Math.max(0, 100 - score) }]}
-                        cx="50%" cy="52%" startAngle={225} endAngle={-45}
-                        innerRadius={68} outerRadius={90} dataKey="value" strokeWidth={0}>
-                        <Cell fill={score < 50 ? '#d93025' : score < 80 ? '#f59e0b' : '#22c55e'} />
-                        <Cell fill="#eeeeee" />
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute left-0 right-0 flex flex-col items-center pointer-events-none" style={{ top: '56%', transform: 'translateY(-50%)' }}>
-                    <div className={`flex items-baseline font-semibold ${score < 50 ? 'text-[#d93025]' : score < 80 ? 'text-[#f59e0b]' : 'text-[#22c55e]'}`} style={{ letterSpacing: '-0.91px' }}>
-                      <span className="text-[48px] leading-none">{score}</span>
-                      <span className="text-[34px] leading-none">%</span>
-                    </div>
-                    <div className="text-[15px] font-medium text-[#2e3240] mt-1.5">Overall score</div>
-                  </div>
+              {scoreLoading ? (
+                <div className="flex-1 flex items-center justify-center py-16">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
                 </div>
-                {trend != null && (
-                  <div className={cn('flex items-center gap-1 text-[14px] font-semibold mt-1', trend >= 0 ? 'text-[#0a843f]' : 'text-[#d93025]')}>
-                    {trend >= 0 ? '↑' : '↓'} {Math.abs(Math.round(trend))}%
-                  </div>
-                )}
-              </div>
-
-              {/* Right: stats cards */}
-              <div className="shrink-0 lg:w-[30%] flex flex-col gap-3">
-                {/* Avg Response Time */}
-                <div className="bg-white border border-[#ced6ed] rounded-[8px] p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="text-[13px] font-medium text-[#505050] tracking-[-0.26px]">Avg Response Time (sec)</div>
-                    <img src={AvgResponseTimeSvg} alt="" className="w-5 h-5 shrink-0" />
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[24px] font-semibold text-[#2e3240] tracking-[-0.48px] leading-none">
-                      {avgResponseMs != null ? `${(avgResponseMs / 1000).toFixed(2)} s` : '—'}
-                    </span>
-                    {scoreData?.avg_response_time_change_percent != null && (
-                      <span className={cn(
-                        'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[12px] font-semibold',
-                        scoreData.avg_response_time_change_percent >= 0 ? 'bg-[#e6f7ed] text-[#0a843f]' : 'bg-red-50 text-[#d93025]'
-                      )}>
-                        {scoreData.avg_response_time_change_percent >= 0 ? '↗' : '↘'} {Math.abs(scoreData.avg_response_time_change_percent).toFixed(1)}%
-                      </span>
+              ) : (
+                <>
+                  {/* Center: score gauge */}
+                  <div className="flex-1 flex flex-col items-center justify-center py-2">
+                    <div className="relative overflow-hidden" style={{ width: 220, height: 175 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={[{ value: score }, { value: Math.max(0, 100 - score) }]}
+                            cx="50%" cy="52%" startAngle={225} endAngle={-45}
+                            innerRadius={68} outerRadius={90} dataKey="value" strokeWidth={0}>
+                            <Cell fill={score < 50 ? '#d93025' : score < 80 ? '#f59e0b' : '#22c55e'} />
+                            <Cell fill="#eeeeee" />
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute left-0 right-0 flex flex-col items-center pointer-events-none" style={{ top: '56%', transform: 'translateY(-50%)' }}>
+                        <div className={`flex items-baseline font-semibold ${score < 50 ? 'text-[#d93025]' : score < 80 ? 'text-[#f59e0b]' : 'text-[#22c55e]'}`} style={{ letterSpacing: '-0.91px' }}>
+                          <span className="text-[48px] leading-none">{score}</span>
+                          <span className="text-[34px] leading-none">%</span>
+                        </div>
+                        <div className="text-[15px] font-medium text-[#2e3240] mt-1.5">Overall score</div>
+                      </div>
+                    </div>
+                    {trend != null && (
+                      <div className={cn('flex items-center gap-1 text-[14px] font-semibold mt-1', trend >= 0 ? 'text-[#0a843f]' : 'text-[#d93025]')}>
+                        {trend >= 0 ? '↑' : '↓'} {Math.abs(Math.round(trend))}%
+                      </div>
                     )}
                   </div>
-                </div>
-                {/* Total / Critical issues */}
-                <div className="bg-white border border-[#ced6ed] rounded-[8px] p-4 flex items-start gap-2 flex-1">
-                  <div className="flex-1">
-                    <div>
-                      <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Total issues</div>
-                      <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
-                        {String(totalIssues).padStart(2, '0')}
+
+                  {/* Right: stats cards */}
+                  <div className="shrink-0 lg:w-[30%] flex flex-col gap-3">
+                    {/* Avg Response Time */}
+                    <div className="bg-white border border-[#ced6ed] rounded-[8px] p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="text-[13px] font-medium text-[#505050] tracking-[-0.26px]">Avg Response Time (sec)</div>
+                        <img src={AvgResponseTimeSvg} alt="" className="w-5 h-5 shrink-0" />
                       </div>
-                      {prevTotalIssues != null && (
-                        <div className="text-[12px] text-[#73767f] mt-1">Previous count : {String(prevTotalIssues).padStart(2, '0')}</div>
-                      )}
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[24px] font-semibold text-[#2e3240] tracking-[-0.48px] leading-none">
+                          {avgResponseMs != null ? `${(avgResponseMs / 1000).toFixed(2)} s` : '—'}
+                        </span>
+                        {scoreData?.avg_response_time_change_percent != null && (
+                          <span className={cn(
+                            'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[12px] font-semibold',
+                            scoreData.avg_response_time_change_percent >= 0 ? 'bg-[#e6f7ed] text-[#0a843f]' : 'bg-red-50 text-[#d93025]'
+                          )}>
+                            {scoreData.avg_response_time_change_percent >= 0 ? '↗' : '↘'} {Math.abs(scoreData.avg_response_time_change_percent).toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="h-px bg-gray-100 my-3.5" />
-                    <div>
-                      <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Critical issues</div>
-                      <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
-                        {String(criticalCount).padStart(2, '0')}
+                    {/* Total / Critical issues */}
+                    <div className="bg-white border border-[#ced6ed] rounded-[8px] p-4 flex items-start gap-2 flex-1">
+                      <div className="flex-1">
+                        <div>
+                          <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Total issues</div>
+                          <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
+                            {String(totalIssues).padStart(2, '0')}
+                          </div>
+                          {prevTotalIssues != null && (
+                            <div className="text-[12px] text-[#73767f] mt-1">Previous count : {String(prevTotalIssues).padStart(2, '0')}</div>
+                          )}
+                        </div>
+                        <div className="h-px bg-gray-100 my-3.5" />
+                        <div>
+                          <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Critical issues</div>
+                          <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
+                            {String(criticalCount).padStart(2, '0')}
+                          </div>
+                          {prevCriticalIssues != null && (
+                            <div className="text-[12px] text-[#73767f] mt-1">Previous count : {String(prevCriticalIssues).padStart(2, '0')}</div>
+                          )}
+                        </div>
                       </div>
-                      {prevCriticalIssues != null && (
-                        <div className="text-[12px] text-[#73767f] mt-1">Previous count : {String(prevCriticalIssues).padStart(2, '0')}</div>
-                      )}
+                      <AlertTriangle className="w-7 h-7 text-amber-500 shrink-0 mt-0.5" />
                     </div>
                   </div>
-                  <AlertTriangle className="w-7 h-7 text-amber-500 shrink-0 mt-0.5" />
-                </div>
-              </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -313,7 +321,11 @@ function PerformancePage() {
               </div>
             )}
 
-            <VitalsGrid metrics={avgMetrics} />
+            {vitalsLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
+            ) : (
+              <VitalsGrid metrics={avgMetrics} />
+            )}
 
           </div>
 
@@ -324,7 +336,9 @@ function PerformancePage() {
             </div>
             <div className="relative">
               {isBasicPlan && <LockedOverlay label="Upgrade to see performance trends over time" />}
-              {chartData.length > 0 ? (
+              {overTimeLoading ? (
+                <div className="flex items-center justify-center h-[220px]"><Loader2 className="w-6 h-6 animate-spin text-blue-400" /></div>
+              ) : chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={220}>
                   <AreaChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
                     <defs>
@@ -396,7 +410,9 @@ function PerformancePage() {
                   View all issues →
                 </Link>
               </div>
-              {(criticalData?.items ?? []).length === 0 ? (
+              {criticalLoading ? (
+                <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
+              ) : (criticalData?.items ?? []).length === 0 ? (
                 <p className="text-xs text-gray-400 py-6 text-center">No critical performance issues</p>
               ) : (
                 <div className="divide-y divide-[#f5f5f5]">

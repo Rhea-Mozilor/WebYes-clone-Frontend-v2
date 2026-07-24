@@ -208,7 +208,7 @@ function DashboardPage() {
   // always fetch enough rows (5 shown + up to 3 blurred teaser rows) regardless of that state.
   const effectivePageSize = isBasicPlan ? 8 : itemsPerPage
 
-  const { data: scanIssues } = useQuery({
+  const { data: scanIssues, isLoading: scanIssuesLoading } = useQuery({
     queryKey: ['scan-issues', scanId, strategy, currentPage, effectivePageSize, activeTab],
     queryFn: () => getScanIssues(scanId!, currentPage, effectivePageSize, categoryParam, strategy),
     enabled: !!scanId,
@@ -558,7 +558,9 @@ function DashboardPage() {
           </div>
 
           {/* Table */}
-          {pagedIssues.length === 0 ? (
+          {scanIssuesLoading ? (
+            <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
+          ) : pagedIssues.length === 0 ? (
             <div className="text-sm text-gray-400 text-center py-12">No issues in this category</div>
           ) : (() => {
             const renderRow = (issue: typeof pagedIssues[number], locked: boolean) => (

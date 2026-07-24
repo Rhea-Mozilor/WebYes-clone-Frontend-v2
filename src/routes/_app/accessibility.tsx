@@ -91,25 +91,25 @@ function AccessibilityPage() {
     if (preselectedIssueId) setSelectedIssueId(preselectedIssueId)
   }, [preselectedIssueId])
 
-  const { data: scoreData } = useQuery({
+  const { data: scoreData, isLoading: scoreLoading } = useQuery({
     queryKey: ['accessibility-score', scanId, strategy],
     queryFn: () => getAccessibilityScore(scanId!, strategy),
     enabled: !!scanId,
   })
 
-  const { data: commonIssues } = useQuery({
+  const { data: commonIssues, isLoading: commonLoading } = useQuery({
     queryKey: ['accessibility-common', scanId, strategy],
     queryFn: () => getAccessibilityCommonIssues(scanId!, strategy),
     enabled: !!scanId,
   })
 
-  const { data: wcagSummary } = useQuery({
+  const { data: wcagSummary, isLoading: wcagLoading } = useQuery({
     queryKey: ['accessibility-wcag', scanId, strategy],
     queryFn: () => getAccessibilityWcagSummary(scanId!, strategy),
     enabled: !!scanId,
   })
 
-  const { data: scoreOverTime } = useQuery({
+  const { data: scoreOverTime, isLoading: overTimeLoading } = useQuery({
     queryKey: ['accessibility-over-time', scanId, strategy],
     queryFn: () => getAccessibilityScoreOverTime(scanId!, strategy),
     enabled: !!scanId,
@@ -221,99 +221,107 @@ function AccessibilityPage() {
                 </Link>
               </div>
 
-              {/* Center: score gauge */}
-              <div className="flex-1 flex flex-col items-center justify-center py-2">
-                <div className="relative overflow-hidden" style={{ width: 220, height: 175 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={[{ value: score }, { value: Math.max(0, 100 - score) }]}
-                        cx="50%" cy="52%"
-                        startAngle={225} endAngle={-45}
-                        innerRadius={68} outerRadius={90}
-                        dataKey="value" strokeWidth={0}
-                      >
-                        <Cell fill={score < 50 ? '#d93025' : score < 80 ? '#f59e0b' : '#22c55e'} />
-                        <Cell fill="#eeeeee" />
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute left-0 right-0 flex flex-col items-center pointer-events-none" style={{ top: '56%', transform: 'translateY(-50%)' }}>
-                    <div className={`flex items-baseline font-semibold ${score < 50 ? 'text-[#d93025]' : score < 80 ? 'text-[#f59e0b]' : 'text-[#22c55e]'}`} style={{ letterSpacing: '-0.91px' }}>
-                      <span className="text-[48px] leading-none">{score}</span>
-                      <span className="text-[34px] leading-none">%</span>
-                    </div>
-                    <div className="text-[15px] font-medium text-[#2e3240] mt-1.5">Overall score</div>
-                  </div>
+              {scoreLoading ? (
+                <div className="flex-1 flex items-center justify-center py-16">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
                 </div>
-                {trendPct != null && (
-                  <div className={cn('flex items-center gap-1 text-[14px] font-semibold mt-1',
-                    trendPct >= 0 ? 'text-[#0a843f]' : 'text-[#d93025]')}>
-                    {trendPct >= 0 ? '↑' : '↓'} {Math.abs(Math.round(trendPct))}%
-                  </div>
-                )}
-              </div>
-
-              {/* Right: level boxes + stats card */}
-              <div className="shrink-0 flex flex-col gap-3 lg:w-[38%]">
-                {/* 3 level mini-boxes */}
-                <div className="flex gap-3">
-                  {/* Level A */}
-                  <div className="bg-white border border-[#9cb3e0] rounded-[8px] relative flex-1 min-h-[142px]">
-                    <img src={AccessibilitySvg} alt="" className="absolute top-3.5 left-3.5 w-6 h-6" />
-                    <div className="absolute bottom-4 left-4 flex flex-col gap-1">
-                      <span className="text-[13px] font-medium text-[rgba(43,28,80,0.7)] tracking-[-0.26px]">Level A</span>
-                      <span className="text-[28px] font-semibold text-[#2e3240] leading-none">{levelA}%</span>
-                    </div>
-                  </div>
-                  {/* Level AA */}
-                  <div className="bg-white border border-[#9cb3e0] rounded-[8px] relative flex-1 min-h-[142px]">
-                    <img src={AccessibilitySvg} alt="" className="absolute top-3.5 left-3.5 w-6 h-6" />
-                    <div className="absolute bottom-4 left-4 flex flex-col gap-1">
-                      <span className="text-[13px] font-medium text-[rgba(43,28,80,0.7)] tracking-[-0.26px]">Level AA</span>
-                      <span className="text-[28px] font-semibold text-[#2e3240] leading-none">{levelAA}%</span>
-                    </div>
-                  </div>
-                  {/* Level AAA */}
-                  <div className="bg-white border border-[#9cb3e0] rounded-[8px] relative flex-1 min-h-[142px]">
-                    <img src={AccessibilitySvg} alt="" className="absolute top-3.5 left-3.5 w-6 h-6" />
-                    <div className="absolute bottom-4 left-4 flex flex-col gap-1">
-                      <span className="text-[13px] font-medium text-[rgba(43,28,80,0.7)] tracking-[-0.26px]">Level AAA</span>
-                      <span className="text-[28px] font-semibold text-[#2e3240] leading-none">_</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stats card */}
-                <div className="bg-white border border-[#ced6ed] rounded-[8px] p-4 flex items-start gap-2">
-                  <div className="flex-1">
-                    <div>
-                      <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Total issues</div>
-                      <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
-                        {String(totalIssues).padStart(2, '0')}
-                      </div>
-                      {prevTotalIssues != null && (
-                        <div className="flex items-center gap-1 text-[13px] text-[#73767f] mt-1.5">
-                          Previous count : {String(prevTotalIssues).padStart(2, '0')}
+              ) : (
+                <>
+                  {/* Center: score gauge */}
+                  <div className="flex-1 flex flex-col items-center justify-center py-2">
+                    <div className="relative overflow-hidden" style={{ width: 220, height: 175 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[{ value: score }, { value: Math.max(0, 100 - score) }]}
+                            cx="50%" cy="52%"
+                            startAngle={225} endAngle={-45}
+                            innerRadius={68} outerRadius={90}
+                            dataKey="value" strokeWidth={0}
+                          >
+                            <Cell fill={score < 50 ? '#d93025' : score < 80 ? '#f59e0b' : '#22c55e'} />
+                            <Cell fill="#eeeeee" />
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute left-0 right-0 flex flex-col items-center pointer-events-none" style={{ top: '56%', transform: 'translateY(-50%)' }}>
+                        <div className={`flex items-baseline font-semibold ${score < 50 ? 'text-[#d93025]' : score < 80 ? 'text-[#f59e0b]' : 'text-[#22c55e]'}`} style={{ letterSpacing: '-0.91px' }}>
+                          <span className="text-[48px] leading-none">{score}</span>
+                          <span className="text-[34px] leading-none">%</span>
                         </div>
-                      )}
-                    </div>
-                    <div className="h-px bg-gray-100 my-3.5" />
-                    <div>
-                      <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Critical issues</div>
-                      <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
-                        {String(criticalCount).padStart(2, '0')}
+                        <div className="text-[15px] font-medium text-[#2e3240] mt-1.5">Overall score</div>
                       </div>
-                      {prevCriticalIssues != null && (
-                        <div className="flex items-center gap-1 text-[13px] text-[#73767f] mt-1.5">
-                          Previous count : {String(prevCriticalIssues).padStart(2, '0')}
+                    </div>
+                    {trendPct != null && (
+                      <div className={cn('flex items-center gap-1 text-[14px] font-semibold mt-1',
+                        trendPct >= 0 ? 'text-[#0a843f]' : 'text-[#d93025]')}>
+                        {trendPct >= 0 ? '↑' : '↓'} {Math.abs(Math.round(trendPct))}%
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right: level boxes + stats card */}
+                  <div className="shrink-0 flex flex-col gap-3 lg:w-[38%]">
+                    {/* 3 level mini-boxes */}
+                    <div className="flex gap-3">
+                      {/* Level A */}
+                      <div className="bg-white border border-[#9cb3e0] rounded-[8px] relative flex-1 min-h-[142px]">
+                        <img src={AccessibilitySvg} alt="" className="absolute top-3.5 left-3.5 w-6 h-6" />
+                        <div className="absolute bottom-4 left-4 flex flex-col gap-1">
+                          <span className="text-[13px] font-medium text-[rgba(43,28,80,0.7)] tracking-[-0.26px]">Level A</span>
+                          <span className="text-[28px] font-semibold text-[#2e3240] leading-none">{levelA}%</span>
                         </div>
-                      )}
+                      </div>
+                      {/* Level AA */}
+                      <div className="bg-white border border-[#9cb3e0] rounded-[8px] relative flex-1 min-h-[142px]">
+                        <img src={AccessibilitySvg} alt="" className="absolute top-3.5 left-3.5 w-6 h-6" />
+                        <div className="absolute bottom-4 left-4 flex flex-col gap-1">
+                          <span className="text-[13px] font-medium text-[rgba(43,28,80,0.7)] tracking-[-0.26px]">Level AA</span>
+                          <span className="text-[28px] font-semibold text-[#2e3240] leading-none">{levelAA}%</span>
+                        </div>
+                      </div>
+                      {/* Level AAA */}
+                      <div className="bg-white border border-[#9cb3e0] rounded-[8px] relative flex-1 min-h-[142px]">
+                        <img src={AccessibilitySvg} alt="" className="absolute top-3.5 left-3.5 w-6 h-6" />
+                        <div className="absolute bottom-4 left-4 flex flex-col gap-1">
+                          <span className="text-[13px] font-medium text-[rgba(43,28,80,0.7)] tracking-[-0.26px]">Level AAA</span>
+                          <span className="text-[28px] font-semibold text-[#2e3240] leading-none">_</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stats card */}
+                    <div className="bg-white border border-[#ced6ed] rounded-[8px] p-4 flex items-start gap-2">
+                      <div className="flex-1">
+                        <div>
+                          <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Total issues</div>
+                          <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
+                            {String(totalIssues).padStart(2, '0')}
+                          </div>
+                          {prevTotalIssues != null && (
+                            <div className="flex items-center gap-1 text-[13px] text-[#73767f] mt-1.5">
+                              Previous count : {String(prevTotalIssues).padStart(2, '0')}
+                            </div>
+                          )}
+                        </div>
+                        <div className="h-px bg-gray-100 my-3.5" />
+                        <div>
+                          <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Critical issues</div>
+                          <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
+                            {String(criticalCount).padStart(2, '0')}
+                          </div>
+                          {prevCriticalIssues != null && (
+                            <div className="flex items-center gap-1 text-[13px] text-[#73767f] mt-1.5">
+                              Previous count : {String(prevCriticalIssues).padStart(2, '0')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <AlertTriangle className="w-7 h-7 text-amber-500 shrink-0 mt-0.5" />
                     </div>
                   </div>
-                  <AlertTriangle className="w-7 h-7 text-amber-500 shrink-0 mt-0.5" />
-                </div>
-              </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -324,7 +332,9 @@ function AccessibilityPage() {
               <h3 className="text-[20px] font-semibold text-[#2e3240] tracking-[-0.2px] leading-[24px] mb-5">
                 Common accessibility issues
               </h3>
-              {commonItems.length === 0 ? (
+              {commonLoading ? (
+                <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-blue-400" /></div>
+              ) : commonItems.length === 0 ? (
                 <p className="text-xs text-gray-400 py-8 text-center">No common issues found</p>
               ) : (
                 <div className="flex flex-col sm:flex-row gap-6 items-start">
@@ -374,38 +384,42 @@ function AccessibilityPage() {
               <h3 className="text-[20px] font-semibold text-[#2e3240] tracking-[-0.2px] leading-[24px] mb-5">
                 WCAG {wcagSummary?.wcag_version ?? '2.2'}
               </h3>
-              <div className="grid grid-cols-2 gap-4">
-                {/* Passed Audits */}
-                <div className="border border-[#dedede] rounded-[8px] p-4 relative" style={{ minHeight: 144 }}>
-                  <CheckCircle2 className="w-[30px] h-[30px] text-green-500 absolute top-3.5 right-3.5" />
-                  <div className="mt-10">
-                    <div className="flex items-center gap-1 text-[14px] text-[#73767f]">
-                      Passed Audits
+              {wcagLoading ? (
+                <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-blue-400" /></div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Passed Audits */}
+                  <div className="border border-[#dedede] rounded-[8px] p-4 relative" style={{ minHeight: 144 }}>
+                    <CheckCircle2 className="w-[30px] h-[30px] text-green-500 absolute top-3.5 right-3.5" />
+                    <div className="mt-10">
+                      <div className="flex items-center gap-1 text-[14px] text-[#73767f]">
+                        Passed Audits
+                      </div>
+                      <div className="text-[24px] font-medium text-black mt-2">{wcagSummary?.passed_audits ?? 0}</div>
                     </div>
-                    <div className="text-[24px] font-medium text-black mt-2">{wcagSummary?.passed_audits ?? 0}</div>
+                  </div>
+                  {/* Required manual checks */}
+                  <div className="border border-[#dedede] rounded-[8px] p-4 relative" style={{ minHeight: 144 }}>
+                    <ClipboardList className="w-[28px] h-[28px] text-blue-500 absolute top-3.5 right-3.5" />
+                    <div className="mt-10">
+                      <div className="text-[14px] text-[#73767f] leading-snug pr-2">
+                        Required manual checks
+                      </div>
+                      <div className="text-[24px] font-medium text-black mt-2">{wcagSummary?.needs_review_count ?? 0}</div>
+                    </div>
+                  </div>
+                  {/* Not Applicable */}
+                  <div className="border border-[#dedede] rounded-[8px] p-4 relative" style={{ minHeight: 144 }}>
+                    <Flag className="w-[28px] h-[28px] text-red-400 absolute top-3.5 right-3.5" />
+                    <div className="mt-10">
+                      <div className="flex items-center gap-1 text-[14px] text-[#73767f]">
+                        Not Applicable
+                      </div>
+                      <div className="text-[24px] font-medium text-black mt-2">{wcagSummary?.not_applicable_count ?? 0}</div>
+                    </div>
                   </div>
                 </div>
-                {/* Required manual checks */}
-                <div className="border border-[#dedede] rounded-[8px] p-4 relative" style={{ minHeight: 144 }}>
-                  <ClipboardList className="w-[28px] h-[28px] text-blue-500 absolute top-3.5 right-3.5" />
-                  <div className="mt-10">
-                    <div className="text-[14px] text-[#73767f] leading-snug pr-2">
-                      Required manual checks
-                    </div>
-                    <div className="text-[24px] font-medium text-black mt-2">{wcagSummary?.needs_review_count ?? 0}</div>
-                  </div>
-                </div>
-                {/* Not Applicable */}
-                <div className="border border-[#dedede] rounded-[8px] p-4 relative" style={{ minHeight: 144 }}>
-                  <Flag className="w-[28px] h-[28px] text-red-400 absolute top-3.5 right-3.5" />
-                  <div className="mt-10">
-                    <div className="flex items-center gap-1 text-[14px] text-[#73767f]">
-                      Not Applicable
-                    </div>
-                    <div className="text-[24px] font-medium text-black mt-2">{wcagSummary?.not_applicable_count ?? 0}</div>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -418,6 +432,9 @@ function AccessibilityPage() {
               </div>
               <div className="relative">
                 {isBasicPlan && <LockedOverlay label="Upgrade to see accessibility trends over time" />}
+                {overTimeLoading ? (
+                  <div className="flex items-center justify-center h-[240px]"><Loader2 className="w-6 h-6 animate-spin text-blue-400" /></div>
+                ) : (
                 <ResponsiveContainer width="100%" height={240}>
                   <AreaChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
                     <defs>
@@ -435,6 +452,7 @@ function AccessibilityPage() {
                       fill="url(#areaGrad)" dot={{ fill: '#06387d', r: 3 }} activeDot={{ r: 5 }} />
                   </AreaChart>
                 </ResponsiveContainer>
+                )}
               </div>
             </div>
 

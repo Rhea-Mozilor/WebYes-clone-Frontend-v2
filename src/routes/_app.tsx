@@ -699,6 +699,7 @@ function AppLayout() {
   const [creditsOpen, setCreditsOpen] = useState(false)
   const handledJobRef = useRef<string | null>(null)
   const recoveredJobRef = useRef<string | null>(null)
+  const rescanAutoShownRef = useRef(false)
 
   // Poll onboarding scan job running in background (user clicked "Back to Dashboard")
   const { data: onboardingJob } = useQuery({
@@ -740,6 +741,17 @@ function AppLayout() {
     setScanDetailOpen(false)
     void qc.invalidateQueries({ queryKey: ['billing-credits'] })
   }, [onboardingJob?.status, activeScanJob?.jobId, websiteId, setScanForWebsite, setActiveScanJob, qc])
+
+  // Auto-reopen the rescan progress modal once its scan finishes, but only once the
+  // user is actually back on /dashboard — not the instant it completes elsewhere.
+  // Fires once per completed scan; resets when a new scan starts (scanJobsDone -> false).
+  useEffect(() => {
+    if (!scanJobsDone) { rescanAutoShownRef.current = false; return }
+    if (rescanAutoShownRef.current) return
+    if (location !== '/dashboard') return
+    rescanAutoShownRef.current = true
+    setScanModalVisible(true)
+  }, [scanJobsDone, location])
 
   // Website dropdown state
   const [siteSearch, setSiteSearch] = useState('')
@@ -946,8 +958,8 @@ function AppLayout() {
         />
       )}
 
-      {/* ── Onboarding scan completion modal (fires when scan finishes in background) ── */}
-      {onboardingComplete && (
+      {/* ── Onboarding scan completion modal — held until the user is back on /dashboard ── */}
+      {onboardingComplete && location === '/dashboard' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-sm shadow-2xl w-full max-w-sm overflow-hidden">
             <div className="flex justify-end px-4 pt-4">

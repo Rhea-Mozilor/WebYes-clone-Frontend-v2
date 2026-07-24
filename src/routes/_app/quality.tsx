@@ -67,19 +67,19 @@ function QualityPage() {
     if (preselectedIssueId) setSelectedIssueId(preselectedIssueId)
   }, [preselectedIssueId])
 
-  const { data: scoreData } = useQuery({
+  const { data: scoreData, isLoading: scoreLoading } = useQuery({
     queryKey: ['quality-score', scanId, strategy],
     queryFn: () => getQualityScore(scanId!, strategy),
     enabled: !!scanId,
   })
 
-  const { data: criticalData } = useQuery({
+  const { data: criticalData, isLoading: criticalLoading } = useQuery({
     queryKey: ['quality-critical', scanId, strategy],
     queryFn: () => getQualityCriticalIssues(scanId!, strategy),
     enabled: !!scanId,
   })
 
-  const { data: scoreOverTime } = useQuery({
+  const { data: scoreOverTime, isLoading: overTimeLoading } = useQuery({
     queryKey: ['quality-score-over-time', scanId, strategy],
     queryFn: () => getQualityScoreOverTime(scanId!, strategy),
     enabled: !!scanId,
@@ -169,62 +169,70 @@ function QualityPage() {
                 </Link>
               </div>
 
-              {/* Center: score gauge */}
-              <div className="flex-1 flex flex-col items-center justify-center py-2">
-                <div className="relative overflow-hidden" style={{ width: 220, height: 175 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={[{ value: score }, { value: Math.max(0, 100 - score) }]}
-                        cx="50%" cy="52%" startAngle={225} endAngle={-45}
-                        innerRadius={68} outerRadius={90} dataKey="value" strokeWidth={0}>
-                        <Cell fill={score < 50 ? '#d93025' : score < 80 ? '#f59e0b' : '#22c55e'} />
-                        <Cell fill="#eeeeee" />
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute left-0 right-0 flex flex-col items-center pointer-events-none" style={{ top: '56%', transform: 'translateY(-50%)' }}>
-                    <div className={`flex items-baseline font-semibold ${score < 50 ? 'text-[#d93025]' : score < 80 ? 'text-[#f59e0b]' : 'text-[#22c55e]'}`} style={{ letterSpacing: '-0.91px' }}>
-                      <span className="text-[48px] leading-none">{score}</span>
-                      <span className="text-[34px] leading-none">%</span>
-                    </div>
-                    <div className="text-[15px] font-medium text-[#2e3240] mt-1.5">Overall score</div>
-                  </div>
+              {scoreLoading ? (
+                <div className="flex-1 flex items-center justify-center py-16">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
                 </div>
-                {trendPct != null && (
-                  <div className={cn('flex items-center gap-1 text-[14px] font-semibold mt-1',
-                    trendPct >= 0 ? 'text-[#0a843f]' : 'text-[#d93025]')}>
-                    {trendPct >= 0 ? '↑' : '↓'} {Math.abs(Math.round(trendPct))}%
+              ) : (
+                <>
+                  {/* Center: score gauge */}
+                  <div className="flex-1 flex flex-col items-center justify-center py-2">
+                    <div className="relative overflow-hidden" style={{ width: 220, height: 175 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={[{ value: score }, { value: Math.max(0, 100 - score) }]}
+                            cx="50%" cy="52%" startAngle={225} endAngle={-45}
+                            innerRadius={68} outerRadius={90} dataKey="value" strokeWidth={0}>
+                            <Cell fill={score < 50 ? '#d93025' : score < 80 ? '#f59e0b' : '#22c55e'} />
+                            <Cell fill="#eeeeee" />
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute left-0 right-0 flex flex-col items-center pointer-events-none" style={{ top: '56%', transform: 'translateY(-50%)' }}>
+                        <div className={`flex items-baseline font-semibold ${score < 50 ? 'text-[#d93025]' : score < 80 ? 'text-[#f59e0b]' : 'text-[#22c55e]'}`} style={{ letterSpacing: '-0.91px' }}>
+                          <span className="text-[48px] leading-none">{score}</span>
+                          <span className="text-[34px] leading-none">%</span>
+                        </div>
+                        <div className="text-[15px] font-medium text-[#2e3240] mt-1.5">Overall score</div>
+                      </div>
+                    </div>
+                    {trendPct != null && (
+                      <div className={cn('flex items-center gap-1 text-[14px] font-semibold mt-1',
+                        trendPct >= 0 ? 'text-[#0a843f]' : 'text-[#d93025]')}>
+                        {trendPct >= 0 ? '↑' : '↓'} {Math.abs(Math.round(trendPct))}%
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* Right: stats card */}
-              <div className="shrink-0 lg:w-[30%] flex flex-col">
-                <div className="bg-white border border-[#ced6ed] rounded-[8px] p-4 flex items-start gap-2 flex-1">
-                  <div className="flex-1">
-                    <div>
-                      <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Total issues</div>
-                      <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
-                        {String(totalIssues).padStart(2, '0')}
+                  {/* Right: stats card */}
+                  <div className="shrink-0 lg:w-[30%] flex flex-col">
+                    <div className="bg-white border border-[#ced6ed] rounded-[8px] p-4 flex items-start gap-2 flex-1">
+                      <div className="flex-1">
+                        <div>
+                          <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Total issues</div>
+                          <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
+                            {String(totalIssues).padStart(2, '0')}
+                          </div>
+                          {prevTotalIssues != null && (
+                            <div className="text-[12px] text-[#73767f] mt-1">Previous count : {String(prevTotalIssues).padStart(2, '0')}</div>
+                          )}
+                        </div>
+                        <div className="h-px bg-gray-100 my-3.5" />
+                        <div>
+                          <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Critical issues</div>
+                          <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
+                            {String(criticalCount).padStart(2, '0')}
+                          </div>
+                          {prevCriticalIssues != null && (
+                            <div className="text-[12px] text-[#73767f] mt-1">Previous count : {String(prevCriticalIssues).padStart(2, '0')}</div>
+                          )}
+                        </div>
                       </div>
-                      {prevTotalIssues != null && (
-                        <div className="text-[12px] text-[#73767f] mt-1">Previous count : {String(prevTotalIssues).padStart(2, '0')}</div>
-                      )}
-                    </div>
-                    <div className="h-px bg-gray-100 my-3.5" />
-                    <div>
-                      <div className="text-[14px] font-medium text-[#141414] tracking-[-0.28px] mb-2">Critical issues</div>
-                      <div className="text-[24px] font-semibold text-[#d93025] tracking-[-0.48px] leading-none">
-                        {String(criticalCount).padStart(2, '0')}
-                      </div>
-                      {prevCriticalIssues != null && (
-                        <div className="text-[12px] text-[#73767f] mt-1">Previous count : {String(prevCriticalIssues).padStart(2, '0')}</div>
-                      )}
+                      <AlertTriangle className="w-7 h-7 text-amber-500 shrink-0 mt-0.5" />
                     </div>
                   </div>
-                  <AlertTriangle className="w-7 h-7 text-amber-500 shrink-0 mt-0.5" />
-                </div>
-              </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -237,7 +245,9 @@ function QualityPage() {
               </div>
               <div className="relative">
                 {isBasicPlan && <LockedOverlay label="Upgrade to see quality trends over time" />}
-                {chartData.length < 2 ? (
+                {overTimeLoading ? (
+                  <div className="flex items-center justify-center h-48"><Loader2 className="w-6 h-6 animate-spin text-blue-400" /></div>
+                ) : chartData.length < 2 ? (
                   <div className="flex items-center justify-center h-48 text-xs text-gray-400">Need at least 2 scans to show trend</div>
                 ) : (
                   <ResponsiveContainer width="100%" height={240}>
@@ -270,7 +280,9 @@ function QualityPage() {
                   View all issues →
                 </Link>
               </div>
-              {(criticalData?.items ?? []).length === 0 ? (
+              {criticalLoading ? (
+                <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-blue-400" /></div>
+              ) : (criticalData?.items ?? []).length === 0 ? (
                 <p className="text-xs text-gray-400 py-6 text-center">No critical quality issues</p>
               ) : (
                 <div className="divide-y divide-[#f5f5f5]">
